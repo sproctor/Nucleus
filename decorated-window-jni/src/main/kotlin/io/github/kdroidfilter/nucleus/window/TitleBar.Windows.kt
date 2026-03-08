@@ -69,8 +69,10 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
         }
     }
 
-    // ── Fullscreen: store title bar content for the overlay, skip layout ──
-    if (isNativeFullscreen) {
+    val useNewFullscreenControls = modifier.hasNewFullscreenControls()
+
+    // ── Fullscreen with newFullscreenControls: sliding overlay ──
+    if (isNativeFullscreen && useNewFullscreenControls) {
         LaunchedEffect(window) {
             val hwnd = JniWindowsWindowUtil.getHwnd(window)
             if (hwnd != 0L) JniWindowsDecorationBridge.nativeSetTitleBarHeight(hwnd, 0)
@@ -82,8 +84,6 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
         if (holder != null) {
             holder.titleBarHeight = style.metrics.height
             holder.content = {
-                // Re-use TitleBarImpl but without layoutId concerns — it's rendered
-                // outside DecoratedWindowMeasurePolicy in the overlay.
                 TitleBarImpl(
                     modifier = modifier,
                     gradientStartColor = gradientStartColor,
@@ -104,7 +104,7 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
         return
     }
 
-    // ── Normal: standard title bar ────────────────────────────────────
+    // ── Normal title bar (or fullscreen without newFullscreenControls) ──
     TitleBarImpl(
         modifier = modifier,
         gradientStartColor = gradientStartColor,
@@ -147,7 +147,13 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
             )
         },
     ) { currentState ->
-        WindowsWindowControlArea(window, currentState, style)
+        WindowsWindowControlArea(
+            window = window,
+            state = currentState,
+            style = style,
+            isFullscreen = isNativeFullscreen,
+            onExitFullscreen = onExitFullscreen,
+        )
         content(currentState)
     }
 }
