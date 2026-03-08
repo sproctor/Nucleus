@@ -67,7 +67,7 @@ import io.github.kdroidfilter.nucleus.systemcolor.systemAccentColor
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
-import io.github.kdroidfilter.nucleus.window.TitleBarScope
+import io.github.kdroidfilter.nucleus.window.macOSLargeCornerRadius
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
@@ -159,7 +159,7 @@ fun main(args: Array<String>) {
                     var tabs by remember { mutableStateOf(listOf("Main.kt", "Build.gradle", "README.md", "Settings")) }
                     var selectedTab by remember { mutableStateOf("Main.kt") }
 
-                    MaterialTitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
+                    MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
                         val titleBarAlignment =
                             if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
@@ -404,7 +404,7 @@ private enum class ThemeMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionNaming", "DEPRECATION")
 @Composable
-private fun TitleBarScope.TitleBarIconButton(
+private fun TitleBarIconButton(
     imageVector: ImageVector,
     contentDescription: String,
     modifier: Modifier = Modifier,

@@ -318,11 +318,18 @@ TitleBar(
 
 When `gradientStartColor` is `Color.Unspecified` (the default), the background is a solid color.
 
-## macOS Title Bar Modifiers
+## Fullscreen Title Bar
 
-### Fullscreen Controls
+### `newFullscreenControls()` — Sliding Overlay Title Bar
 
-On macOS, use the `newFullscreenControls()` modifier on `TitleBar` to enable the new-style fullscreen controls (traffic lights stay visible in fullscreen mode with a colored background):
+The `newFullscreenControls()` modifier enables a **native-style sliding title bar** in fullscreen mode. When the window enters fullscreen, the title bar is hidden and rendered as a **floating overlay** that slides down when the user moves the pointer near the top edge of the screen, and slides back up when the pointer moves away.
+
+The behavior matches each platform's native fullscreen conventions: **Safari-like** on macOS, **Edge-like** on Windows, and **Firefox-like** on Linux.
+
+This works on **all three platforms** (macOS, Windows, Linux).
+
+!!! note "Windows fullscreen fix"
+    Compose for Desktop does not handle fullscreen correctly on Windows — the window does not cover the taskbar and does not behave like a true fullscreen window. With `newFullscreenControls()` and `decorated-window-jni`, fullscreen is implemented via native Win32 APIs, producing a true fullscreen window that covers the taskbar, exactly like Edge or other native Windows applications.
 
 ```kotlin
 TitleBar(modifier = Modifier.newFullscreenControls()) { state ->
@@ -330,11 +337,28 @@ TitleBar(modifier = Modifier.newFullscreenControls()) { state ->
 }
 ```
 
-With `decorated-window-jbr`, this sets the `apple.awt.newFullScreenControls` system property and uses `fullscreenControlButtonsBackground` from your `TitleBarStyle`.
+#### Behavior
 
-With `decorated-window-jni`, fullscreen button management is handled natively — the modifier is a no-op but safe to call.
+- In windowed mode, the title bar behaves normally
+- When the window enters fullscreen:
+    - The title bar is removed from the window layout and repositioned as a **top-edge overlay**
+    - Moving the pointer to the top edge of the screen triggers a **200ms slide-down animation**
+    - Moving the pointer away triggers a **200ms slide-up animation** (hidden)
+    - The title bar content, window controls, and drag behavior are preserved in the overlay
 
-### Large Corner Radius
+#### Platform details
+
+| Platform | Fullscreen trigger | Overlay behavior |
+|----------|--------------------|------------------|
+| **macOS** | Native macOS fullscreen (green traffic light) | Safari-like: synced with the system menu bar; traffic light buttons animate in/out together with the title bar. Uses a native `NSEvent` monitor for menu bar visibility detection. |
+| **Windows** | Native Win32 fullscreen | Edge-like: title bar overlay with Compose-drawn window controls (minimize, maximize, close). Supports both native JNI drag and Compose fallback. |
+| **Linux** | Native WM fullscreen | Firefox-like: title bar overlay with GNOME Adwaita or KDE Breeze window controls. Uses `_NET_WM_MOVERESIZE` or Compose fallback for drag. |
+
+With `decorated-window-jbr`, this modifier sets the `apple.awt.newFullScreenControls` system property on macOS and uses `fullscreenControlButtonsBackground` from your `TitleBarStyle`. The sliding overlay behavior is only available with `decorated-window-jni`.
+
+With `decorated-window-jni`, the full sliding overlay is available on all platforms.
+
+### `macOSLargeCornerRadius()` — Large Corner Radius
 
 On macOS, use the `macOSLargeCornerRadius()` modifier on `TitleBar` to enable the 26pt window corner radius — the same radius used by Apple apps with a toolbar (Finder, Safari, etc.). Without this modifier, the window uses the standard ~10pt radius.
 
@@ -351,6 +375,9 @@ TitleBar(
 When enabled, an invisible `NSToolbar` is attached to the window, which triggers AppKit's larger corner radius. The traffic light buttons are automatically repositioned to match Apple's native inset (+6pt horizontally and vertically), consistent with Finder and Safari.
 
 The toolbar is transparently managed around fullscreen transitions — removed before entering fullscreen to avoid visual glitches, and reinstalled after the animation completes.
+
+!!! warning "Requires a JDK compiled with Xcode 26"
+    This modifier relies on the JNI native library to install the `NSToolbar`. If the native library cannot be loaded (i.e. the JDK was not compiled with Xcode 26 or later), `macOSLargeCornerRadius()` has **no effect**: the window will keep the standard ~10pt corner radius, and the traffic light buttons will remain at their default (smaller) position.
 
 This modifier only has an effect with `decorated-window-jni` on macOS. It is safe to call on other platforms (no-op).
 
