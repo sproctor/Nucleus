@@ -2,6 +2,7 @@ package io.github.kdroidfilter.nucleus.window
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -105,13 +106,19 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         animationSpec = tween(durationMillis = MENU_BAR_ANIMATION_MS),
     )
 
+    // Resolve the title bar background colour so we can fill the gap
+    // above the title bar when it slides down in fullscreen.
+    val background by style.colors.backgroundFor(state)
+
     // When the menu bar is visible, visually shift the title bar down
     // without affecting layout — the content below stays in place and
     // the title bar overlaps it, exactly like Safari in fullscreen.
     // zIndex ensures the title bar draws on top of the content below.
+    // background() fills the original layout bounds (y=0) so no white
+    // gap appears behind the sliding title bar in dark mode.
     val fullscreenOffset =
         if (animatedOffset > 0.dp) {
-            Modifier.zIndex(1f).offset(y = animatedOffset)
+            Modifier.zIndex(1f).background(background).offset(y = animatedOffset)
         } else {
             Modifier
         }
