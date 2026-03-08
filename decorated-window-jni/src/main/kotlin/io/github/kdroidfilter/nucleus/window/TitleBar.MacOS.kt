@@ -100,6 +100,7 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
                     onDispose {
                         if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
                             JniMacTitleBarBridge.nativeRemoveMenuBarMonitor(ptr)
+                            JniMacTitleBarBridge.removeMenuBarOffsetFlow(ptr)
                         }
                     }
                 }

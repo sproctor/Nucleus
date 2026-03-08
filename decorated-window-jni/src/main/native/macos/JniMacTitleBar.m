@@ -59,9 +59,11 @@ static void ensureJVMCached(JNIEnv *env) {
     }
 }
 
-// Calls JniMacTitleBarBridge.onMenuBarOffsetChanged(nsWindowPtr, offset)
-// from the macOS main thread. Attaches to the JVM as a daemon thread
-// on first call; subsequent calls reuse the attached env.
+// Calls JniMacTitleBarBridge.onMenuBarOffsetChanged(nsWindowPtr, offset).
+// MUST be called only from the macOS main thread (AppKit run loop).
+// Attaches the main thread to the JVM as a daemon on first call;
+// subsequent calls reuse the attached env. The main thread is never
+// detached — it lives for the entire lifetime of the application.
 static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
     if (!sJVM || !sBridgeClass || !sOnOffsetChanged) return;
 
@@ -412,53 +414,84 @@ static float getMenuBarOffsetForWindow(NSWindow *window) {
 
 // ─── Menu bar event monitor ─────────────────────────────────────────────────────
 
-// Installs an NSEvent local monitor that checks [NSMenu menuBarVisible]
-// on every mouse event. When the offset changes, notifies Kotlin via
-// JNI callback (notifyMenuBarOffsetChanged). This is event-driven — no
-// timer or polling loop. The monitor fires on the macOS main thread,
-// so all AppKit reads are thread-safe.
+// Installs observers that detect menu bar visibility changes:
+// 1) NSEvent local monitor — catches mouse-triggered menu bar show/hide.
+// 2) NSMenuDidBeginTrackingNotification — catches keyboard-triggered menu
+//    activation (Control+F2 / Fn+Control+F2), independent of mouse events.
+// 3) NSMenuDidEndTrackingNotification — catches when menu tracking ends
+//    and the menu bar may be about to hide.
+//
+// All handlers run on the macOS main thread, so AppKit reads are safe.
+// When the offset changes, Kotlin is notified via JNI callback.
 static void installMenuBarMonitor(NSWindow *window) {
     removeMenuBarMonitor(window);
 
     __weak NSWindow *weakWindow = window;
-    id monitor = [NSEvent addLocalMonitorForEventsMatchingMask:
+
+    // Shared check block — reads the current menu bar state and notifies
+    // Kotlin via JNI callback if the offset changed since last check.
+    void (^checkMenuBar)(void) = ^{
+        NSWindow *w = weakWindow;
+        if (!w) return;
+        if (!(w.styleMask & NSWindowStyleMaskFullScreen)) return;
+
+        float offset = 0.0f;
+        if ([NSMenu menuBarVisible]) {
+            NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
+            if (mainMenu) offset = (float)[mainMenu menuBarHeight];
+        }
+
+        NSNumber *lastRaw = objc_getAssociatedObject(w, &kMenuBarLastRawOffsetKey);
+        float lastOffset = lastRaw ? [lastRaw floatValue] : -1.0f;
+
+        if (offset != lastOffset) {
+            objc_setAssociatedObject(w, &kMenuBarLastRawOffsetKey, @(offset),
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            notifyMenuBarOffsetChanged(w, offset);
+        }
+    };
+
+    // (1) Mouse event monitor
+    id eventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:
         (NSEventMaskMouseMoved | NSEventMaskLeftMouseDown |
          NSEventMaskLeftMouseUp | NSEventMaskLeftMouseDragged |
          NSEventMaskMouseEntered | NSEventMaskMouseExited)
         handler:^NSEvent *(NSEvent *event) {
-            NSWindow *w = weakWindow;
-            if (!w) return event;
-            if (!(w.styleMask & NSWindowStyleMaskFullScreen)) return event;
-
-            float offset = 0.0f;
-            if ([NSMenu menuBarVisible]) {
-                NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
-                if (mainMenu) offset = (float)[mainMenu menuBarHeight];
-            }
-
-            NSNumber *lastRaw = objc_getAssociatedObject(w, &kMenuBarLastRawOffsetKey);
-            float lastOffset = lastRaw ? [lastRaw floatValue] : -1.0f;
-
-            if (offset != lastOffset) {
-                objc_setAssociatedObject(w, &kMenuBarLastRawOffsetKey, @(offset),
-                                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-                notifyMenuBarOffsetChanged(w, offset);
-            }
-
+            checkMenuBar();
             return event;
         }];
 
-    objc_setAssociatedObject(window, &kMenuBarMonitorKey, monitor,
+    // (2) + (3) Notification observers for keyboard-triggered menu tracking
+    NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
+    id beginObserver = [nc addObserverForName:NSMenuDidBeginTrackingNotification
+                                      object:nil
+                                       queue:[NSOperationQueue mainQueue]
+                                  usingBlock:^(NSNotification *note) {
+        checkMenuBar();
+    }];
+    id endObserver = [nc addObserverForName:NSMenuDidEndTrackingNotification
+                                    object:nil
+                                     queue:[NSOperationQueue mainQueue]
+                                usingBlock:^(NSNotification *note) {
+        checkMenuBar();
+    }];
+
+    // Store all observers in an array for cleanup.
+    NSArray *monitors = @[eventMonitor, beginObserver, endObserver];
+    objc_setAssociatedObject(window, &kMenuBarMonitorKey, monitors,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static void removeMenuBarMonitor(NSWindow *window) {
-    id monitor = objc_getAssociatedObject(window, &kMenuBarMonitorKey);
-    if (monitor) {
-        [NSEvent removeMonitor:monitor];
-        objc_setAssociatedObject(window, &kMenuBarMonitorKey, nil,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    NSArray *monitors = objc_getAssociatedObject(window, &kMenuBarMonitorKey);
+    if (monitors && monitors.count >= 3) {
+        [NSEvent removeMonitor:monitors[0]];
+        NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
+        [nc removeObserver:monitors[1]];
+        [nc removeObserver:monitors[2]];
     }
+    objc_setAssociatedObject(window, &kMenuBarMonitorKey, nil,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(window, &kMenuBarLastRawOffsetKey, nil,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
