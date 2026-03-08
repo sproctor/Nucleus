@@ -3,9 +3,8 @@ package io.github.kdroidfilter.nucleus.window
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -17,13 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -34,6 +33,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.window.utils.linux.JniLinuxWindowBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsDecorationBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsWindowUtil
 
@@ -83,7 +83,9 @@ fun DecoratedWindow(
             else -> false
         }
 
-    val useNativeFullscreen = Platform.Current == Platform.Windows && JniWindowsDecorationBridge.isLoaded
+    val useNativeFullscreen =
+        (Platform.Current == Platform.Windows && JniWindowsDecorationBridge.isLoaded) ||
+            (Platform.Current == Platform.Linux && JniLinuxWindowBridge.isLoaded)
     val windowState =
         if (useNativeFullscreen) {
             remember(state) { NativeFullscreenWindowState(state) }
@@ -161,9 +163,13 @@ fun DecoratedWindow(
 
 /**
  * Renders the fullscreen title bar as a sliding overlay.
- * Hidden above the top edge by default; slides down when hovering the top.
+ * Hidden above the top edge by default; slides down when the pointer
+ * moves near the top of the screen.
+ *
+ * Uses [Modifier.pointerInput] with [awaitPointerEventScope] for detection,
+ * because [PointerEventType.Enter]/[Exit] on transparent composables
+ * does not reliably fire on Linux compositors at screen edges.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")
 @Composable
 private fun FullscreenTitleBarOverlay(
@@ -172,28 +178,31 @@ private fun FullscreenTitleBarOverlay(
 ) {
     val titleBarContent = holder.content ?: return
     val titleBarHeight = holder.titleBarHeight
+    val density = LocalDensity.current
+    val titleBarHeightPx = with(density) { titleBarHeight.toPx() }
 
-    var topHovered by remember { mutableStateOf(false) }
-    var barHovered by remember { mutableStateOf(false) }
-    val visible = topHovered || barHovered
+    var visible by remember { mutableStateOf(false) }
 
     val offsetY by animateDpAsState(
         targetValue = if (visible) 0.dp else -titleBarHeight,
         animationSpec = tween(durationMillis = 200),
     )
 
-    Box(modifier = modifier.fillMaxWidth()) {
-        // 1px invisible hover detector at the very top edge of the screen
-        Spacer(
+    Box(modifier = modifier.fillMaxSize()) {
+        // Invisible full-screen pointer tracker.
+        // Shows the bar when pointer is near the top, hides it when pointer moves away.
+        Box(
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .align(Alignment.TopCenter)
-                    .onPointerEvent(PointerEventType.Enter, PointerEventPass.Main) {
-                        topHovered = true
-                    }.onPointerEvent(PointerEventType.Exit, PointerEventPass.Main) {
-                        topHovered = false
+                    .fillMaxSize()
+                    .pointerInput(titleBarHeightPx) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Main)
+                                val y = event.changes.firstOrNull()?.position?.y ?: continue
+                                visible = y < titleBarHeightPx
+                            }
+                        }
                     },
         )
 
@@ -203,10 +212,16 @@ private fun FullscreenTitleBarOverlay(
                 Modifier
                     .fillMaxWidth()
                     .offset(y = offsetY)
-                    .onPointerEvent(PointerEventType.Enter, PointerEventPass.Main) {
-                        barHovered = true
-                    }.onPointerEvent(PointerEventType.Exit, PointerEventPass.Main) {
-                        barHovered = false
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Main)
+                                val type = event.type
+                                if (type == PointerEventType.Enter || type == PointerEventType.Move) {
+                                    visible = true
+                                }
+                            }
+                        }
                     },
         ) {
             titleBarContent()
@@ -215,23 +230,40 @@ private fun FullscreenTitleBarOverlay(
 }
 
 /**
- * Watches [state].placement and enters/exits native Win32 fullscreen accordingly.
+ * Watches [state].placement and enters/exits native fullscreen accordingly.
  * A local [isNativeFullscreen] flag guards against redundant JNI calls if
  * [snapshotFlow] emits the same placement multiple times in quick succession.
+ *
+ * Works on both Windows (Win32 fullscreen) and Linux (_NET_WM_STATE_FULLSCREEN).
  */
 @Composable
 private fun FrameWindowScope.NativeFullscreenEffect(state: WindowState) {
     LaunchedEffect(state, window) {
         var isNativeFullscreen = false
         snapshotFlow { state.placement }.collect { placement ->
-            val hwnd = JniWindowsWindowUtil.getHwnd(window)
-            if (hwnd == 0L) return@collect
-
             if (placement == WindowPlacement.Fullscreen && !isNativeFullscreen) {
-                JniWindowsDecorationBridge.nativeSetFullscreen(hwnd, true)
+                when (Platform.Current) {
+                    Platform.Windows -> {
+                        val hwnd = JniWindowsWindowUtil.getHwnd(window)
+                        if (hwnd != 0L) JniWindowsDecorationBridge.nativeSetFullscreen(hwnd, true)
+                    }
+                    Platform.Linux -> {
+                        JniLinuxWindowBridge.nativeSetFullscreen(window, true)
+                    }
+                    else -> {}
+                }
                 isNativeFullscreen = true
             } else if (placement != WindowPlacement.Fullscreen && isNativeFullscreen) {
-                JniWindowsDecorationBridge.nativeSetFullscreen(hwnd, false)
+                when (Platform.Current) {
+                    Platform.Windows -> {
+                        val hwnd = JniWindowsWindowUtil.getHwnd(window)
+                        if (hwnd != 0L) JniWindowsDecorationBridge.nativeSetFullscreen(hwnd, false)
+                    }
+                    Platform.Linux -> {
+                        JniLinuxWindowBridge.nativeSetFullscreen(window, false)
+                    }
+                    else -> {}
+                }
                 isNativeFullscreen = false
             }
         }

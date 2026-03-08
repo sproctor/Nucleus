@@ -67,4 +67,12 @@ internal object JniLinuxWindowBridge {
     // Checks if the window manager supports _NET_WM_MOVERESIZE.
     @JvmStatic
     external fun nativeIsWmMoveResizeSupported(awtWindow: java.awt.Window): Boolean
+
+    // Toggles native fullscreen via _NET_WM_STATE_FULLSCREEN.
+    @JvmStatic
+    external fun nativeSetFullscreen(awtWindow: java.awt.Window, fullscreen: Boolean): Boolean
+
+    // Checks if the window currently has _NET_WM_STATE_FULLSCREEN set.
+    @JvmStatic
+    external fun nativeIsFullscreen(awtWindow: java.awt.Window): Boolean
 }
