@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":decorated-window-jni"))
     implementation(project(":energy-manager"))
     implementation(project(":graalvm-runtime"))
+    implementation(libs.reorderable)
 }
 
 val releaseVersion =
