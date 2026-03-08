@@ -84,4 +84,21 @@ internal object JniMacTitleBarBridge {
     // where Kotlin reflection cannot access sun.awt.AWTAccessor.
     @JvmStatic
     external fun nativeGetNSWindowPtr(awtWindow: java.awt.Window): Long
+
+    // Stores the newFullscreenControls flag on the NSWindow.
+    // When enabled, the title bar and traffic-light buttons are pushed down
+    // by the menu bar height when the auto-hidden menu bar appears in fullscreen.
+    @JvmStatic
+    external fun nativeSetNewFullscreenControls(nsWindowPtr: Long, enabled: Boolean)
+
+    // Returns the current menu bar offset in points.
+    // When in fullscreen with newFullscreenControls and the menu bar is visible,
+    // returns the menu bar height (~24pt). Otherwise returns 0.
+    @JvmStatic
+    external fun nativeGetMenuBarOffset(nsWindowPtr: Long): Float
+
+    // Stores the current menu bar offset (in points) and repositions
+    // the native traffic-light buttons to match the Compose title bar.
+    @JvmStatic
+    external fun nativeSetMenuBarOffset(nsWindowPtr: Long, offsetPt: Float)
 }

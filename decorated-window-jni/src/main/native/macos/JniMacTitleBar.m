@@ -4,13 +4,15 @@
 #include <math.h>
 
 // Associated object keys
-static const char kTitleBarConstraintsKey   = 0;
-static const char kTitleBarHeightKey        = 1;
-static const char kFullscreenObserverKey    = 2;
-static const char kFullscreenButtonsKey     = 3;
-static const char kOriginalButtonsParentKey = 4;
-static const char kZoomResponderKey         = 5;
-static const char kDragViewKey              = 6;
+static const char kTitleBarConstraintsKey      = 0;
+static const char kTitleBarHeightKey           = 1;
+static const char kFullscreenObserverKey       = 2;
+static const char kFullscreenButtonsKey        = 3;
+static const char kOriginalButtonsParentKey    = 4;
+static const char kZoomResponderKey            = 5;
+static const char kDragViewKey                 = 6;
+static const char kNewFullscreenControlsKey    = 7;
+static const char kMenuBarOffsetKey            = 8;
 
 static const float kMinHeightForFullSize = 28.0f;
 static const float kDefaultButtonOffset  = 23.0f;
@@ -351,8 +353,21 @@ static void removeFullScreenButtons(NSWindow *window) {
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+// Returns the current menu bar height when visible in fullscreen, 0 otherwise.
+// Safe to call from any thread (dispatches to main queue if needed).
+static float getMenuBarOffsetForWindow(NSWindow *window) {
+    if (!(window.styleMask & NSWindowStyleMaskFullScreen)) return 0;
+    BOOL newControls = [objc_getAssociatedObject(window, &kNewFullscreenControlsKey) boolValue];
+    if (!newControls) return 0;
+    if (![NSMenu menuBarVisible]) return 0.0f;
+    NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
+    return mainMenu ? (float)[mainMenu menuBarHeight] : 0.0f;
+}
+
 // Repositions the fullscreen button container (called from layout passes).
 // Uses the same metrics as installFullScreenButtons / applyConstraints.
+// When newFullscreenControls is active, accounts for the menu bar offset
+// so buttons move down with the title bar when the menu bar appears.
 static void updateFullScreenButtonsPosition(NSWindow *window) {
     NucleusButtonsView *container = objc_getAssociatedObject(window, &kFullscreenButtonsKey);
     if (!container) return;
@@ -366,7 +381,11 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
     float btnWidth, btnHeight, offset;
     computeButtonMetrics(titleBarHeight, &btnWidth, &btnHeight, &offset);
 
-    CGFloat y = parent.frame.size.height - titleBarHeight;
+    // Read the menu bar offset stored by Compose via nativeSetMenuBarOffset.
+    NSNumber *storedMenuBarOffset = objc_getAssociatedObject(window, &kMenuBarOffsetKey);
+    float menuBarOffset = storedMenuBarOffset ? [storedMenuBarOffset floatValue] : 0.0f;
+
+    CGFloat y = parent.frame.size.height - titleBarHeight - menuBarOffset;
     [container setFrame:NSMakeRect(0, y,
                                    titleBarHeight / 2.0f + 2.0f * offset + btnWidth,
                                    titleBarHeight)];
@@ -702,6 +721,10 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
             removeExistingConstraints(window);
             objc_setAssociatedObject(window, &kTitleBarHeightKey, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(window, &kNewFullscreenControlsKey, nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(window, &kMenuBarOffsetKey, nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             [window setTitlebarAppearsTransparent:NO];
             [window setTitleVisibility:NSWindowTitleVisible];
             [window setMovable:YES];
@@ -764,5 +787,54 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
 
     dispatch_async(dispatch_get_main_queue(), ^{
         [window performWindowDragWithEvent:event];
+    });
+}
+
+// Stores the newFullscreenControls flag on the window.
+// When enabled, the title bar and its traffic-light buttons are pushed down
+// by the menu bar height whenever the auto-hidden menu bar becomes visible
+// in fullscreen — mirroring Safari's fullscreen title bar behavior.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeSetNewFullscreenControls(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr, jboolean enabled) {
+
+    if (nsWindowPtr == 0) return;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    BOOL flag = (BOOL)enabled;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        objc_setAssociatedObject(window, &kNewFullscreenControlsKey, @(flag),
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    });
+}
+
+// Returns the current menu bar offset in points.
+// Reads the value computed by getMenuBarOffsetForWindow — safe to call
+// from any thread, never dispatches synchronously.
+JNIEXPORT jfloat JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeGetMenuBarOffset(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
+
+    if (nsWindowPtr == 0) return 0.0f;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    return getMenuBarOffsetForWindow(window);
+}
+
+// Stores the current menu bar offset (in points) as seen by Compose.
+// Called from the polling loop so that nativeUpdateFullScreenButtons
+// can position the traffic-light buttons at the same Y offset,
+// keeping native buttons and Compose title bar perfectly in sync.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeSetMenuBarOffset(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr, jfloat offsetPt) {
+
+    if (nsWindowPtr == 0) return;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    objc_setAssociatedObject(window, &kMenuBarOffsetKey, @(offsetPt),
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // Immediately reposition buttons on the main queue
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            updateFullScreenButtonsPosition(window);
+        }
     });
 }

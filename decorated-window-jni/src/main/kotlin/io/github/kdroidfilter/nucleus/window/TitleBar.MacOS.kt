@@ -1,13 +1,22 @@
 package io.github.kdroidfilter.nucleus.window
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -19,8 +28,12 @@ import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import io.github.kdroidfilter.nucleus.window.utils.macos.JniMacTitleBarBridge
 import io.github.kdroidfilter.nucleus.window.utils.macos.JniMacWindowUtil
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
+
+private const val MENU_BAR_POLL_INTERVAL_MS = 16L
+private const val MENU_BAR_ANIMATION_MS = 200
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")
@@ -31,12 +44,77 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
     style: TitleBarStyle = LocalTitleBarStyle.current,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
+    val useNewFullscreenControls = modifier.hasNewFullscreenControls()
+
+    // Notify native side about the newFullscreenControls preference
+    DisposableEffect(window, useNewFullscreenControls) {
+        if (useNewFullscreenControls) {
+            val ptr = JniMacWindowUtil.getWindowPtr(window)
+            if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                JniMacTitleBarBridge.nativeSetNewFullscreenControls(ptr, true)
+            }
+        }
+        onDispose {
+            if (useNewFullscreenControls) {
+                val ptr = JniMacWindowUtil.getWindowPtr(window)
+                if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                    JniMacTitleBarBridge.nativeSetNewFullscreenControls(ptr, false)
+                }
+            }
+        }
+    }
+
     DisposableEffect(window) {
         onDispose {
             val ptr = JniMacWindowUtil.getWindowPtr(window)
             if (ptr != 0L) JniMacTitleBarBridge.nativeResetTitleBar(ptr)
         }
     }
+
+    // Poll the menu bar offset during fullscreen with newFullscreenControls.
+    // When the user moves the cursor to the top of the screen, macOS slides
+    // the auto-hidden menu bar down. We track its height and push the title
+    // bar (+ its traffic-light buttons) down by the same amount — mirroring
+    // Safari's fullscreen title bar behaviour.
+    var menuBarOffsetPt by remember { mutableStateOf(0f) }
+
+    if (state.isFullscreen && useNewFullscreenControls) {
+        LaunchedEffect(window) {
+            while (coroutineContext.isActive) {
+                val ptr = JniMacWindowUtil.getWindowPtr(window)
+                if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                    val offset = JniMacTitleBarBridge.nativeGetMenuBarOffset(ptr)
+                    if (offset != menuBarOffsetPt) {
+                        menuBarOffsetPt = offset
+                        // Push the same offset to native so traffic-light
+                        // buttons stay in sync with the Compose title bar.
+                        JniMacTitleBarBridge.nativeSetMenuBarOffset(ptr, offset)
+                    }
+                } else {
+                    menuBarOffsetPt = 0f
+                }
+                delay(MENU_BAR_POLL_INTERVAL_MS)
+            }
+        }
+    } else {
+        menuBarOffsetPt = 0f
+    }
+
+    val animatedOffset by animateDpAsState(
+        targetValue = menuBarOffsetPt.dp,
+        animationSpec = tween(durationMillis = MENU_BAR_ANIMATION_MS),
+    )
+
+    // When the menu bar is visible, visually shift the title bar down
+    // without affecting layout — the content below stays in place and
+    // the title bar overlaps it, exactly like Safari in fullscreen.
+    // zIndex ensures the title bar draws on top of the content below.
+    val fullscreenOffset =
+        if (animatedOffset > 0.dp) {
+            Modifier.zIndex(1f).offset(y = animatedOffset)
+        } else {
+            Modifier
+        }
 
     val viewConfig = LocalViewConfiguration.current
     var lastPress = 0L
@@ -49,7 +127,8 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         // so it sees consumed events from children (tabs, buttons) in PointerEventPass.Main.
         // Double-click uses Final pass so interactive children consume the event first.
         modifier =
-            modifier
+            fullscreenOffset
+                .then(modifier)
                 .titleBarHitTestHandler(window)
                 .onPointerEvent(PointerEventType.Press, PointerEventPass.Final) {
                     if (
