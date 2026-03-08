@@ -127,8 +127,14 @@ fun DecoratedWindow(
 
         val titleBarHolder = remember { FullscreenTitleBarHolder() }
 
-        // Clear holder content when leaving fullscreen
-        if (!isNativeFullscreen) {
+        // Clear holder content when leaving fullscreen.
+        // On macOS, fullscreen is managed by AppKit (toggleFullScreen:), not by
+        // our JNI mechanism. Compose's WindowState.placement reflects the
+        // NSWindowStyleMaskFullScreen style mask, making it a reliable proxy
+        // for macOS native fullscreen state.
+        val isMacOSFullscreen =
+            Platform.Current == Platform.MacOS && state.placement == WindowPlacement.Fullscreen
+        if (!isNativeFullscreen && !isMacOSFullscreen) {
             titleBarHolder.content = null
         }
 
@@ -155,6 +161,18 @@ fun DecoratedWindow(
                         holder = titleBarHolder,
                         modifier = Modifier.align(Alignment.TopCenter),
                     )
+                }
+            }
+
+            // macOS: always-visible overlay managed by MacOSTitleBar
+            // (newFullscreenControls sets holder.content during macOS fullscreen)
+            if (!isNativeFullscreen && titleBarHolder.content != null) {
+                CompositionLocalProvider(
+                    LocalTitleBarInfo provides TitleBarInfo(title, icon),
+                ) {
+                    Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                        titleBarHolder.content?.invoke()
+                    }
                 }
             }
         }
@@ -199,7 +217,11 @@ private fun FullscreenTitleBarOverlay(
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Main)
-                                val y = event.changes.firstOrNull()?.position?.y ?: continue
+                                val y =
+                                    event.changes
+                                        .firstOrNull()
+                                        ?.position
+                                        ?.y ?: continue
                                 visible = y < titleBarHeightPx
                             }
                         }
