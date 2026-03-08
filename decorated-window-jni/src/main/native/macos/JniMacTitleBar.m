@@ -354,14 +354,27 @@ static void removeFullScreenButtons(NSWindow *window) {
 }
 
 // Returns the current menu bar height when visible in fullscreen, 0 otherwise.
-// Safe to call from any thread (dispatches to main queue if needed).
+// All AppKit reads (styleMask, menuBarVisible, menuBarHeight) are dispatched
+// to the main thread to avoid thread-safety issues when called from the JVM.
 static float getMenuBarOffsetForWindow(NSWindow *window) {
-    if (!(window.styleMask & NSWindowStyleMaskFullScreen)) return 0;
-    BOOL newControls = [objc_getAssociatedObject(window, &kNewFullscreenControlsKey) boolValue];
-    if (!newControls) return 0;
-    if (![NSMenu menuBarVisible]) return 0.0f;
-    NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
-    return mainMenu ? (float)[mainMenu menuBarHeight] : 0.0f;
+    __block float result = 0.0f;
+
+    void (^block)(void) = ^{
+        if (!(window.styleMask & NSWindowStyleMaskFullScreen)) { result = 0; return; }
+        BOOL newControls = [objc_getAssociatedObject(window, &kNewFullscreenControlsKey) boolValue];
+        if (!newControls) { result = 0; return; }
+        if (![NSMenu menuBarVisible]) { result = 0; return; }
+        NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
+        result = mainMenu ? (float)[mainMenu menuBarHeight] : 0.0f;
+    };
+
+    if ([NSThread isMainThread]) {
+        block();
+    } else {
+        dispatch_sync(dispatch_get_main_queue(), block);
+    }
+
+    return result;
 }
 
 // Repositions the fullscreen button container (called from layout passes).
@@ -808,8 +821,8 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
 }
 
 // Returns the current menu bar offset in points.
-// Reads the value computed by getMenuBarOffsetForWindow — safe to call
-// from any thread, never dispatches synchronously.
+// Dispatches to the main thread via dispatch_sync to safely read
+// AppKit state (styleMask, menuBarVisible, menuBarHeight).
 JNIEXPORT jfloat JNICALL
 Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeGetMenuBarOffset(
     JNIEnv *env, jclass clazz, jlong nsWindowPtr) {

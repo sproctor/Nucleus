@@ -32,7 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
 
-private const val MENU_BAR_POLL_INTERVAL_MS = 16L
+private const val MENU_BAR_POLL_INTERVAL_MS = 100L
 private const val MENU_BAR_ANIMATION_MS = 200
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -104,10 +104,13 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
 
     // Push the animated offset to native so traffic-light buttons follow
     // the same smooth animation as the Compose title bar.
-    LaunchedEffect(animatedOffset) {
-        val ptr = JniMacWindowUtil.getWindowPtr(window)
-        if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
-            JniMacTitleBarBridge.nativeSetMenuBarOffset(ptr, animatedOffset.value)
+    // Guarded to avoid unnecessary JNI calls when not in fullscreen.
+    if (state.isFullscreen && useNewFullscreenControls) {
+        LaunchedEffect(animatedOffset) {
+            val ptr = JniMacWindowUtil.getWindowPtr(window)
+            if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                JniMacTitleBarBridge.nativeSetMenuBarOffset(ptr, animatedOffset.value)
+            }
         }
     }
 

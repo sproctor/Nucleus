@@ -128,8 +128,10 @@ fun DecoratedWindow(
         val titleBarHolder = remember { FullscreenTitleBarHolder() }
 
         // Clear holder content when leaving fullscreen.
-        // On macOS, the title bar manages holder content during native macOS
-        // fullscreen (not JNI-managed), so only clear when truly not fullscreen.
+        // On macOS, fullscreen is managed by AppKit (toggleFullScreen:), not by
+        // our JNI mechanism. Compose's WindowState.placement reflects the
+        // NSWindowStyleMaskFullScreen style mask, making it a reliable proxy
+        // for macOS native fullscreen state.
         val isMacOSFullscreen =
             Platform.Current == Platform.MacOS && state.placement == WindowPlacement.Fullscreen
         if (!isNativeFullscreen && !isMacOSFullscreen) {
