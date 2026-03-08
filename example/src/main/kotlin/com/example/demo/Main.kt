@@ -73,6 +73,7 @@ import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
 import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
+import io.github.kdroidfilter.nucleus.window.newFullscreenControls
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.io.File
@@ -159,7 +160,7 @@ fun main(args: Array<String>) {
                     var tabs by remember { mutableStateOf(listOf("Main.kt", "Build.gradle", "README.md", "Settings")) }
                     var selectedTab by remember { mutableStateOf("Main.kt") }
 
-                    MaterialTitleBar(modifier = Modifier) { _ ->
+                    MaterialTitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
                         val titleBarAlignment =
                             if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
