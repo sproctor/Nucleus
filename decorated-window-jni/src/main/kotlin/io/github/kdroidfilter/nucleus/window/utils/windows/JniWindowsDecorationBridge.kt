@@ -94,6 +94,19 @@ internal object JniWindowsDecorationBridge {
     @JvmStatic
     external fun nativeApplyDialogStyle(hwnd: Long)
 
+    // Enters or exits native fullscreen mode.
+    // Enter: saves style/exstyle/placement, removes caption/frame, covers the monitor.
+    // Exit: restores saved style/exstyle/placement (maximized, floating, etc.).
+    @JvmStatic
+    external fun nativeSetFullscreen(
+        hwnd: Long,
+        fullscreen: Boolean,
+    )
+
+    // Returns true if the window is currently in native fullscreen mode.
+    @JvmStatic
+    external fun nativeIsFullscreen(hwnd: Long): Boolean
+
     // Returns debug counters as a string (temporary).
     @JvmStatic
     external fun nativeGetDebugInfo(hwnd: Long): String

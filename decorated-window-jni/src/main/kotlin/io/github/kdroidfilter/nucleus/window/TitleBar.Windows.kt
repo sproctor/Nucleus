@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,10 +38,6 @@ internal fun DecoratedWindowScope.WindowsTitleBar(
     }
 }
 
-// Native title bar: uses JNI WndProc subclass for resize borders and DWM shadow.
-// All title bar clicks go to Compose. Drag is initiated from Compose via nativeStartDrag
-// when a press is unconsumed by interactive elements (buttons, switches, etc.).
-// Double-click to maximize is handled in Compose.
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")
 @Composable
@@ -50,6 +47,8 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
     style: TitleBarStyle,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
+    val isNativeFullscreen = LocalNativeFullscreen.current
+    val onExitFullscreen = LocalExitFullscreen.current
     val density = LocalDensity.current
     val viewConfig = LocalViewConfiguration.current
     var lastPressTime = 0L
@@ -70,6 +69,42 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
         }
     }
 
+    // ── Fullscreen: store title bar content for the overlay, skip layout ──
+    if (isNativeFullscreen) {
+        LaunchedEffect(Unit) {
+            val hwnd = JniWindowsWindowUtil.getHwnd(window)
+            if (hwnd != 0L) JniWindowsDecorationBridge.nativeSetTitleBarHeight(hwnd, 0)
+        }
+
+        // Store rendering into the holder so DecoratedWindow can render it
+        // as a floating overlay outside the DecoratedWindowBody layout.
+        val holder = LocalFullscreenTitleBarHolder.current
+        if (holder != null) {
+            holder.titleBarHeight = style.metrics.height
+            holder.content = {
+                // Re-use TitleBarImpl but without layoutId concerns — it's rendered
+                // outside DecoratedWindowMeasurePolicy in the overlay.
+                TitleBarImpl(
+                    modifier = modifier,
+                    gradientStartColor = gradientStartColor,
+                    style = style,
+                    applyTitleBar = { _, _ -> PaddingValues(0.dp) },
+                ) { currentState ->
+                    WindowsWindowControlArea(
+                        window = window,
+                        state = currentState,
+                        style = style,
+                        isFullscreen = true,
+                        onExitFullscreen = onExitFullscreen,
+                    )
+                    content(currentState)
+                }
+            }
+        }
+        return
+    }
+
+    // ── Normal: standard title bar ────────────────────────────────────
     TitleBarImpl(
         modifier = modifier,
         gradientStartColor = gradientStartColor,
@@ -83,9 +118,6 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
             PaddingValues(0.dp)
         },
         backgroundContent = {
-            // Background handles drag and double-click for the non-interactive
-            // area. Interactive elements (buttons, switches) are in the foreground
-            // and consume the press, so it never reaches this handler.
             Spacer(
                 modifier =
                     Modifier
@@ -98,14 +130,12 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
                                 val now = System.currentTimeMillis()
                                 val elapsed = now - lastPressTime
                                 if (elapsed in viewConfig.doubleTapMinTimeMillis..viewConfig.doubleTapTimeoutMillis) {
-                                    // Double-click: toggle maximize
                                     if (state.isMaximized) {
                                         window.extendedState = Frame.NORMAL
                                     } else {
                                         window.extendedState = Frame.MAXIMIZED_BOTH
                                     }
                                 } else {
-                                    // Single press: initiate native drag
                                     val hwnd = JniWindowsWindowUtil.getHwnd(window)
                                     if (hwnd != 0L) {
                                         JniWindowsDecorationBridge.nativeStartDrag(hwnd)

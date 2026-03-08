@@ -52,6 +52,8 @@ import androidx.compose.ui.window.rememberWindowState
 import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
+import com.example.demo.icons.RadixEnterFullScreen
+import com.example.demo.icons.RadixExitFullScreen
 import com.example.demo.icons.TablerCoffee
 import com.example.demo.icons.TablerCoffeeOff
 import com.example.demo.icons.VscodeCodiconsColorMode
@@ -194,6 +196,21 @@ fun main(args: Array<String>) {
                                     EnergyManager.keepScreenAwake()
                                 }
                                 caffeineActive = EnergyManager.isScreenAwakeActive()
+                            },
+                        )
+                        val isFullscreen = state.placement == WindowPlacement.Fullscreen
+                        var placementBeforeFullscreen by remember { mutableStateOf(WindowPlacement.Floating) }
+                        TitleBarIconButton(
+                            imageVector = if (isFullscreen) RadixExitFullScreen else RadixEnterFullScreen,
+                            contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
+                            modifier = Modifier.align(titleBarAlignment),
+                            onClick = {
+                                if (isFullscreen) {
+                                    state.placement = placementBeforeFullscreen
+                                } else {
+                                    placementBeforeFullscreen = state.placement
+                                    state.placement = WindowPlacement.Fullscreen
+                                }
                             },
                         )
                         DraggableTabs(

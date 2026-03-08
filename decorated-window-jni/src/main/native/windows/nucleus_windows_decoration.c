@@ -86,6 +86,11 @@ typedef struct {
     int     titleBarHeightPx;
     BOOL    forceHitTestClient;
     HWND    childHwnd;
+    /* Fullscreen state */
+    BOOL    isFullscreen;
+    LONG    savedStyle;
+    LONG    savedExStyle;
+    WINDOWPLACEMENT savedPlacement;
     /* Debug counters */
     int     hitTestCount;
     int     hitTestCaption;
@@ -162,7 +167,7 @@ static LRESULT CALLBACK childWndProc(
          * all clicks reach Compose, which handles buttons, switches,
          * and initiates native drag for unconsumed clicks. */
         DecoState *parentState = getState(cs->parentHwnd);
-        if (parentState && !IsZoomed(cs->parentHwnd)) {
+        if (parentState && !IsZoomed(cs->parentHwnd) && !parentState->isFullscreen) {
             POINT pt;
             pt.x = (short)LOWORD(lParam);
             pt.y = (short)HIWORD(lParam);
@@ -207,6 +212,11 @@ static LRESULT CALLBACK decorationWndProc(
     case WM_NCCALCSIZE: {
         state->nccalcsizeCount++;
         if (!wParam) break; /* wParam == FALSE → just use default */
+
+        /* Fullscreen: client area fills entire window */
+        if (state->isFullscreen) {
+            return 0;
+        }
 
         NCCALCSIZE_PARAMS *params = (NCCALCSIZE_PARAMS *)lParam;
         RECT originalTop = params->rgrc[0];
@@ -275,8 +285,8 @@ static LRESULT CALLBACK decorationWndProc(
         int borderWidth = getResizeBorderWidth(hwnd, TRUE);
         int borderHeight = getResizeBorderWidth(hwnd, FALSE);
 
-        /* When maximized, no resize borders */
-        if (!IsZoomed(hwnd)) {
+        /* When maximized or fullscreen, no resize borders */
+        if (!IsZoomed(hwnd) && !state->isFullscreen) {
             /* Top-left corner */
             if (pt.x < windowRect.left + borderWidth &&
                 pt.y < windowRect.top + borderHeight) {
@@ -658,6 +668,98 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
     /* DWM drop shadow for popup window */
     MARGINS margins = {0, 0, 0, 1};
     DwmExtendFrameIntoClientArea(hwnd, &margins);
+}
+
+/* -------------------------------------------------------------- */
+/*  nativeSetFullscreen(long hwnd, boolean fullscreen)              */
+/*  Enters or exits native fullscreen mode.                        */
+/*  Enter: saves style/exstyle/placement, removes caption/frame,   */
+/*         covers the entire monitor.                               */
+/*  Exit:  restores saved style/exstyle/placement.                  */
+/* -------------------------------------------------------------- */
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBridge_nativeSetFullscreen(
+    JNIEnv *env, jclass clazz, jlong hwndLong, jboolean fullscreen)
+{
+    HWND hwnd = (HWND)(uintptr_t)hwndLong;
+    if (!hwnd || !IsWindow(hwnd)) return;
+
+    DecoState *state = getState(hwnd);
+    if (!state) return;
+
+    if (fullscreen) {
+        if (state->isFullscreen) return; /* already fullscreen */
+
+        /* Save current state */
+        state->savedStyle = GetWindowLongW(hwnd, GWL_STYLE);
+        state->savedExStyle = GetWindowLongW(hwnd, GWL_EXSTYLE);
+        state->savedPlacement.length = sizeof(WINDOWPLACEMENT);
+        GetWindowPlacement(hwnd, &state->savedPlacement);
+
+        /* Remove window borders, title bar, and maximize flag.
+         * WS_MAXIMIZE must be stripped because the system constrains
+         * maximized windows to the work area (excluding the taskbar). */
+        LONG style = state->savedStyle
+            & ~(LONG)(WS_CAPTION | WS_THICKFRAME | WS_MAXIMIZE);
+        SetWindowLongW(hwnd, GWL_STYLE, style);
+
+        /* Remove extended window styles */
+        LONG exStyle = state->savedExStyle
+            & ~(LONG)(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE
+                     | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+        SetWindowLongW(hwnd, GWL_EXSTYLE, exStyle);
+
+        /* Get the monitor dimensions (multi-monitor aware) */
+        HMONITOR hMon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi;
+        mi.cbSize = sizeof(mi);
+        GetMonitorInfoW(hMon, &mi);
+
+        /* Mark fullscreen BEFORE SetWindowPos so WM_NCCALCSIZE uses
+         * the fullscreen path. */
+        state->isFullscreen = TRUE;
+
+        /* Set window to cover entire monitor */
+        SetWindowPos(hwnd, HWND_TOP,
+            mi.rcMonitor.left, mi.rcMonitor.top,
+            mi.rcMonitor.right - mi.rcMonitor.left,
+            mi.rcMonitor.bottom - mi.rcMonitor.top,
+            SWP_FRAMECHANGED);
+    } else {
+        if (!state->isFullscreen) return; /* already not fullscreen */
+
+        /* Restore window styles */
+        SetWindowLongW(hwnd, GWL_STYLE, state->savedStyle);
+        SetWindowLongW(hwnd, GWL_EXSTYLE, state->savedExStyle);
+
+        /* Clear fullscreen flag BEFORE restoring placement so
+         * WM_NCCALCSIZE uses the normal path. */
+        state->isFullscreen = FALSE;
+
+        /* Restore window placement (maximized/normal state + position) */
+        SetWindowPlacement(hwnd, &state->savedPlacement);
+
+        /* Force frame recalculation */
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
+}
+
+/* -------------------------------------------------------------- */
+/*  nativeIsFullscreen(long hwnd) → boolean                        */
+/*  Returns true if the window is in native fullscreen mode.       */
+/* -------------------------------------------------------------- */
+JNIEXPORT jboolean JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBridge_nativeIsFullscreen(
+    JNIEnv *env, jclass clazz, jlong hwndLong)
+{
+    HWND hwnd = (HWND)(uintptr_t)hwndLong;
+    if (!hwnd) return JNI_FALSE;
+
+    DecoState *state = getState(hwnd);
+    if (!state) return JNI_FALSE;
+
+    return state->isFullscreen ? JNI_TRUE : JNI_FALSE;
 }
 
 /* -------------------------------------------------------------- */
