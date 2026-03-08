@@ -127,8 +127,12 @@ fun DecoratedWindow(
 
         val titleBarHolder = remember { FullscreenTitleBarHolder() }
 
-        // Clear holder content when leaving fullscreen
-        if (!isNativeFullscreen) {
+        // Clear holder content when leaving fullscreen.
+        // On macOS, the title bar manages holder content during native macOS
+        // fullscreen (not JNI-managed), so only clear when truly not fullscreen.
+        val isMacOSFullscreen =
+            Platform.Current == Platform.MacOS && state.placement == WindowPlacement.Fullscreen
+        if (!isNativeFullscreen && !isMacOSFullscreen) {
             titleBarHolder.content = null
         }
 
@@ -155,6 +159,18 @@ fun DecoratedWindow(
                         holder = titleBarHolder,
                         modifier = Modifier.align(Alignment.TopCenter),
                     )
+                }
+            }
+
+            // macOS: always-visible overlay managed by MacOSTitleBar
+            // (newFullscreenControls sets holder.content during macOS fullscreen)
+            if (!isNativeFullscreen && titleBarHolder.content != null) {
+                CompositionLocalProvider(
+                    LocalTitleBarInfo provides TitleBarInfo(title, icon),
+                ) {
+                    Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                        titleBarHolder.content?.invoke()
+                    }
                 }
             }
         }

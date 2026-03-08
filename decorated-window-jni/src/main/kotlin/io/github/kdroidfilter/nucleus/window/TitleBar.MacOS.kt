@@ -17,8 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -113,47 +111,72 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         }
     }
 
-    // Resolve the title bar background colour so we can fill the gap
-    // above the title bar when it slides down in fullscreen.
     val background by style.colors.backgroundFor(state)
 
-    // When the menu bar is visible, push the title bar content down using
-    // padding so it appears below the system menu bar — exactly like Safari.
-    // A custom layout modifier reports the ORIGINAL height to the parent
-    // so the content area below doesn't shift. The title bar overflows
-    // downward into the content area; zIndex ensures it draws on top.
-    // Using padding (not offset) ensures that Compose popups/tooltips
-    // from title bar buttons are positioned below the menu bar area.
-    val fullscreenOffset =
-        if (animatedOffset > 0.dp) {
-            Modifier
-                .zIndex(1f)
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(constraints)
-                    val extraPx = animatedOffset.roundToPx()
-                    layout(placeable.width, (placeable.height - extraPx).coerceAtLeast(0)) {
-                        placeable.place(0, 0)
-                    }
-                }
-                .background(background)
-                .padding(top = animatedOffset)
-        } else {
-            Modifier
+    // ── Fullscreen with newFullscreenControls: render as overlay ──
+    // The title bar is stored in FullscreenTitleBarHolder and rendered by
+    // DecoratedWindow as an overlay on top of the content — outside the
+    // normal DecoratedWindowMeasurePolicy layout. This avoids the need
+    // for zIndex (which can hide Compose popups) and keeps popup/tooltip
+    // positioning correct because the overlay naturally draws last.
+    if (state.isFullscreen && useNewFullscreenControls) {
+        val holder = LocalFullscreenTitleBarHolder.current
+        if (holder != null) {
+            val viewConfig = LocalViewConfiguration.current
+            holder.titleBarHeight = style.metrics.height
+            holder.content = {
+                var lastPress by remember { mutableStateOf(0L) }
+                TitleBarImpl(
+                    modifier =
+                        Modifier
+                            .background(background)
+                            .padding(top = animatedOffset)
+                            .then(modifier)
+                            .titleBarHitTestHandler(window)
+                            .onPointerEvent(PointerEventType.Press, PointerEventPass.Final) {
+                                if (
+                                    this.currentEvent.button == PointerButton.Primary &&
+                                    this.currentEvent.changes.any { !it.isConsumed }
+                                ) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastPress in viewConfig.doubleTapMinTimeMillis..viewConfig.doubleTapTimeoutMillis) {
+                                        val ptr = JniMacWindowUtil.getWindowPtr(window)
+                                        if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                                            JniMacTitleBarBridge.nativePerformTitleBarDoubleClickAction(ptr)
+                                        }
+                                    }
+                                    lastPress = now
+                                }
+                            },
+                    gradientStartColor = gradientStartColor,
+                    style = style,
+                    applyTitleBar = { _, _ ->
+                        JniMacWindowUtil.applyWindowProperties(window)
+                        PaddingValues(start = 80.dp)
+                    },
+                    onPlace = {
+                        val ptr = JniMacWindowUtil.getWindowPtr(window)
+                        if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                            JniMacTitleBarBridge.nativeUpdateFullScreenButtons(ptr)
+                        }
+                    },
+                    backgroundContent = {
+                        Spacer(modifier = Modifier.fillMaxSize())
+                    },
+                    content = content,
+                )
+            }
+            return
         }
+    }
 
+    // ── Normal title bar (not fullscreen, or without newFullscreenControls) ──
     val viewConfig = LocalViewConfiguration.current
     var lastPress = 0L
 
     TitleBarImpl(
-        // Detect double-click to zoom/minimize respecting macOS system preference.
-        // Uses Final pass so interactive Compose children (buttons) consume the
-        // event first — only unconsumed double-clicks trigger the action.
-        // titleBarHitTestHandler must be on the parent modifier (not backgroundContent)
-        // so it sees consumed events from children (tabs, buttons) in PointerEventPass.Main.
-        // Double-click uses Final pass so interactive children consume the event first.
         modifier =
-            fullscreenOffset
-                .then(modifier)
+            modifier
                 .titleBarHitTestHandler(window)
                 .onPointerEvent(PointerEventType.Press, PointerEventPass.Final) {
                     if (
