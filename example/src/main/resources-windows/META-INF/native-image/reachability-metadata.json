@@ -4733,6 +4733,32 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.darkmodedetector.windows.NativeWindowsBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onThemeChanged",
+                    "parameterTypes": [
+                        "boolean"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.systemcolor.windows.NativeWindowsSystemColorBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onAccentColorChanged",
+                    "parameterTypes": [
+                        "int",
+                        "int",
+                        "int"
+                    ]
+                }
+            ]
         }
     ],
     "resources": [
