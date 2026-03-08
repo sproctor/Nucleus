@@ -13,6 +13,8 @@ static const char kZoomResponderKey            = 5;
 static const char kDragViewKey                 = 6;
 static const char kNewFullscreenControlsKey    = 7;
 static const char kMenuBarOffsetKey            = 8;
+static const char kMenuBarMonitorKey           = 9;
+static const char kMenuBarLastRawOffsetKey     = 10;
 
 static const float kMinHeightForFullSize = 28.0f;
 static const float kDefaultButtonOffset  = 23.0f;
@@ -32,6 +34,47 @@ static void installZoomButtonResponder(NSWindow *window);
 static void removeZoomButtonResponder(NSWindow *window);
 static void ensureDragView(NSWindow *window);
 static void removeDragView(NSWindow *window);
+static void installMenuBarMonitor(NSWindow *window);
+static void removeMenuBarMonitor(NSWindow *window);
+
+// ─── JVM caching for native → Java callbacks ────────────────────────────────────
+
+static JavaVM *sJVM = NULL;
+static jclass sBridgeClass = NULL;       // global ref
+static jmethodID sOnOffsetChanged = NULL;
+
+static void ensureJVMCached(JNIEnv *env) {
+    if (!sJVM) {
+        (*env)->GetJavaVM(env, &sJVM);
+    }
+    if (!sBridgeClass) {
+        jclass local = (*env)->FindClass(env,
+            "io/github/kdroidfilter/nucleus/window/utils/macos/JniMacTitleBarBridge");
+        if (local) {
+            sBridgeClass = (*env)->NewGlobalRef(env, local);
+            (*env)->DeleteLocalRef(env, local);
+            sOnOffsetChanged = (*env)->GetStaticMethodID(
+                env, sBridgeClass, "onMenuBarOffsetChanged", "(JF)V");
+        }
+    }
+}
+
+// Calls JniMacTitleBarBridge.onMenuBarOffsetChanged(nsWindowPtr, offset)
+// from the macOS main thread. Attaches to the JVM as a daemon thread
+// on first call; subsequent calls reuse the attached env.
+static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
+    if (!sJVM || !sBridgeClass || !sOnOffsetChanged) return;
+
+    JNIEnv *env = NULL;
+    jint status = (*sJVM)->GetEnv(sJVM, (void **)&env, JNI_VERSION_1_8);
+    if (status == JNI_EDETACHED) {
+        (*sJVM)->AttachCurrentThreadAsDaemon(sJVM, (void **)&env, NULL);
+    }
+    if (!env) return;
+
+    (*env)->CallStaticVoidMethod(env, sBridgeClass, sOnOffsetChanged,
+                                 (jlong)(uintptr_t)window, (jfloat)offset);
+}
 
 // ─── Fullscreen buttons container ───────────────────────────────────────────────
 
@@ -93,6 +136,12 @@ static void removeDragView(NSWindow *window);
     float height = storedHeight ? [storedHeight floatValue] : kMinHeightForFullSize;
 
     installFullScreenButtons(w, height);
+
+    // Install menu bar monitor if newFullscreenControls is enabled.
+    BOOL newControls = [objc_getAssociatedObject(w, &kNewFullscreenControlsKey) boolValue];
+    if (newControls) {
+        installMenuBarMonitor(w);
+    }
 }
 
 // About to exit fullscreen — remove replacement buttons, hide native title bar
@@ -102,6 +151,7 @@ static void removeDragView(NSWindow *window);
     NSWindow *w = self.window;
     if (!w) return;
 
+    removeMenuBarMonitor(w);
     removeFullScreenButtons(w);
     [w setTitlebarAppearsTransparent:YES];
     [w setTitleVisibility:NSWindowTitleHidden];
@@ -353,28 +403,64 @@ static void removeFullScreenButtons(NSWindow *window) {
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-// Returns the current menu bar height when visible in fullscreen, 0 otherwise.
-// All AppKit reads (styleMask, menuBarVisible, menuBarHeight) are dispatched
-// to the main thread to avoid thread-safety issues when called from the JVM.
+// Returns the last raw menu bar offset stored by the native event monitor.
+// Thread-safe: objc_getAssociatedObject uses internal locking.
 static float getMenuBarOffsetForWindow(NSWindow *window) {
-    __block float result = 0.0f;
+    NSNumber *stored = objc_getAssociatedObject(window, &kMenuBarLastRawOffsetKey);
+    return stored ? [stored floatValue] : 0.0f;
+}
 
-    void (^block)(void) = ^{
-        if (!(window.styleMask & NSWindowStyleMaskFullScreen)) { result = 0; return; }
-        BOOL newControls = [objc_getAssociatedObject(window, &kNewFullscreenControlsKey) boolValue];
-        if (!newControls) { result = 0; return; }
-        if (![NSMenu menuBarVisible]) { result = 0; return; }
-        NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
-        result = mainMenu ? (float)[mainMenu menuBarHeight] : 0.0f;
-    };
+// ─── Menu bar event monitor ─────────────────────────────────────────────────────
 
-    if ([NSThread isMainThread]) {
-        block();
-    } else {
-        dispatch_sync(dispatch_get_main_queue(), block);
+// Installs an NSEvent local monitor that checks [NSMenu menuBarVisible]
+// on every mouse event. When the offset changes, notifies Kotlin via
+// JNI callback (notifyMenuBarOffsetChanged). This is event-driven — no
+// timer or polling loop. The monitor fires on the macOS main thread,
+// so all AppKit reads are thread-safe.
+static void installMenuBarMonitor(NSWindow *window) {
+    removeMenuBarMonitor(window);
+
+    __weak NSWindow *weakWindow = window;
+    id monitor = [NSEvent addLocalMonitorForEventsMatchingMask:
+        (NSEventMaskMouseMoved | NSEventMaskLeftMouseDown |
+         NSEventMaskLeftMouseUp | NSEventMaskLeftMouseDragged |
+         NSEventMaskMouseEntered | NSEventMaskMouseExited)
+        handler:^NSEvent *(NSEvent *event) {
+            NSWindow *w = weakWindow;
+            if (!w) return event;
+            if (!(w.styleMask & NSWindowStyleMaskFullScreen)) return event;
+
+            float offset = 0.0f;
+            if ([NSMenu menuBarVisible]) {
+                NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
+                if (mainMenu) offset = (float)[mainMenu menuBarHeight];
+            }
+
+            NSNumber *lastRaw = objc_getAssociatedObject(w, &kMenuBarLastRawOffsetKey);
+            float lastOffset = lastRaw ? [lastRaw floatValue] : -1.0f;
+
+            if (offset != lastOffset) {
+                objc_setAssociatedObject(w, &kMenuBarLastRawOffsetKey, @(offset),
+                                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                notifyMenuBarOffsetChanged(w, offset);
+            }
+
+            return event;
+        }];
+
+    objc_setAssociatedObject(window, &kMenuBarMonitorKey, monitor,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void removeMenuBarMonitor(NSWindow *window) {
+    id monitor = objc_getAssociatedObject(window, &kMenuBarMonitorKey);
+    if (monitor) {
+        [NSEvent removeMonitor:monitor];
+        objc_setAssociatedObject(window, &kMenuBarMonitorKey, nil,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-
-    return result;
+    objc_setAssociatedObject(window, &kMenuBarLastRawOffsetKey, nil,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 // Repositions the fullscreen button container (called from layout passes).
@@ -727,6 +813,7 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
     dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
+            removeMenuBarMonitor(window);
             removeFullScreenButtons(window);
             removeFullscreenObserver(window);
             removeZoomButtonResponder(window);
@@ -807,22 +894,31 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
 // When enabled, the title bar and its traffic-light buttons are pushed down
 // by the menu bar height whenever the auto-hidden menu bar becomes visible
 // in fullscreen — mirroring Safari's fullscreen title bar behavior.
+// Also installs/removes the menu bar event monitor if already in fullscreen.
 JNIEXPORT void JNICALL
 Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeSetNewFullscreenControls(
     JNIEnv *env, jclass clazz, jlong nsWindowPtr, jboolean enabled) {
 
     if (nsWindowPtr == 0) return;
+    ensureJVMCached(env);
     NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
     BOOL flag = (BOOL)enabled;
     dispatch_async(dispatch_get_main_queue(), ^{
         objc_setAssociatedObject(window, &kNewFullscreenControlsKey, @(flag),
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // Install or remove monitor if already in fullscreen.
+        if (window.styleMask & NSWindowStyleMaskFullScreen) {
+            if (flag) {
+                installMenuBarMonitor(window);
+            } else {
+                removeMenuBarMonitor(window);
+            }
+        }
     });
 }
 
-// Returns the current menu bar offset in points.
-// Dispatches to the main thread via dispatch_sync to safely read
-// AppKit state (styleMask, menuBarVisible, menuBarHeight).
+// Returns the last known menu bar offset in points.
+// Reads the value stored by the native event monitor (thread-safe).
 JNIEXPORT jfloat JNICALL
 Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeGetMenuBarOffset(
     JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
@@ -848,6 +944,37 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
             updateFullScreenButtonsPosition(window);
+        }
+    });
+}
+
+// Installs an NSEvent local monitor that detects menu bar visibility
+// changes on every mouse event and notifies Kotlin via JNI callback.
+// Event-driven: no timer, no polling.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeInstallMenuBarMonitor(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
+
+    if (nsWindowPtr == 0) return;
+    ensureJVMCached(env);
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            installMenuBarMonitor(window);
+        }
+    });
+}
+
+// Removes the native event monitor and clears the stored raw offset.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeRemoveMenuBarMonitor(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
+
+    if (nsWindowPtr == 0) return;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            removeMenuBarMonitor(window);
         }
     });
 }
