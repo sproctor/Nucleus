@@ -2300,6 +2300,12 @@
                     "parameterTypes": [
                         
                     ]
+                },
+                {
+                    "name": "deliverNCMouseDown",
+                    "parameterTypes": [
+                        
+                    ]
                 }
             ]
         },
@@ -2309,6 +2315,12 @@
             "methods": [
                 {
                     "name": "installToolkitThreadInJava",
+                    "parameterTypes": [
+                        
+                    ]
+                },
+                {
+                    "name": "systemColorsChanged",
                     "parameterTypes": [
                         
                     ]
@@ -2663,6 +2675,20 @@
                     "name": "onThemeChanged",
                     "parameterTypes": [
                         "boolean"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.systemcolor.mac.NativeMacSystemColorBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onAccentColorChanged",
+                    "parameterTypes": [
+                        "float",
+                        "float",
+                        "float"
                     ]
                 }
             ]
