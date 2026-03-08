@@ -476,19 +476,26 @@ static void installMenuBarMonitor(NSWindow *window) {
         checkMenuBar();
     }];
 
-    // Store all observers in an array for cleanup.
-    NSArray *monitors = @[eventMonitor, beginObserver, endObserver];
+    // Store all observers in a dictionary for cleanup.
+    NSDictionary *monitors = @{
+        @"event": eventMonitor,
+        @"beginTracking": beginObserver,
+        @"endTracking": endObserver,
+    };
     objc_setAssociatedObject(window, &kMenuBarMonitorKey, monitors,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static void removeMenuBarMonitor(NSWindow *window) {
-    NSArray *monitors = objc_getAssociatedObject(window, &kMenuBarMonitorKey);
-    if (monitors && monitors.count >= 3) {
-        [NSEvent removeMonitor:monitors[0]];
+    NSDictionary *monitors = objc_getAssociatedObject(window, &kMenuBarMonitorKey);
+    if (monitors) {
+        id eventMonitor = monitors[@"event"];
+        if (eventMonitor) [NSEvent removeMonitor:eventMonitor];
         NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
-        [nc removeObserver:monitors[1]];
-        [nc removeObserver:monitors[2]];
+        id begin = monitors[@"beginTracking"];
+        if (begin) [nc removeObserver:begin];
+        id end = monitors[@"endTracking"];
+        if (end) [nc removeObserver:end];
     }
     objc_setAssociatedObject(window, &kMenuBarMonitorKey, nil,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
