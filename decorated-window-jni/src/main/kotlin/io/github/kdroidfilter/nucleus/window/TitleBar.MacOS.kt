@@ -87,9 +87,6 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
                     val offset = JniMacTitleBarBridge.nativeGetMenuBarOffset(ptr)
                     if (offset != menuBarOffsetPt) {
                         menuBarOffsetPt = offset
-                        // Push the same offset to native so traffic-light
-                        // buttons stay in sync with the Compose title bar.
-                        JniMacTitleBarBridge.nativeSetMenuBarOffset(ptr, offset)
                     }
                 } else {
                     menuBarOffsetPt = 0f
@@ -105,6 +102,15 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         targetValue = menuBarOffsetPt.dp,
         animationSpec = tween(durationMillis = MENU_BAR_ANIMATION_MS),
     )
+
+    // Push the animated offset to native so traffic-light buttons follow
+    // the same smooth animation as the Compose title bar.
+    LaunchedEffect(animatedOffset) {
+        val ptr = JniMacWindowUtil.getWindowPtr(window)
+        if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+            JniMacTitleBarBridge.nativeSetMenuBarOffset(ptr, animatedOffset.value)
+        }
+    }
 
     // Resolve the title bar background colour so we can fill the gap
     // above the title bar when it slides down in fullscreen.
