@@ -6,7 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -116,15 +117,26 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
     // above the title bar when it slides down in fullscreen.
     val background by style.colors.backgroundFor(state)
 
-    // When the menu bar is visible, visually shift the title bar down
-    // without affecting layout — the content below stays in place and
-    // the title bar overlaps it, exactly like Safari in fullscreen.
-    // zIndex ensures the title bar draws on top of the content below.
-    // background() fills the original layout bounds (y=0) so no white
-    // gap appears behind the sliding title bar in dark mode.
+    // When the menu bar is visible, push the title bar content down using
+    // padding so it appears below the system menu bar — exactly like Safari.
+    // A custom layout modifier reports the ORIGINAL height to the parent
+    // so the content area below doesn't shift. The title bar overflows
+    // downward into the content area; zIndex ensures it draws on top.
+    // Using padding (not offset) ensures that Compose popups/tooltips
+    // from title bar buttons are positioned below the menu bar area.
     val fullscreenOffset =
         if (animatedOffset > 0.dp) {
-            Modifier.zIndex(1f).background(background).offset(y = animatedOffset)
+            Modifier
+                .zIndex(1f)
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    val extraPx = animatedOffset.roundToPx()
+                    layout(placeable.width, (placeable.height - extraPx).coerceAtLeast(0)) {
+                        placeable.place(0, 0)
+                    }
+                }
+                .background(background)
+                .padding(top = animatedOffset)
         } else {
             Modifier
         }
