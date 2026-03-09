@@ -10,6 +10,9 @@ import io.github.kdroidfilter.nucleus.internal.KOTLIN_JVM_PLUGIN_ID
 import io.github.kdroidfilter.nucleus.internal.KOTLIN_MPP_PLUGIN_ID
 import io.github.kdroidfilter.nucleus.internal.javaSourceSets
 import io.github.kdroidfilter.nucleus.internal.mppExt
+import io.github.kdroidfilter.nucleus.internal.utils.Target
+import io.github.kdroidfilter.nucleus.internal.utils.currentOS
+import io.github.kdroidfilter.nucleus.internal.utils.jdkArch
 import io.github.kdroidfilter.nucleus.internal.utils.joinDashLowercaseNonEmpty
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -45,6 +48,12 @@ internal data class JvmApplicationContext(
                 )
         runtimeFiles.configureUsageBy(this, fn)
     }
+
+    /** Architecture of the configured JDK (may differ from the Gradle daemon's arch when cross-building). */
+    val targetArch by lazy { jdkArch(java.io.File(app.javaHome)) }
+
+    /** Target combining the current OS with the configured JDK's architecture. */
+    val targetTarget by lazy { Target(currentOS, targetArch) }
 
     val tasks = JvmTasks(project, buildType, taskGroup)
 
