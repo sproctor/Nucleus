@@ -49,6 +49,18 @@ This module does not depend on JBR, making it compatible with **any JVM** (OpenJ
 
     This fix is **not present** in `decorated-window-jbr`.
 
+!!! note "macOS: smooth live resize with synchronous Metal presentation"
+    On macOS, resizing a window triggers a modal tracking loop on the main thread. By default, Skiko's Metal layer (`CAMetalLayer`) presents frames asynchronously — which means macOS stretches the stale frame content to fill the new window size, producing a visible freeze/lag during resize.
+
+    The JNI module fixes this by toggling `CAMetalLayer.presentsWithTransaction` during live resize:
+
+    - When a resize starts (`viewWillStartLiveResize`), the module enables synchronous presentation on all Metal layers in the window hierarchy. This forces each rendered frame to be committed to the compositor before the next resize step, so the window content follows the resize in real time.
+    - When the resize ends (`viewDidEndLiveResize`), the module restores asynchronous presentation for optimal rendering performance during normal use.
+
+    This matches the behavior of native macOS Metal applications (Safari, Finder, etc.). The trade-off is that windows with heavy Compose layouts may see a lower frame rate during resize (since each frame blocks until presented), but the content will always track the window size instead of freezing.
+
+    This fix is **not present** in `decorated-window-jbr`.
+
 !!! warning "Less battle-tested"
     While the JNI module has no known bugs, it has not been as widely tested as the JBR implementation. Use it with appropriate caution in production, and report any issues you encounter.
 
@@ -118,34 +130,79 @@ fun main() = application {
 
     ![KDE Decorated Window](../assets/KdeDecoratedWindow.png)
 
-## Platform Behavior
+## Platform Comparison
 
-### JBR module (`decorated-window-jbr`)
+The following tables compare a standard Compose `Window()`, the JBR module (`decorated-window-jbr`), and the JNI module (`decorated-window-jni`) across all three platforms.
 
-|  | macOS | Windows | Linux |
-|---|-------|---------|-------|
-| Decoration | JBR `CustomTitleBar` | JBR `CustomTitleBar` | Fully undecorated |
-| Window controls | Native traffic lights | Native min/max/close | Compose `WindowControlArea` (SVG icons) |
-| Drag | JBR hit-test | JBR `forceHitTest` | `JBR.getWindowMove().startMovingTogetherWithMouse()` |
-| Double-click maximize | Native | Native | Manual detection |
-| RTL support | No (requires [custom JBR](../targets/macos.md#jvm-based-applications) for hot-swap) | Yes (no hot-swap, restart required) | Yes (hot-swap) |
+### macOS
 
-### JNI module (`decorated-window-jni`)
+| Feature | Compose `Window()` | `decorated-window-jbr` | `decorated-window-jni` |
+|---|---|---|---|
+| Custom title bar content | No | Yes (JBR `CustomTitleBar`) | Yes (JNI native bridge) |
+| Window controls | Native traffic lights | Native traffic lights | Native traffic lights |
+| Title bar drag | Native | JBR hit-test | `nativeStartWindowDrag()` via JNI |
+| Double-click maximize | Native | Native (via JBR `CustomTitleBar`) | Native via JNI |
+| Window snapping / tiling | Native | Native | Native (swizzled `_adjustWindowToScreen`) |
+| Resize flash / freeze | Image freezes during resize | No freeze (JBR handles it) | **Fixed** — synchronous Metal presentation via `presentsWithTransaction` |
+| 26pt corner radius | No | No | Yes (`macOSLargeCornerRadius()`) |
+| Fullscreen controls | No custom title bar | macOS native (`apple.awt.newFullScreenControls`) | Sliding overlay (`newFullscreenControls()`) |
+| RTL support | No custom title bar | No (requires [custom JBR](../targets/macos.md#jvm-based-applications)) | Yes (live hot-swap, traffic lights move to right) |
+| JDK requirement | Any | JBR only | Any (requires Xcode 26-compiled JDK for native features) |
+| Fallback (no native lib) | N/A | N/A | AWT client properties (no custom positioning) |
 
-|  | macOS | Windows | Linux |
-|---|-------|---------|-------|
-| Decoration | JNI native bridge | JNI DLL (WndProc subclass) | JNI .so (`_NET_WM_MOVERESIZE`) |
-| Window controls | Native traffic lights | Compose `WindowsWindowControlArea` (SVG icons) | Compose `WindowControlArea` (SVG icons) |
-| Drag | `nativeStartWindowDrag()` via JNI | Native DLL or Compose fallback | `_NET_WM_MOVERESIZE` or Compose fallback |
-| Double-click maximize | Native via JNI | Native or Compose detection | Compose detection |
-| Fallback (no native lib) | AWT client properties | Compose `windowDragHandler()` | Compose `windowDragHandler()` |
-| RTL support | Yes (live hot-swap) | Yes (live hot-swap) | Yes (hot-swap) |
+### Windows
 
-On **macOS**, both modules preserve the native traffic lights.
+| Feature | Compose `Window()` | `decorated-window-jbr` | `decorated-window-jni` |
+|---|---|---|---|
+| Custom title bar content | No | Yes (JBR `CustomTitleBar`) | Yes (JNI DLL, WndProc subclass) |
+| Window controls | Native | Native min/max/close | Compose-drawn (SVG icons, Windows style) |
+| Title bar drag | Native | JBR `forceHitTest` | Native DLL or Compose fallback |
+| Double-click maximize | Native | Native (via JBR `CustomTitleBar`) | Compose detection |
+| Window snapping / tiling | Native | Native | Native (via `WM_NCLBUTTONDOWN` + `HTCAPTION`) |
+| Resize white flash | White flash on dark themes | White flash on dark themes | **Fixed** — `WM_ERASEBKGND` fill + `SWP_NOCOPYBITS` + DWM color sync |
+| Open in maximized state | Works | Broken (requires `LaunchedEffect` workaround) | Works |
+| Drag reliability | Native | Occasional missed events (JBR bug) | Reliable |
+| True fullscreen | Broken (doesn't cover taskbar) | Broken (doesn't cover taskbar) | **Fixed** — native Win32 fullscreen (`newFullscreenControls()`) |
+| Fullscreen sliding title bar | No | No | Yes (`newFullscreenControls()`) |
+| DWM dark mode sync | No | No | Yes (`DWMWA_USE_IMMERSIVE_DARK_MODE`, caption/border color) |
+| RTL support | No custom title bar | Yes (no hot-swap, restart required) | Yes (live hot-swap) |
+| JDK requirement | Any | JBR only | Any |
+| Fallback (no native lib) | N/A | N/A | Compose `windowDragHandler()` (no WndProc subclass) |
 
-On **Windows**, the JBR module uses the native min/max/close buttons, while the JNI module draws its own window controls with Compose (SVG icons matching the Windows style).
+### Linux
 
-On **Linux**, the window is fully undecorated in both modules. They render their own close/minimize/maximize buttons using SVG icons adapted to the desktop environment (GNOME Adwaita or KDE Breeze). The window shape is also clipped to rounded corners to match the native look.
+| Feature | Compose `Window()` | `decorated-window-jbr` | `decorated-window-jni` |
+|---|---|---|---|
+| Custom title bar content | No | Yes (fully undecorated) | Yes (fully undecorated) |
+| Window controls | WM-provided | Compose `WindowControlArea` (SVG) | Compose `WindowControlArea` (SVG) |
+| Desktop environment styling | WM-provided | GNOME Adwaita / KDE Breeze icons | GNOME Adwaita / KDE Breeze icons |
+| Window shape | WM-provided | Rounded corners (GNOME 12dp, KDE 5dp top only) | Rounded corners (GNOME 12dp, KDE 5dp top only) |
+| Title bar drag | WM-provided | `JBR.getWindowMove()` | `_NET_WM_MOVERESIZE` via JNI or Compose fallback |
+| Double-click maximize | WM-provided | Compose detection | Compose detection |
+| True fullscreen | WM-provided | Compose `WindowPlacement.Fullscreen` | Native `_NET_WM_STATE_FULLSCREEN` via JNI |
+| Fullscreen sliding title bar | No | No | Yes (`newFullscreenControls()`) |
+| RTL support | No custom title bar | Yes (hot-swap) | Yes (hot-swap) |
+| JDK requirement | Any | JBR only | Any |
+| Fallback (no native lib) | N/A | N/A | Compose `windowDragHandler()` |
+
+### Summary
+
+| Capability | Compose `Window()` | JBR | JNI |
+|---|:---:|:---:|:---:|
+| Custom title bar | | ✅ | ✅ |
+| Works on any JDK | ✅ | | ✅ |
+| GraalVM native-image | ✅ | | ✅ |
+| No resize artifacts (macOS) | | ✅ | ✅ |
+| No resize artifacts (Windows) | | | ✅ |
+| True fullscreen (Windows) | | | ✅ |
+| Native fullscreen (Linux) | | | ✅ |
+| DWM dark mode sync (Windows) | | | ✅ |
+| 26pt corner radius (macOS) | | | ✅ |
+| Fullscreen sliding title bar (all platforms) | | | ✅ |
+| macOS native fullscreen controls | | ✅ | ✅ |
+| RTL live hot-swap (all platforms) | | | ✅ |
+| Dialog centering on parent | | ✅ | ✅ |
+| Battle-tested | ✅ | ✅ | |
 
 ## Components
 

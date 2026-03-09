@@ -182,11 +182,12 @@ private fun BoxScope.FullscreenTitleBarRenderers(
     icon: Painter?,
 ) {
     val ctx = titleBarHolder.compositionLocalContext
-    val wrapper: @Composable (@Composable () -> Unit) -> Unit = if (ctx != null) {
-        { content -> CompositionLocalProvider(ctx) { content() } }
-    } else {
-        { content -> content() }
-    }
+    val wrapper: @Composable (@Composable () -> Unit) -> Unit =
+        if (ctx != null) {
+            { content -> CompositionLocalProvider(ctx) { content() } }
+        } else {
+            { content -> content() }
+        }
 
     if (isNativeFullscreen) {
         wrapper {

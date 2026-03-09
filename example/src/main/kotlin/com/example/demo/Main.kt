@@ -29,6 +29,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,8 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.WindowPlacement
@@ -55,6 +58,8 @@ import com.example.demo.icons.RadixEnterFullScreen
 import com.example.demo.icons.RadixExitFullScreen
 import com.example.demo.icons.TablerCoffee
 import com.example.demo.icons.TablerCoffeeOff
+import com.example.demo.icons.TablerTextDirectionLtr
+import com.example.demo.icons.TablerTextDirectionRtl
 import com.example.demo.icons.VscodeCodiconsColorMode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
@@ -145,6 +150,8 @@ fun main(args: Array<String>) {
                     baseScheme
                 }
 
+            var isRtl by remember { mutableStateOf(false) }
+
             MaterialTheme(colorScheme = colorScheme) {
                 val state =
                     rememberWindowState(
@@ -156,133 +163,145 @@ fun main(args: Array<String>) {
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
                 ) {
-                    var tabs by remember { mutableStateOf(listOf("Main.kt", "Build.gradle", "README.md", "Settings")) }
-                    var selectedTab by remember { mutableStateOf("Main.kt") }
-
-                    MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
-                        val titleBarAlignment =
-                            if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
-
-                        TitleBarIconButton(
-                            imageVector =
-                                when (themeMode) {
-                                    ThemeMode.System -> VscodeCodiconsColorMode
-                                    ThemeMode.Dark -> MaterialIconsDark_mode
-                                    ThemeMode.Light -> MaterialIconsLight_mode
-                                },
-                            contentDescription = "Toggle theme",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = { themeMode = themeMode.next() },
-                        )
-                        TitleBarIconButton(
-                            imageVector = MaterialIconsInfo,
-                            contentDescription = "System info",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = { showInfoDialog = true },
-                        )
-
-                        var caffeineActive by remember {
-                            mutableStateOf(EnergyManager.isScreenAwakeActive())
+                    CompositionLocalProvider(
+                        LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+                    ) {
+                        var tabs by remember {
+                            mutableStateOf(listOf("Main.kt", "Build.gradle", "README.md", "Settings"))
                         }
-                        TitleBarIconButton(
-                            imageVector = if (caffeineActive) TablerCoffee else TablerCoffeeOff,
-                            contentDescription = if (caffeineActive) "Disable caffeine" else "Enable caffeine",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = {
-                                if (caffeineActive) {
-                                    EnergyManager.releaseScreenAwake()
-                                } else {
-                                    EnergyManager.keepScreenAwake()
-                                }
-                                caffeineActive = EnergyManager.isScreenAwakeActive()
-                            },
-                        )
-                        val isFullscreen = state.placement == WindowPlacement.Fullscreen
-                        TitleBarIconButton(
-                            imageVector = if (isFullscreen) RadixExitFullScreen else RadixEnterFullScreen,
-                            contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = {
-                                if (isFullscreen) {
-                                    // NativeFullscreenWindowState restores the previous placement internally.
-                                    // Setting any non-Fullscreen value on the delegate triggers the exit.
-                                    state.placement = WindowPlacement.Floating
-                                } else {
-                                    state.placement = WindowPlacement.Fullscreen
-                                }
-                            },
-                        )
-                        DraggableTabs(
-                            tabs = tabs,
-                            selectedTab = selectedTab,
-                            onSelect = { selectedTab = it },
-                            onReorder = { from, to ->
-                                tabs =
-                                    tabs.toMutableList().apply {
-                                        add(to, removeAt(from))
+                        var selectedTab by remember { mutableStateOf("Main.kt") }
+
+                        MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
+                            val titleBarAlignment =
+                                if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
+
+                            TitleBarIconButton(
+                                imageVector =
+                                    when (themeMode) {
+                                        ThemeMode.System -> VscodeCodiconsColorMode
+                                        ThemeMode.Dark -> MaterialIconsDark_mode
+                                        ThemeMode.Light -> MaterialIconsLight_mode
+                                    },
+                                contentDescription = "Toggle theme",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { themeMode = themeMode.next() },
+                            )
+                            TitleBarIconButton(
+                                imageVector = MaterialIconsInfo,
+                                contentDescription = "System info",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { showInfoDialog = true },
+                            )
+
+                            var caffeineActive by remember {
+                                mutableStateOf(EnergyManager.isScreenAwakeActive())
+                            }
+                            TitleBarIconButton(
+                                imageVector = if (caffeineActive) TablerCoffee else TablerCoffeeOff,
+                                contentDescription = if (caffeineActive) "Disable caffeine" else "Enable caffeine",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = {
+                                    if (caffeineActive) {
+                                        EnergyManager.releaseScreenAwake()
+                                    } else {
+                                        EnergyManager.keepScreenAwake()
                                     }
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                        )
-                    }
-                    LaunchedEffect(restoreRequestCount) {
-                        if (restoreRequestCount > 0) {
-                            window.toFront()
-                            window.requestFocus()
+                                    caffeineActive = EnergyManager.isScreenAwakeActive()
+                                },
+                            )
+                            val isFullscreen = state.placement == WindowPlacement.Fullscreen
+                            TitleBarIconButton(
+                                imageVector = if (isFullscreen) RadixExitFullScreen else RadixEnterFullScreen,
+                                contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = {
+                                    if (isFullscreen) {
+                                        // NativeFullscreenWindowState restores the previous placement internally.
+                                        // Setting any non-Fullscreen value on the delegate triggers the exit.
+                                        state.placement = WindowPlacement.Floating
+                                    } else {
+                                        state.placement = WindowPlacement.Fullscreen
+                                    }
+                                },
+                            )
+                            TitleBarIconButton(
+                                imageVector = if (isRtl) TablerTextDirectionRtl else TablerTextDirectionLtr,
+                                contentDescription = if (isRtl) "Switch to LTR" else "Switch to RTL",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { isRtl = !isRtl },
+                            )
+                            DraggableTabs(
+                                tabs = tabs,
+                                selectedTab = selectedTab,
+                                onSelect = { selectedTab = it },
+                                onReorder = { from, to ->
+                                    tabs =
+                                        tabs.toMutableList().apply {
+                                            add(to, removeAt(from))
+                                        }
+                                },
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                            )
                         }
-                    }
-
-                    // Energy efficiency: enable when minimized or unfocused
-                    var isWindowFocused by remember { mutableStateOf(window.isFocused) }
-                    DisposableEffect(window) {
-                        val listener =
-                            object : WindowFocusListener {
-                                override fun windowGainedFocus(e: WindowEvent?) {
-                                    isWindowFocused = true
-                                }
-
-                                override fun windowLostFocus(e: WindowEvent?) {
-                                    isWindowFocused = false
-                                }
+                        LaunchedEffect(restoreRequestCount) {
+                            if (restoreRequestCount > 0) {
+                                window.toFront()
+                                window.requestFocus()
                             }
-                        window.addWindowFocusListener(listener)
-                        onDispose { window.removeWindowFocusListener(listener) }
-                    }
-                    LaunchedEffect(state.isMinimized, isWindowFocused) {
-                        if (state.isMinimized || !isWindowFocused) {
-                            EnergyManager.enableEfficiencyMode()
-                        } else {
-                            EnergyManager.disableEfficiencyMode()
                         }
-                    }
 
-                    app()
+                        // Energy efficiency: enable when minimized or unfocused
+                        var isWindowFocused by remember { mutableStateOf(window.isFocused) }
+                        DisposableEffect(window) {
+                            val listener =
+                                object : WindowFocusListener {
+                                    override fun windowGainedFocus(e: WindowEvent?) {
+                                        isWindowFocused = true
+                                    }
 
-                    if (showInfoDialog) {
-                        MaterialDecoratedDialog(
-                            onCloseRequest = { showInfoDialog = false },
-                            state = DialogState(size = DpSize(400.dp, 250.dp)),
-                            title = "System Info",
-                        ) {
-                            MaterialDialogTitleBar { _ ->
-                                Text(
-                                    title,
-                                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
+                                    override fun windowLostFocus(e: WindowEvent?) {
+                                        isWindowFocused = false
+                                    }
+                                }
+                            window.addWindowFocusListener(listener)
+                            onDispose { window.removeWindowFocusListener(listener) }
+                        }
+                        LaunchedEffect(state.isMinimized, isWindowFocused) {
+                            if (state.isMinimized || !isWindowFocused) {
+                                EnergyManager.enableEfficiencyMode()
+                            } else {
+                                EnergyManager.disableEfficiencyMode()
                             }
-                            Surface(modifier = Modifier.fillMaxSize()) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                        }
+
+                        app()
+
+                        if (showInfoDialog) {
+                            MaterialDecoratedDialog(
+                                onCloseRequest = { showInfoDialog = false },
+                                state = DialogState(size = DpSize(400.dp, 250.dp)),
+                                title = "System Info",
+                            ) {
+                                MaterialDialogTitleBar { _ ->
                                     Text(
-                                        "Java: ${System.getProperty("java.version")}" +
-                                            " (${System.getProperty("java.vendor")})",
+                                        title,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
-                                    Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                }
+                                Surface(modifier = Modifier.fillMaxSize()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
+                                        Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                        Text(
+                                            "Java: ${System.getProperty("java.version")}" +
+                                                " (${System.getProperty("java.vendor")})",
+                                        )
+                                        Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                    }
                                 }
                             }
                         }
