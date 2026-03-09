@@ -25,13 +25,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,35 +38,51 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.example.demo.gallery.GalleryScreen
 import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
+import com.example.demo.icons.RadixEnterFullScreen
+import com.example.demo.icons.RadixExitFullScreen
+import com.example.demo.icons.TablerCoffee
+import com.example.demo.icons.TablerCoffeeOff
+import com.example.demo.icons.TablerTextDirectionLtr
+import com.example.demo.icons.TablerTextDirectionRtl
 import com.example.demo.icons.VscodeCodiconsColorMode
+import com.materialkolor.DynamicMaterialTheme
+import com.materialkolor.PaletteStyle
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
+import io.github.kdroidfilter.nucleus.energymanager.EnergyManager
 import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
+import io.github.kdroidfilter.nucleus.systemcolor.systemAccentColor
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
-import io.github.kdroidfilter.nucleus.window.TitleBarScope
+import io.github.kdroidfilter.nucleus.window.macOSLargeCornerRadius
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
 import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
+import java.awt.event.WindowEvent
+import java.awt.event.WindowFocusListener
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -76,7 +91,7 @@ private const val AOT_TRAINING_DURATION_MS = 45_000L
 
 private val deepLinkUri = mutableStateOf<URI?>(null)
 
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun main(args: Array<String>) {
     GraalVmInitializer.initialize()
 
@@ -129,90 +144,182 @@ fun main(args: Array<String>) {
                     ThemeMode.Dark -> true
                     ThemeMode.Light -> false
                 }
-            val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
+            val accentColor = systemAccentColor()
+            val seedColor = accentColor ?: Color(0xFF6750A4)
 
-            MaterialTheme(colorScheme = colorScheme) {
+            var isRtl by remember { mutableStateOf(false) }
+
+            DynamicMaterialTheme(
+                seedColor = seedColor,
+                isDark = isDark,
+                animate = true,
+                style = PaletteStyle.TonalSpot,
+            ) {
+                val state =
+                    rememberWindowState(
+                        position = WindowPosition.Aligned(Alignment.Center),
+                        placement = WindowPlacement.Floating,
+                    )
                 MaterialDecoratedWindow(
-                    state =
-                        rememberWindowState(
-                            position = WindowPosition.Aligned(Alignment.Center),
-                            placement = WindowPlacement.Maximized,
-                        ),
+                    state = state,
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
                 ) {
-                    val tabs = remember { mutableStateListOf("Main.kt", "Build.gradle", "README.md", "Settings") }
-                    var selectedTab by remember { mutableStateOf(0) }
+                    CompositionLocalProvider(
+                        LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+                    ) {
+                        val tabs = listOf("Nucleus", "Gallery")
+                        var selectedTab by remember { mutableStateOf("Nucleus") }
 
-                    MaterialTitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
-                        val titleBarAlignment =
-                            if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
+                        MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
+                            val titleBarAlignment =
+                                if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
-                        TitleBarIconButton(
-                            imageVector =
-                                when (themeMode) {
-                                    ThemeMode.System -> VscodeCodiconsColorMode
-                                    ThemeMode.Dark -> MaterialIconsDark_mode
-                                    ThemeMode.Light -> MaterialIconsLight_mode
+                            TitleBarIconButton(
+                                imageVector =
+                                    when (themeMode) {
+                                        ThemeMode.System -> VscodeCodiconsColorMode
+                                        ThemeMode.Dark -> MaterialIconsDark_mode
+                                        ThemeMode.Light -> MaterialIconsLight_mode
+                                    },
+                                contentDescription = "Toggle theme",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { themeMode = themeMode.next() },
+                            )
+                            TitleBarIconButton(
+                                imageVector = MaterialIconsInfo,
+                                contentDescription = "System info",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { showInfoDialog = true },
+                            )
+
+                            var caffeineActive by remember {
+                                mutableStateOf(EnergyManager.isScreenAwakeActive())
+                            }
+                            TitleBarIconButton(
+                                imageVector = if (caffeineActive) TablerCoffee else TablerCoffeeOff,
+                                contentDescription = if (caffeineActive) "Disable caffeine" else "Enable caffeine",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = {
+                                    if (caffeineActive) {
+                                        EnergyManager.releaseScreenAwake()
+                                    } else {
+                                        EnergyManager.keepScreenAwake()
+                                    }
+                                    caffeineActive = EnergyManager.isScreenAwakeActive()
                                 },
-                            contentDescription = "Toggle theme",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = { themeMode = themeMode.next() },
-                        )
-                        TitleBarIconButton(
-                            imageVector = MaterialIconsInfo,
-                            contentDescription = "System info",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = { showInfoDialog = true },
-                        )
-                        DraggableTabs(
-                            tabs = tabs,
-                            selectedIndex = selectedTab,
-                            onSelect = { selectedTab = it },
-                            onReorder = { from, to ->
-                                tabs.add(to, tabs.removeAt(from))
-                                selectedTab = to
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                        )
-                    }
-                    LaunchedEffect(restoreRequestCount) {
-                        if (restoreRequestCount > 0) {
-                            window.toFront()
-                            window.requestFocus()
+                            )
+                            val isFullscreen = state.placement == WindowPlacement.Fullscreen
+                            TitleBarIconButton(
+                                imageVector = if (isFullscreen) RadixExitFullScreen else RadixEnterFullScreen,
+                                contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = {
+                                    if (isFullscreen) {
+                                        // NativeFullscreenWindowState restores the previous placement internally.
+                                        // Setting any non-Fullscreen value on the delegate triggers the exit.
+                                        state.placement = WindowPlacement.Floating
+                                    } else {
+                                        state.placement = WindowPlacement.Fullscreen
+                                    }
+                                },
+                            )
+                            TitleBarIconButton(
+                                imageVector = if (isRtl) TablerTextDirectionRtl else TablerTextDirectionLtr,
+                                contentDescription = if (isRtl) "Switch to LTR" else "Switch to RTL",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { isRtl = !isRtl },
+                            )
+                            DraggableTabs(
+                                tabs = tabs,
+                                selectedTab = selectedTab,
+                                onSelect = { selectedTab = it },
+                                onReorder = { _, _ -> },
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                            )
                         }
-                    }
-                    app()
+                        LaunchedEffect(restoreRequestCount) {
+                            if (restoreRequestCount > 0) {
+                                window.toFront()
+                                window.requestFocus()
+                            }
+                        }
 
-                    if (showInfoDialog) {
-                        MaterialDecoratedDialog(
-                            onCloseRequest = { showInfoDialog = false },
-                            state = DialogState(size = DpSize(400.dp, 250.dp)),
-                            title = "System Info",
-                        ) {
-                            val background = MaterialTheme.colorScheme.surface
-                            LaunchedEffect(window, background) {
-                                window.background = java.awt.Color(background.toArgb())
+                        // Energy efficiency: full when minimized, light when unfocused
+                        var isWindowFocused by remember { mutableStateOf(window.isFocused) }
+                        DisposableEffect(window) {
+                            val listener =
+                                object : WindowFocusListener {
+                                    override fun windowGainedFocus(e: WindowEvent?) {
+                                        isWindowFocused = true
+                                    }
+
+                                    override fun windowLostFocus(e: WindowEvent?) {
+                                        isWindowFocused = false
+                                    }
+                                }
+                            window.addWindowFocusListener(listener)
+                            onDispose { window.removeWindowFocusListener(listener) }
+                        }
+                        LaunchedEffect(state.isMinimized, isWindowFocused) {
+                            when {
+                                state.isMinimized -> {
+                                    EnergyManager.disableLightEfficiencyMode()
+                                    EnergyManager.enableEfficiencyMode()
+                                }
+                                !isWindowFocused -> {
+                                    EnergyManager.disableEfficiencyMode()
+                                    EnergyManager.enableLightEfficiencyMode()
+                                }
+                                else -> {
+                                    EnergyManager.disableEfficiencyMode()
+                                    EnergyManager.disableLightEfficiencyMode()
+                                }
                             }
-                            MaterialDialogTitleBar { _ ->
-                                Text(
-                                    title,
-                                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                            Surface(modifier = Modifier.fillMaxSize()) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
+                        }
+
+                        when (selectedTab) {
+                            "Nucleus" -> NucleusContent()
+                            "Gallery" -> {
+                                val currentDensity = LocalDensity.current
+                                CompositionLocalProvider(
+                                    LocalDensity provides
+                                        Density(
+                                            density = currentDensity.density * 0.75f,
+                                            fontScale = currentDensity.fontScale,
+                                        ),
                                 ) {
-                                    Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                    GalleryScreen(seedColor = seedColor)
+                                }
+                            }
+                        }
+
+                        if (showInfoDialog) {
+                            MaterialDecoratedDialog(
+                                onCloseRequest = { showInfoDialog = false },
+                                state = DialogState(size = DpSize(400.dp, 250.dp)),
+                                title = "System Info",
+                            ) {
+                                MaterialDialogTitleBar { _ ->
                                     Text(
-                                        "Java: ${System.getProperty("java.version")}" +
-                                            " (${System.getProperty("java.vendor")})",
+                                        title,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
-                                    Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                }
+                                Surface(modifier = Modifier.fillMaxSize()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
+                                        Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                        Text(
+                                            "Java: ${System.getProperty("java.version")}" +
+                                                " (${System.getProperty("java.vendor")})",
+                                        )
+                                        Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                    }
                                 }
                             }
                         }
@@ -224,7 +331,7 @@ fun main(args: Array<String>) {
 }
 
 @Composable
-fun app() {
+fun NucleusContent() {
     val currentDeepLink by deepLinkUri
     val updater =
         remember {
@@ -334,7 +441,7 @@ private enum class ThemeMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionNaming", "DEPRECATION")
 @Composable
-private fun TitleBarScope.TitleBarIconButton(
+private fun TitleBarIconButton(
     imageVector: ImageVector,
     contentDescription: String,
     modifier: Modifier = Modifier,

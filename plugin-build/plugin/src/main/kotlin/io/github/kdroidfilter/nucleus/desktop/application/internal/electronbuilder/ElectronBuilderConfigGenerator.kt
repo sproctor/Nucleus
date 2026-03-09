@@ -15,8 +15,8 @@ import io.github.kdroidfilter.nucleus.desktop.application.dsl.NsisSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.PublishSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
-import io.github.kdroidfilter.nucleus.internal.utils.currentArch
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
 import java.io.File
 
@@ -41,6 +41,7 @@ internal class ElectronBuilderConfigGenerator {
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
         appImageDir: File,
+        targetArch: Arch,
         startupWMClass: String? = null,
         linuxIconOverride: File? = null,
         windowsIconOverride: File? = null,
@@ -84,13 +85,14 @@ internal class ElectronBuilderConfigGenerator {
 
         // --- Platform-specific config ---
         when (currentOS) {
-            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat)
-            OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, windowsIconOverride, executableName)
+            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat, targetArch)
+            OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, targetArch, windowsIconOverride, executableName)
             OS.Linux ->
                 generateLinuxConfig(
                     yaml = yaml,
                     distributions = distributions,
                     targetFormat = targetFormat,
+                    targetArch = targetArch,
                     startupWMClass = startupWMClass,
                     linuxIconOverride = linuxIconOverride,
                     linuxAfterInstallTemplate = linuxAfterInstallTemplate,
@@ -120,11 +122,12 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
     ) {
         yaml.appendLine("mac:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.id}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  category", distributions.macOS.appCategory)
         appendIfNotNull(
             yaml,
@@ -222,13 +225,14 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
         windowsIconOverride: File?,
         executableName: String?,
     ) {
         yaml.appendLine("win:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  executableName", executableName)
         val windowsIcon =
             distributions.windows.iconFile.orNull
@@ -470,6 +474,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
         startupWMClass: String?,
         linuxIconOverride: File?,
         linuxAfterInstallTemplate: File?,
@@ -478,7 +483,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("linux:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  executableName", executableName)
         val linuxIcon =
             linuxIconOverride ?: distributions.linux.iconFile.orNull
@@ -652,38 +657,16 @@ internal class ElectronBuilderConfigGenerator {
     }
 
     /**
-     * Resolves the PKG installer signing identity based on the app signing identity.
+     * Resolves the PKG installer signing identity.
      *
-     * PKG signing requires a different certificate type than app signing:
-     * - App Store: "3rd Party Mac Developer Installer: NAME (TEAMID)"
-     * - Direct distribution: "Developer ID Installer: NAME (TEAMID)"
-     *
-     * The user configures a single `signing.identity` (typically an Application identity
-     * or just the bare team name). This method strips any Application prefix and applies
-     * the correct Installer prefix based on whether the build targets the App Store.
+     * PKG is always treated as an App Store format, so signing is handled post-build
+     * via `productsign` with the "3rd Party Mac Developer Installer" certificate.
+     * This always returns `null` because electron-builder's `pkg.ts` hardcodes
+     * `certType = "Developer ID Installer"`, making it impossible to match a
+     * "3rd Party Mac Developer Installer" certificate at build time.
      */
-    private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? {
-        val identity = macOS.signing.identity.orNull ?: return null
-
-        // App Store PKG signing is handled post-build via productsign, because
-        // electron-builder's pkg.ts hardcodes certType = "Developer ID Installer"
-        // and its findIdentity(certType, qualifier) filters by that prefix first,
-        // making it impossible to match a "3rd Party Mac Developer Installer" cert.
-        if (macOS.appStore) return null
-
-        val knownPrefixes =
-            listOf(
-                "Developer ID Application: ",
-                "3rd Party Mac Developer Application: ",
-                "Developer ID Installer: ",
-                "3rd Party Mac Developer Installer: ",
-            )
-
-        return knownPrefixes
-            .firstOrNull { identity.startsWith(it) }
-            ?.let { identity.removePrefix(it) }
-            ?: identity
-    }
+    @Suppress("UnusedParameter")
+    private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? = null
 
     private fun appendIfNotNull(
         yaml: StringBuilder,

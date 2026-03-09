@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        google()
         gradlePluginPortal()
         mavenCentral()
     }
@@ -39,10 +40,13 @@ include(":native-http")
 include(":native-http-okhttp")
 include(":native-http-ktor")
 include(":linux-hidpi")
+include(":system-color")
 include(":decorated-window-core")
 include(":decorated-window-jbr")
 include(":decorated-window-jni")
 include(":decorated-window-material")
 include(":graalvm-runtime")
+include(":energy-manager")
 include(":jewel-sample")
+include(":sample-cmp")
 includeBuild("plugin-build")

@@ -23,9 +23,14 @@ dependencies {
     implementation(project(":aot-runtime"))
     implementation(project(":updater-runtime"))
     implementation(project(":darkmode-detector"))
+    implementation(project(":system-color"))
     implementation(project(":decorated-window-material"))
     implementation(project(":decorated-window-jni"))
+    implementation(project(":energy-manager"))
     implementation(project(":graalvm-runtime"))
+    implementation(libs.reorderable)
+    implementation("com.materialkolor:material-kolor:4.1.1")
+    implementation(compose.materialIconsExtended)
 }
 
 val releaseVersion =
@@ -98,7 +103,7 @@ nucleus.application {
         // --- Native libs handling ---
         cleanupNativeLibs = true // Auto cleanup native libraries
         enableAotCache = true // Enable AOT compilation cache
-        splashImage = "splash.png" // Splash screen image file
+//        splashImage = "splash.png" // Splash screen image file
         homepage = "https://github.com/KdroidFilter/NucleusDemo"
 
         // --- Compression ---

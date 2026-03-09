@@ -24,9 +24,7 @@ import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractUnpackDefaultApplicationResourcesTask
 import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
-import io.github.kdroidfilter.nucleus.internal.utils.currentArch
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
-import io.github.kdroidfilter.nucleus.internal.utils.currentTarget
 import io.github.kdroidfilter.nucleus.internal.utils.dependsOn
 import io.github.kdroidfilter.nucleus.internal.utils.detachedComposeGradleDependency
 import io.github.kdroidfilter.nucleus.internal.utils.detachedDependency
@@ -36,6 +34,7 @@ import io.github.kdroidfilter.nucleus.internal.utils.file
 import io.github.kdroidfilter.nucleus.internal.utils.ioFile
 import io.github.kdroidfilter.nucleus.internal.utils.ioFileOrNull
 import io.github.kdroidfilter.nucleus.internal.utils.javaExecutable
+import io.github.kdroidfilter.nucleus.internal.utils.jdkArch
 import io.github.kdroidfilter.nucleus.internal.utils.provider
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DuplicatesStrategy
@@ -134,7 +133,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
                     OS.MacOS -> "macos"
                 }
             val archName =
-                when (currentArch) {
+                when (targetArch) {
                     Arch.X64 -> "x64"
                     Arch.Arm64 -> "arm64"
                 }
@@ -166,7 +165,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             if (appResourcesRootDir.isPresent) {
                 from(appResourcesRootDir.dir("common"))
                 from(appResourcesRootDir.dir(currentOS.id))
-                from(appResourcesRootDir.dir(currentTarget.id))
+                from(appResourcesRootDir.dir(targetTarget.id))
             }
 
             into(jvmTmpDirForTask())
@@ -183,7 +182,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
                 if (appResourcesRootDir.isPresent) {
                     from(appResourcesRootDir.dir("common"))
                     from(appResourcesRootDir.dir(currentOS.id))
-                    from(appResourcesRootDir.dir(currentTarget.id))
+                    from(appResourcesRootDir.dir(targetTarget.id))
                 }
 
                 dependsOn(extractNativeLibs)
@@ -708,12 +707,14 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     packageTask.appxSquare150x150Logo.set(app.nativeDistributions.windows.appx.square150x150Logo)
     packageTask.appxWide310x150Logo.set(app.nativeDistributions.windows.appx.wide310x150Logo)
     packageTask.distributions = app.nativeDistributions
+    packageTask.targetArch.set(app.javaHomeProvider.map { jdkArch(java.io.File(it)).id })
 
     if (currentOS == OS.MacOS) {
         val mac = app.nativeDistributions.macOS
         packageTask.nonValidatedMacSigningSettings = mac.signing
         packageTask.nonValidatedMacBundleID.set(mac.bundleID)
-        packageTask.macAppStore.set(mac.appStore)
+        // PKG is always treated as App Store — ignore the deprecated user setting for store formats.
+        packageTask.macAppStore.set(packageTask.targetFormat.isStoreFormat)
         val sandboxed = packageTask.targetFormat.isStoreFormat
         val defaultAppEntitlements =
             if (sandboxed) {
@@ -793,7 +794,8 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                         }
                     },
                 )
-                packageTask.macAppStore.set(mac.appStore)
+                // PKG is always treated as App Store — ignore the deprecated user setting.
+                packageTask.macAppStore.set(packageTask.targetFormat.isStoreFormat)
                 packageTask.macAppCategory.set(mac.appCategory)
                 packageTask.macMinimumSystemVersion.set(mac.minimumSystemVersion)
                 val defaultAppEntitlements =
@@ -925,7 +927,7 @@ private fun JvmApplicationContext.configurePackageUberJarForCurrentOS(
     app.mainClass?.let { jar.manifest.attributes["Main-Class"] = it }
     jar.manifest.attributes["Multi-Release"] = "true"
     jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    jar.archiveAppendix.set(currentTarget.id)
+    jar.archiveAppendix.set(targetTarget.id)
     jar.archiveBaseName.set(packageNameProvider)
     jar.archiveVersion.set(packageVersionFor(TargetFormat.RawAppImage))
     jar.archiveClassifier.set(buildType.classifier)

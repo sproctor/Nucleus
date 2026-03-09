@@ -116,6 +116,12 @@ abstract class AbstractElectronBuilderPackageTask
         @get:Optional
         val executableName: Property<String> = objects.nullableProperty()
 
+        @get:Input
+        val targetArch: Property<String> =
+            objects.notNullProperty<String>().apply {
+                set(currentArch.id)
+            }
+
         @get:InputFile
         @get:Optional
         @get:PathSensitive(PathSensitivity.ABSOLUTE)
@@ -345,11 +351,13 @@ abstract class AbstractElectronBuilderPackageTask
             linuxAfterInstallTemplate: File?,
         ): File {
             val configGenerator = ElectronBuilderConfigGenerator()
+            val resolvedArch = Arch.entries.first { it.id == targetArch.get() }
             val configContent =
                 configGenerator.generateConfig(
                     distributions = distributions,
                     targetFormat = targetFormat,
                     appImageDir = appDir,
+                    targetArch = resolvedArch,
                     startupWMClass = startupWMClass.orNull,
                     linuxIconOverride = linuxIconOverride,
                     windowsIconOverride = windowsIconOverride,
@@ -570,7 +578,7 @@ abstract class AbstractElectronBuilderPackageTask
         }
 
         /**
-         * Re-signs the .app bundle for PKG (App Store) builds.
+         * Re-signs the .app bundle for PKG builds (always App Store).
          * Delegates to [resignApp] for the core signing, then augments entitlements
          * with application-identifier and team-identifier for App Store submissions.
          */
@@ -635,9 +643,9 @@ abstract class AbstractElectronBuilderPackageTask
         /**
          * Signs the PKG installer for App Store distribution using `productsign`.
          *
-         * electron-builder creates an unsigned PKG (because we return null for the installer
-         * identity in App Store mode), and this method re-signs it with the correct
-         * "3rd Party Mac Developer Installer" certificate.
+         * PKG is always treated as an App Store format. electron-builder creates an
+         * unsigned PKG (installer identity is always null), and this method re-signs
+         * it with the correct "3rd Party Mac Developer Installer" certificate.
          */
         private fun signPkgInstaller(outputDir: File) {
             if (currentOS != OS.MacOS) return

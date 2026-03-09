@@ -1544,7 +1544,7 @@
                 {
                     "name": "getComponentAccessor",
                     "parameterTypes": [
-
+                        
                     ]
                 }
             ]
@@ -2180,7 +2180,7 @@
                 {
                     "name": "getPlatformWindow",
                     "parameterTypes": [
-
+                        
                     ]
                 }
             ]
@@ -2300,6 +2300,12 @@
                     "parameterTypes": [
                         
                     ]
+                },
+                {
+                    "name": "deliverNCMouseDown",
+                    "parameterTypes": [
+                        
+                    ]
                 }
             ]
         },
@@ -2309,6 +2315,12 @@
             "methods": [
                 {
                     "name": "installToolkitThreadInJava",
+                    "parameterTypes": [
+                        
+                    ]
+                },
+                {
+                    "name": "systemColorsChanged",
                     "parameterTypes": [
                         
                     ]
@@ -2654,6 +2666,45 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.darkmodedetector.mac.NativeDarkModeBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onThemeChanged",
+                    "parameterTypes": [
+                        "boolean"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.systemcolor.mac.NativeMacSystemColorBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onAccentColorChanged",
+                    "parameterTypes": [
+                        "float",
+                        "float",
+                        "float"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.window.utils.macos.JniMacTitleBarBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onMenuBarOffsetChanged",
+                    "parameterTypes": [
+                        "long",
+                        "float"
+                    ]
+                }
+            ]
         }
     ],
     "resources": [
@@ -2713,6 +2764,12 @@
         },
         {
             "bundle": "sun.awt.resources.awtosx"
+        },
+        {
+            "glob": "nucleus/native/darwin-aarch64/libnucleus_energy_manager.dylib"
+        },
+        {
+            "glob": "nucleus/native/darwin-aarch64/libnucleus_systemcolor.dylib"
         }
     ]
 }
