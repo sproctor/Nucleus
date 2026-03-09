@@ -453,7 +453,17 @@ static void installMenuBarMonitor(NSWindow *window) {
         if (!(w.styleMask & NSWindowStyleMaskFullScreen)) return;
 
         float offset = 0.0f;
-        if ([NSMenu menuBarVisible]) {
+
+        // On screens with a notch (e.g. MacBook Pro), the menu bar lives
+        // in the notch area and is always visible in fullscreen — no need
+        // to push the title bar down.
+        NSScreen *screen = w.screen;
+        BOOL hasNotch = NO;
+        if (@available(macOS 12.0, *)) {
+            hasNotch = screen && screen.safeAreaInsets.top > 0;
+        }
+
+        if (!hasNotch && [NSMenu menuBarVisible]) {
             NSMenu *mainMenu = [[NSApplication sharedApplication] mainMenu];
             if (mainMenu) offset = (float)[mainMenu menuBarHeight];
         }
