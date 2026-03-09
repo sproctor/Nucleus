@@ -343,7 +343,7 @@ fun FrameWindowScope.DecoratedWindowBody(
 
         fun applyRecursive(c: java.awt.Component) {
             c.background = awtColor
-            // TODO: Remove this once stable Compose uses Skiko with
+            // [Skiko #1141] Remove this once stable Compose uses Skiko with
             //  https://github.com/JetBrains/skiko/pull/1141 —
             //  ContextHandler.draw() always clears to TRANSPARENT now and
             //  SkiaLayer.update() fills with the AWT background color instead.
