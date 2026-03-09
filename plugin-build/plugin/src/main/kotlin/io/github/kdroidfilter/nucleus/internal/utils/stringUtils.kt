@@ -43,4 +43,7 @@ internal fun joinLowerCamelCase(vararg parts: String): String =
         if (i == 0) part.lowercaseFirstChar() else part.uppercaseFirstChar()
     }
 
-internal fun joinUpperCamelCase(vararg parts: String): String = parts.joinToString(separator = "") { it.uppercaseFirstChar() }
+internal fun joinUpperCamelCase(vararg parts: String): String =
+    parts.joinToString(separator = "") {
+        it.uppercaseFirstChar()
+    }

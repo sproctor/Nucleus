@@ -80,7 +80,10 @@ internal val currentOS: OS by lazy {
 internal fun executableName(nameWithoutExtension: String): String =
     if (currentOS == OS.Windows) "$nameWithoutExtension.exe" else nameWithoutExtension
 
-internal fun javaExecutable(javaHome: String): String = File(javaHome).resolve("bin/${executableName("java")}").absolutePath
+internal fun javaExecutable(javaHome: String): String =
+    File(javaHome)
+        .resolve("bin/${executableName("java")}")
+        .absolutePath
 
 internal object MacUtils {
     val codesign: File by lazy {

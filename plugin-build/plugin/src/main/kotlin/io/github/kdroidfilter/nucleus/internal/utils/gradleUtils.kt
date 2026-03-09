@@ -47,7 +47,12 @@ internal fun Project.detachedComposeGradleDependency(
 internal fun Project.detachedComposeDependency(
     artifactId: String,
     groupId: String = "org.jetbrains.compose",
-): Configuration = detachedDependency(groupId = groupId, artifactId = artifactId, version = NucleusBuildConfig.composeVersion)
+): Configuration =
+    detachedDependency(
+        groupId = groupId,
+        artifactId = artifactId,
+        version = NucleusBuildConfig.composeVersion,
+    )
 
 internal fun Project.detachedDependency(
     groupId: String,
