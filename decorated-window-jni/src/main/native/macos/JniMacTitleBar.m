@@ -22,10 +22,16 @@ static const float kDefaultButtonOffset  = 23.0f;
 // Extra left margin when the invisible toolbar is present (26pt corner radius).
 // Matches the button inset used by Apple apps with a toolbar (e.g. Finder, Safari).
 static const float kToolbarExtraInset    = 6.0f;
+// Maximum horizontal margin for the first traffic-light button.
+// Capped at the default title bar height (40pt) / 2 so that increasing
+// the title bar height beyond the default doesn't push buttons further right.
+static const float kDefaultTitleBarHeight = 40.0f;
+static const float kMaxButtonLeftMargin   = kDefaultTitleBarHeight / 2.0f;
 
 // _adjustWindowToScreen swizzle state
 static BOOL sAdjustWindowSwizzled = NO;
 static IMP sOriginalAdjustWindowToScreen = NULL;
+
 
 // Forward declarations
 static void applyConstraints(NSWindow *window, float height);
@@ -147,12 +153,11 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
 
     installFullScreenButtons(w, height);
 
-    // Reinstall the invisible toolbar (removed in willEnterFullScreen to avoid
-    // a white band glitch during the enter-fullscreen animation).
+    // Reinstall the toolbar (removed in willEnterFullScreen to avoid a white
+    // band glitch during the animation) so 26pt corners show in fullscreen too.
     if ([objc_getAssociatedObject(w, &kLargeCornerRadiusKey) boolValue] && !w.toolbar) {
         NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"NucleusToolbar"];
         toolbar.showsBaselineSeparator = NO;
-        toolbar.visible = NO;
         w.toolbar = toolbar;
     }
 
@@ -192,6 +197,18 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
     float height = [storedHeight floatValue];
     [w setMovable:NO];
     ensureDragView(w);
+
+    // Reinstall the invisible toolbar for 26pt corner radius (removed in
+    // willEnterFullScreen to avoid a white band glitch during animation).
+    if ([objc_getAssociatedObject(w, &kLargeCornerRadiusKey) boolValue] && !w.toolbar) {
+        NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"NucleusToolbar"];
+        toolbar.showsBaselineSeparator = NO;
+        // Keep toolbar.visible = YES (default) so macOS renders 26pt corners
+                // even in maximized mode. Combined with titlebarAppearsTransparent,
+                // the empty toolbar is visually invisible.
+        w.toolbar = toolbar;
+    }
+
     applyConstraints(w, height);
 
     // Reveal buttons now that constraints are in place
@@ -381,12 +398,13 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     NucleusButtonsView *container = [[NucleusButtonsView alloc] init];
     NSView *parent = window.contentView;
     CGFloat y = parent.frame.size.height - titleBarHeight;
-    [container setFrame:NSMakeRect(0, y, titleBarHeight / 2.0f + 2.0f * offset + btnWidth, titleBarHeight)];
+    float leftMargin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
+    [container setFrame:NSMakeRect(0, y, leftMargin + 2.0f * offset + btnWidth, titleBarHeight)];
 
     NSUInteger masks = [window styleMask];
 
     // Create replacement buttons positioned with the same formula as applyConstraints:
-    // centerX = titleBarHeight/2 + idx * offset, centerY = titleBarHeight/2
+    // centerX = leftMargin + idx * offset, centerY = titleBarHeight/2
     NSArray<NSNumber *> *buttonTypes = @[
         @(NSWindowCloseButton), @(NSWindowMiniaturizeButton), @(NSWindowZoomButton)
     ];
@@ -395,7 +413,7 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     for (NSUInteger idx = 0; idx < 3; idx++) {
         NSButton *btn = [NSWindow standardWindowButton:[buttonTypes[idx] unsignedIntegerValue]
                                           forStyleMask:masks];
-        CGFloat centerX = titleBarHeight / 2.0f + idx * offset;
+        CGFloat centerX = leftMargin + idx * offset;
         CGFloat centerY = titleBarHeight / 2.0f;
         [btn setFrame:NSMakeRect(centerX - btnWidth / 2.0f, centerY - btnHeight / 2.0f,
                                  btnWidth, btnHeight)];
@@ -551,16 +569,17 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
     NSNumber *storedMenuBarOffset = objc_getAssociatedObject(window, &kMenuBarOffsetKey);
     float menuBarOffset = storedMenuBarOffset ? [storedMenuBarOffset floatValue] : 0.0f;
 
+    float leftMargin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
     CGFloat y = parent.frame.size.height - titleBarHeight - menuBarOffset;
     [container setFrame:NSMakeRect(0, y,
-                                   titleBarHeight / 2.0f + 2.0f * offset + btnWidth,
+                                   leftMargin + 2.0f * offset + btnWidth,
                                    titleBarHeight)];
 
     // Reposition each button inside the container
     NSArray<NSView *> *buttons = [container subviews];
     for (NSUInteger idx = 0; idx < buttons.count && idx < 3; idx++) {
         NSView *btn = buttons[idx];
-        CGFloat centerX = titleBarHeight / 2.0f + idx * offset;
+        CGFloat centerX = leftMargin + idx * offset;
         CGFloat centerY = titleBarHeight / 2.0f;
         [btn setFrame:NSMakeRect(centerX - btnWidth / 2.0f, centerY - btnHeight / 2.0f,
                                  btnWidth, btnHeight)];
@@ -722,6 +741,7 @@ static void applyConstraints(NSWindow *window, float height) {
     float shrinkFactor = fminf(height / kMinHeightForFullSize, 1.0f);
     float offset       = shrinkFactor * kDefaultButtonOffset;
     float extraInset   = window.toolbar ? kToolbarExtraInset : 0.0f;
+    float leftMargin   = fminf(height / 2.0f, kMaxButtonLeftMargin) + extraInset;
 
     NSArray *buttons = @[closeBtn, miniBtn, zoomBtn];
     [buttons enumerateObjectsUsingBlock:^(NSView *btn, NSUInteger idx, BOOL *stop) {
@@ -733,9 +753,9 @@ static void applyConstraints(NSWindow *window, float height) {
                                            multiplier:14.0 / 12.0
                                              constant:-2.0],
             [btn.centerYAnchor constraintEqualToAnchor:titlebarContainer.topAnchor
-                                              constant:(height / 2.0f + extraInset)],
+                                              constant:height / 2.0f],
             [btn.centerXAnchor constraintEqualToAnchor:titlebarContainer.leftAnchor
-                                              constant:(height / 2.0f + extraInset + idx * offset)],
+                                              constant:(leftMargin + idx * offset)],
         ]];
     }];
 
@@ -844,9 +864,10 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     BOOL largeRadius = [objc_getAssociatedObject(window, &kLargeCornerRadiusKey) boolValue];
     float extraInset = largeRadius ? kToolbarExtraInset : 0.0f;
 
-    float shrink    = fminf(heightPt / kMinHeightForFullSize, 1.0f);
-    float btnOffset = shrink * kDefaultButtonOffset;
-    float leftInset = heightPt + 2.0f * btnOffset + extraInset;
+    float shrink     = fminf(heightPt / kMinHeightForFullSize, 1.0f);
+    float btnOffset  = shrink * kDefaultButtonOffset;
+    float leftMargin = fminf(heightPt / 2.0f, kMaxButtonLeftMargin) + extraInset;
+    float leftInset  = 2.0f * leftMargin + 2.0f * btnOffset;
     float capturedHeight = heightPt;
 
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -1072,7 +1093,9 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                 if (!window.toolbar) {
                     NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"NucleusToolbar"];
                     toolbar.showsBaselineSeparator = NO;
-                    toolbar.visible = NO;
+                    // Keep toolbar.visible = YES (default) so macOS renders 26pt corners
+                // even in maximized mode. Combined with titlebarAppearsTransparent,
+                // the empty toolbar is visually invisible.
                     window.toolbar = toolbar;
                 }
             } else {
