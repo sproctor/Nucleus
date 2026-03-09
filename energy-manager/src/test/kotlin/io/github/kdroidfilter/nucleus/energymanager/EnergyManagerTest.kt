@@ -328,6 +328,31 @@ class EnergyManagerTest {
     }
 
     @Test
+    fun `windows light efficiency mode enable and disable succeed`() {
+        assumeWindows()
+        assertTrue(EnergyManager.isAvailable())
+
+        val enableResult = EnergyManager.enableLightEfficiencyMode()
+        println("Windows light enable result: $enableResult")
+        assertTrue(enableResult.success, "Light enable failed: ${enableResult.message}")
+
+        val disableResult = EnergyManager.disableLightEfficiencyMode()
+        println("Windows light disable result: $disableResult")
+        assertTrue(disableResult.success, "Light disable failed: ${disableResult.message}")
+    }
+
+    @Test
+    fun `windows light enable disable cycle is idempotent`() {
+        assumeWindows()
+        assertTrue(EnergyManager.isAvailable())
+
+        assertTrue(EnergyManager.enableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.enableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.disableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.disableLightEfficiencyMode().success)
+    }
+
+    @Test
     fun `windows thread enable disable cycle is idempotent`() {
         assumeWindows()
         assertTrue(EnergyManager.isAvailable())

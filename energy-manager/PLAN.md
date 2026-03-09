@@ -16,8 +16,7 @@ CPU scheduling without throttling I/O or network.
 
 ## Scope
 
-Only macOS is implemented in this iteration. Windows and Linux will return
-`unsupported` for the light mode until their native code is updated.
+macOS and Windows are implemented. Linux will return `unsupported` for the light mode until its native code is updated.
 
 ## TODO
 

@@ -26,6 +26,10 @@ internal object WindowsEnergyManager : PlatformEnergyManager {
 
     override fun enableEfficiencyMode() = callNative { NativeWindowsEnergyBridge.nativeEnableEfficiencyMode() }
 
+    override fun enableLightEfficiencyMode() = callNative { NativeWindowsEnergyBridge.nativeEnableLightEfficiencyMode() }
+
+    override fun disableLightEfficiencyMode() = callNative { NativeWindowsEnergyBridge.nativeDisableLightEfficiencyMode() }
+
     override fun disableEfficiencyMode() = callNative { NativeWindowsEnergyBridge.nativeDisableEfficiencyMode() }
 
     override fun enableThreadEfficiencyMode(): EnergyManager.Result =
