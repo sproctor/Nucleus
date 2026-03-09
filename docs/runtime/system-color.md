@@ -57,6 +57,43 @@ fun App() {
 }
 ```
 
+## Material You on Desktop
+
+Android's [Material You](https://m3.material.io/styles/color/dynamic/choosing-a-source) dynamic theming derives an entire color scheme from a single seed color — the system accent color. On desktop, this is not supported out of the box, but you can reproduce the same effect by combining `systemAccentColor()` with the [material-kolor](https://github.com/jordond/MaterialKolor) library.
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.system-color:<version>")
+    implementation("com.materialkolor:material-kolor:4.1.1")
+}
+```
+
+```kotlin
+@Composable
+fun App() {
+    val accentColor = systemAccentColor()
+    val seedColor = accentColor ?: Color(0xFF6750A4) // Material default purple
+
+    DynamicMaterialTheme(
+        seedColor = seedColor,
+        isDark = isSystemInDarkTheme(),
+        animate = true,
+        style = PaletteStyle.TonalSpot,
+    ) {
+        // Your app content — the entire color scheme adapts
+        // to the OS accent color in real time
+    }
+}
+```
+
+When the user changes their accent color in system settings, `systemAccentColor()` triggers a recomposition and `DynamicMaterialTheme` smoothly animates the entire palette to the new color.
+
+The Nucleus example app uses this exact approach — you can test it by running:
+
+```bash
+./gradlew :example:run
+```
+
 ## API Reference
 
 | Function | Returns | Description |
