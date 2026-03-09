@@ -116,6 +116,12 @@ abstract class AbstractElectronBuilderPackageTask
         @get:Optional
         val executableName: Property<String> = objects.nullableProperty()
 
+        @get:Input
+        val targetArch: Property<String> =
+            objects.notNullProperty<String>().apply {
+                set(currentArch.id)
+            }
+
         @get:InputFile
         @get:Optional
         @get:PathSensitive(PathSensitivity.ABSOLUTE)
@@ -345,11 +351,13 @@ abstract class AbstractElectronBuilderPackageTask
             linuxAfterInstallTemplate: File?,
         ): File {
             val configGenerator = ElectronBuilderConfigGenerator()
+            val resolvedArch = Arch.entries.first { it.id == targetArch.get() }
             val configContent =
                 configGenerator.generateConfig(
                     distributions = distributions,
                     targetFormat = targetFormat,
                     appImageDir = appDir,
+                    targetArch = resolvedArch,
                     startupWMClass = startupWMClass.orNull,
                     linuxIconOverride = linuxIconOverride,
                     windowsIconOverride = windowsIconOverride,

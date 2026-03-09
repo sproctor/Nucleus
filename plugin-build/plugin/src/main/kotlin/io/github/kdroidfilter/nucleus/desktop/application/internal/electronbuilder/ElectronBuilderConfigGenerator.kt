@@ -15,8 +15,8 @@ import io.github.kdroidfilter.nucleus.desktop.application.dsl.NsisSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.PublishSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
-import io.github.kdroidfilter.nucleus.internal.utils.currentArch
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
 import java.io.File
 
@@ -41,6 +41,7 @@ internal class ElectronBuilderConfigGenerator {
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
         appImageDir: File,
+        targetArch: Arch,
         startupWMClass: String? = null,
         linuxIconOverride: File? = null,
         windowsIconOverride: File? = null,
@@ -84,13 +85,14 @@ internal class ElectronBuilderConfigGenerator {
 
         // --- Platform-specific config ---
         when (currentOS) {
-            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat)
-            OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, windowsIconOverride, executableName)
+            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat, targetArch)
+            OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, targetArch, windowsIconOverride, executableName)
             OS.Linux ->
                 generateLinuxConfig(
                     yaml = yaml,
                     distributions = distributions,
                     targetFormat = targetFormat,
+                    targetArch = targetArch,
                     startupWMClass = startupWMClass,
                     linuxIconOverride = linuxIconOverride,
                     linuxAfterInstallTemplate = linuxAfterInstallTemplate,
@@ -120,11 +122,12 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
     ) {
         yaml.appendLine("mac:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.id}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  category", distributions.macOS.appCategory)
         appendIfNotNull(
             yaml,
@@ -222,13 +225,14 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
         windowsIconOverride: File?,
         executableName: String?,
     ) {
         yaml.appendLine("win:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  executableName", executableName)
         val windowsIcon =
             distributions.windows.iconFile.orNull
@@ -470,6 +474,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        targetArch: Arch,
         startupWMClass: String?,
         linuxIconOverride: File?,
         linuxAfterInstallTemplate: File?,
@@ -478,7 +483,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("linux:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        yaml.appendLine("      arch: ${currentArch.id}")
+        yaml.appendLine("      arch: ${targetArch.id}")
         appendIfNotNull(yaml, "  executableName", executableName)
         val linuxIcon =
             linuxIconOverride ?: distributions.linux.iconFile.orNull
