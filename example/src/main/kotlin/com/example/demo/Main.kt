@@ -149,7 +149,7 @@ fun main(args: Array<String>) {
                 val state =
                     rememberWindowState(
                         position = WindowPosition.Aligned(Alignment.Center),
-                        placement = WindowPlacement.Maximized,
+                        placement = WindowPlacement.Floating,
                     )
                 MaterialDecoratedWindow(
                     state = state,
