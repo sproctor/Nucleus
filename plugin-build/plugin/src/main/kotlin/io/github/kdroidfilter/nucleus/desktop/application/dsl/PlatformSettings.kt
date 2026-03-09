@@ -76,6 +76,7 @@ abstract class NativeApplicationMacOSPlatformSettings : AbstractMacOSPlatformSet
 abstract class JvmMacOSPlatformSettings : AbstractMacOSPlatformSettings() {
     var dockName: String? = null
     var setDockNameSameAsPackageName: Boolean = true
+
     /**
      * Previously used to enable App Store signing for PKG builds.
      *
