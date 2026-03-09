@@ -235,17 +235,9 @@ jobs:
             --team-id "${{ secrets.MAC_NOTARIZATION_TEAM_ID }}" \
             --wait
 
-          # ZIP cannot be stapled directly — extract, staple .app, re-zip
-          echo "==> Extracting ZIP to staple .app"
-          STAPLE_WORK="$(mktemp -d)"
-          ditto -x -k "$ZIP" "$STAPLE_WORK"
-          APP_BUNDLE="$(find "$STAPLE_WORK" -maxdepth 1 -name '*.app' -type d | head -1)"
-          if [[ -n "$APP_BUNDLE" ]]; then
-            xcrun stapler staple "$APP_BUNDLE"
-            echo "==> Re-creating ZIP with stapled .app"
-            ditto -c -k --keepParent "$APP_BUNDLE" "$ZIP"
-          fi
-          rm -rf "$STAPLE_WORK"
+          # ZIP is NOT stapled: re-zipping would invalidate the blockmap and break
+          # differential auto-updates. Gatekeeper verifies notarization online anyway.
+          echo "==> Skipping staple for ZIP (preserves blockmap for auto-update)"
 
       - name: Cleanup keychain
         if: ${{ always() && env.HAS_SIGNING_CERTS == 'true' }}

@@ -69,45 +69,16 @@ abstract class AbstractNotarizationTask
 
         private fun staple(packageFile: File) {
             if (packageFile.extension.equals("zip", ignoreCase = true)) {
-                stapleZip(packageFile)
-            } else {
-                runExternalTool(
-                    tool = MacUtils.xcrun,
-                    args = listOf("stapler", "staple", packageFile.absolutePath),
-                )
+                // ZIP files used for auto-update are not stapled: re-zipping after stapling
+                // would invalidate the blockmap and break differential updates.
+                // Notarization is still verified online by Gatekeeper without stapling.
+                logger.lifecycle("Skipping staple for ${packageFile.name} (ZIP auto-update artifact)")
+                return
             }
-        }
-
-        private fun stapleZip(zipFile: File) {
-            val ditto = File("/usr/bin/ditto")
-            val tmpDir = temporaryDir.resolve("staple-zip")
-            tmpDir.mkdirs()
-
-            try {
-                // Extract ZIP
-                logger.info("Extracting ZIP to staple inner .app bundle")
-                runExternalTool(tool = ditto, args = listOf("-x", "-k", zipFile.absolutePath, tmpDir.absolutePath))
-
-                // Find and staple the .app bundle
-                val appBundle =
-                    tmpDir.listFiles()?.firstOrNull { it.isDirectory && it.name.endsWith(".app") }
-                        ?: error("No .app bundle found inside ${zipFile.name}")
-
-                logger.info("Stapling ${appBundle.name}")
-                runExternalTool(
-                    tool = MacUtils.xcrun,
-                    args = listOf("stapler", "staple", appBundle.absolutePath),
-                )
-
-                // Re-create ZIP with stapled .app
-                logger.info("Re-creating ZIP with stapled .app")
-                runExternalTool(
-                    tool = ditto,
-                    args = listOf("-c", "-k", "--keepParent", appBundle.absolutePath, zipFile.absolutePath),
-                )
-            } finally {
-                tmpDir.deleteRecursively()
-            }
+            runExternalTool(
+                tool = MacUtils.xcrun,
+                args = listOf("stapler", "staple", packageFile.absolutePath),
+            )
         }
 
         private fun updateMetadataFiles(packageFile: File) {
