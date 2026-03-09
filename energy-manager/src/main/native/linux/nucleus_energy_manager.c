@@ -143,6 +143,40 @@ Java_io_github_kdroidfilter_nucleus_energymanager_linux_NativeLinuxEnergyBridge_
     return (jint)first_error;
 }
 
+/* ---- nativeEnableLightEfficiencyMode ----------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_linux_NativeLinuxEnergyBridge_nativeEnableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    /* CPU nice +10 only — no ioprio, no timer slack */
+    errno = 0;
+    if (setpriority(PRIO_PROCESS, 0, 10) != 0) {
+        return (jint)errno;
+    }
+    return 0;
+}
+
+/* ---- nativeDisableLightEfficiencyMode ---------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_linux_NativeLinuxEnergyBridge_nativeDisableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    /* Reset nice to 0 — may fail with EACCES without CAP_SYS_NICE,
+     * which is expected: unprivileged processes cannot lower their
+     * nice value once raised. */
+    errno = 0;
+    if (setpriority(PRIO_PROCESS, 0, 0) != 0 && errno != EACCES) {
+        return (jint)errno;
+    }
+    return 0;
+}
+
 /* ---- nativeDisableEfficiencyMode --------------------------------- */
 
 JNIEXPORT jint JNICALL

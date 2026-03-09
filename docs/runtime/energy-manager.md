@@ -9,7 +9,8 @@ The `energy-manager` module provides two capabilities for Compose Desktop applic
 
 | Feature | Windows | macOS | Linux |
 |---------|---------|-------|-------|
-| Process efficiency mode | EcoQoS + `IDLE_PRIORITY_CLASS` | `PRIO_DARWIN_BG` + QoS TIER_5 | nice +19, ioprio IDLE, timerslack 100ms |
+| Full efficiency mode | EcoQoS + `IDLE_PRIORITY_CLASS` | `PRIO_DARWIN_BG` + QoS TIER_5 | nice +19, ioprio IDLE, timerslack 100ms |
+| Light efficiency mode | EcoQoS only | `task_policy_set(TIER_5)` | nice +10 |
 | Thread efficiency mode | EcoQoS + `THREAD_PRIORITY_IDLE` | `QOS_CLASS_BACKGROUND` | nice +19, ioprio IDLE, timerslack 100ms |
 | Screen-awake | `SetThreadExecutionState` | `IOPMAssertion` | DBus (GNOME / logind) or X11 `XScreenSaverSuspend` |
 
@@ -21,9 +22,23 @@ dependencies {
 }
 ```
 
+## Full vs Light Efficiency Mode
+
+The module provides two levels of process-level efficiency:
+
+| | Light | Full |
+|---|---|---|
+| **Use case** | Window lost focus — app still functional in background | Window minimized — no UI to render, deep power saving |
+| **CPU** | Deprioritized via QoS hints | Lowest priority (idle class) |
+| **I/O** | Normal | Throttled |
+| **Network** | Normal | Throttled (macOS) |
+| **Reversibility** | Instant | Instant |
+
+**Recommendation**: use **light mode** when the window loses focus and **full mode** when the window is minimized. This gives the best balance between responsiveness and power savings — the app remains functional in the background (network requests, file I/O) while still signaling the OS that it can be deprioritized.
+
 ## Usage
 
-### Efficiency mode on minimize / unfocus
+### Recommended: light mode on focus loss, full mode on minimize
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.energymanager.EnergyManager
@@ -49,10 +64,19 @@ fun App(state: WindowState) {
         }
 
         LaunchedEffect(state.isMinimized, isWindowFocused) {
-            if (state.isMinimized || !isWindowFocused) {
-                EnergyManager.enableEfficiencyMode()
-            } else {
-                EnergyManager.disableEfficiencyMode()
+            when {
+                state.isMinimized -> {
+                    EnergyManager.disableLightEfficiencyMode()
+                    EnergyManager.enableEfficiencyMode()
+                }
+                !isWindowFocused -> {
+                    EnergyManager.disableEfficiencyMode()
+                    EnergyManager.enableLightEfficiencyMode()
+                }
+                else -> {
+                    EnergyManager.disableEfficiencyMode()
+                    EnergyManager.disableLightEfficiencyMode()
+                }
             }
         }
 
@@ -61,14 +85,66 @@ fun App(state: WindowState) {
 }
 ```
 
-### Thread-level efficiency for background work
+### Using efficiency mode in coroutines
+
+The `withEfficiencyMode` and `withLightEfficiencyMode` suspend helpers make it easy to run background work at reduced power inside coroutines.
+
+#### `withEfficiencyMode` — dedicated thread
+
+`withEfficiencyMode` creates a **dedicated single thread** with thread-level efficiency applied (`QOS_CLASS_BACKGROUND` on macOS, `THREAD_PRIORITY_IDLE` on Windows). The thread is disposed when the block completes. This is ideal for CPU-bound background tasks that should not interfere with the UI:
 
 ```kotlin
-// Run a block on a dedicated low-priority thread
-EnergyManager.withEfficiencyMode {
-    performBackgroundWork()
+// Inside a coroutine scope
+val result = EnergyManager.withEfficiencyMode {
+    // Runs on a dedicated low-priority thread
+    // Other coroutines on the default dispatcher are not affected
+    computeHeavyReport()
 }
+// Back on the original dispatcher with full priority
+updateUI(result)
 ```
+
+Since the efficiency is applied at the **thread level**, it does not affect other threads or coroutines in your application. The dedicated thread is automatically shut down when the block finishes.
+
+#### `withLightEfficiencyMode` — process-level, no thread pinning
+
+`withLightEfficiencyMode` applies **process-level** light QoS for the duration of the block. Unlike `withEfficiencyMode`, it does not create a new thread — it runs on the current dispatcher. This is useful for sections of code where the entire process can be deprioritized without throttling I/O:
+
+```kotlin
+EnergyManager.withLightEfficiencyMode {
+    // Process-level QoS is reduced (CPU deprioritized, I/O normal)
+    syncDataFromServer()  // network is not throttled
+    writeToDatabase()     // I/O is not throttled
+}
+// Process-level QoS restored to default
+```
+
+#### Choosing between the two
+
+| | `withEfficiencyMode` | `withLightEfficiencyMode` |
+|---|---|---|
+| **Scope** | Thread-level (dedicated thread) | Process-level |
+| **I/O throttled** | No (thread QoS doesn't throttle I/O) | No |
+| **CPU impact** | Only the dedicated thread | Entire process |
+| **Best for** | CPU-bound background work alongside a responsive UI | Batch operations where the whole app can be deprioritized |
+
+### Using efficiency mode with raw threads
+
+If you manage threads manually, you can use the thread-level API directly:
+
+```kotlin
+val thread = Thread {
+    EnergyManager.enableThreadEfficiencyMode()
+    try {
+        performBackgroundWork()
+    } finally {
+        EnergyManager.disableThreadEfficiencyMode()
+    }
+}
+thread.start()
+```
+
+The thread-level mode only affects the calling thread. On macOS this sets `QOS_CLASS_BACKGROUND` via `pthread_set_qos_class_self_np`, which confines the thread to E-cores without throttling I/O or network.
 
 ### Keeping the screen awake
 
@@ -88,11 +164,14 @@ val active = EnergyManager.isScreenAwakeActive()
 | Function | Returns | Description |
 |----------|---------|-------------|
 | `isAvailable()` | `Boolean` | `true` if the platform supports efficiency mode. |
-| `enableEfficiencyMode()` | `Result` | Activates process-level energy efficiency mode. |
-| `disableEfficiencyMode()` | `Result` | Restores default OS scheduling. |
+| `enableEfficiencyMode()` | `Result` | Activates full process-level energy efficiency (CPU + I/O throttling). |
+| `disableEfficiencyMode()` | `Result` | Restores default OS scheduling after full mode. |
+| `enableLightEfficiencyMode()` | `Result` | Activates light process-level efficiency (CPU only, no I/O throttling). |
+| `disableLightEfficiencyMode()` | `Result` | Restores default QoS tiers after light mode. |
 | `enableThreadEfficiencyMode()` | `Result` | Activates efficiency mode for the calling thread only. |
 | `disableThreadEfficiencyMode()` | `Result` | Restores default scheduling for the calling thread. |
 | `withEfficiencyMode { }` | `T` | Runs a suspend block on a dedicated efficient thread. |
+| `withLightEfficiencyMode { }` | `T` | Runs a suspend block with process-level light QoS. |
 | `keepScreenAwake()` | `Result` | Prevents display and system sleep. |
 | `releaseScreenAwake()` | `Result` | Releases the screen-awake inhibition. |
 | `isScreenAwakeActive()` | `Boolean` | `true` if screen-awake is currently active. |
@@ -107,7 +186,7 @@ The `Result` data class:
 
 ## How It Works
 
-### Process efficiency mode
+### Full process efficiency mode
 
 #### Windows 11+ (full EcoQoS)
 
@@ -121,9 +200,6 @@ On Windows 10 1709+, the same calls succeed but EcoQoS only applies on battery (
 1. **`setpriority(PRIO_DARWIN_BG)`** — CPU low priority, I/O throttling, network throttling, E-core confinement on Apple Silicon.
 2. **`task_policy_set(TASK_BASE_QOS_POLICY)`** with `LATENCY_QOS_TIER_5` / `THROUGHPUT_QOS_TIER_5` — reinforces via Mach task QoS (timer coalescing, throughput hints).
 
-!!! note "Network throttling scope"
-    Network throttling only applies to sockets opened **after** `enableEfficiencyMode()` is called.
-
 #### Linux
 
 1. **`setpriority(PRIO_PROCESS, 0, 19)`** — maximum nice value for lowest CPU priority.
@@ -131,6 +207,33 @@ On Windows 10 1709+, the same calls succeed but EcoQoS only applies on battery (
 3. **`ioprio_set(IOPRIO_CLASS_IDLE)`** — I/O scheduling class idle.
 
 All three are reversible without root on any mainstream distribution.
+
+### Light process efficiency mode
+
+#### macOS
+
+**`task_policy_set(TASK_BASE_QOS_POLICY)`** with `LATENCY_QOS_TIER_5` / `THROUGHPUT_QOS_TIER_5` — deprioritizes CPU scheduling without enabling `PRIO_DARWIN_BG`. This means:
+
+- CPU is deprioritized (timer coalescing, lower throughput QoS)
+- I/O is **not** throttled
+- Network is **not** throttled
+- No E-core confinement
+
+Disabled by resetting tiers to `UNSPECIFIED`.
+
+#### Windows
+
+EcoQoS only (no `IDLE_PRIORITY_CLASS`) — the green leaf in Task Manager with normal process priority. Disabled by clearing the `StateMask`.
+
+#### Linux
+
+**`setpriority(PRIO_PROCESS, 0, 10)`** — moderate CPU deprioritization (nice +10) without ioprio IDLE or timer slack. This means:
+
+- CPU is moderately deprioritized
+- I/O is **not** throttled (no ioprio change)
+- Timer coalescing is **not** applied (no timerslack change)
+
+Disabled by resetting nice to 0.
 
 ### Thread efficiency mode
 
@@ -160,14 +263,6 @@ A composite backend tries three strategies in order:
 3. **X11 XScreenSaverSuspend** — suspends the X11 screen saver via `libXss`.
 
 All libraries (`libdbus-1`, `libX11`, `libXss`) are loaded at runtime via `dlopen()` — the module works even when some are not installed. Private DBus connections are used to avoid interference with the JVM's internal AT-SPI accessibility bus.
-
-## Why IDLE_PRIORITY_CLASS / PRIO_DARWIN_BG Are Safe Here
-
-**Windows**: `IDLE_PRIORITY_CLASS` sets process priority to 4 (vs. 8 for normal) — the process only gets CPU when no normal-priority process needs it.
-
-**macOS**: `PRIO_DARWIN_BG` confines the process to E-cores and throttles all I/O.
-
-Both are aggressive, but since this module is designed for **minimized or unfocused** windows, there is no visible UI to render. `disableEfficiencyMode()` restores full priority before any frame is drawn.
 
 ## Native Libraries
 

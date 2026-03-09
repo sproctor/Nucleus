@@ -88,6 +88,50 @@ Java_io_github_kdroidfilter_nucleus_energymanager_macos_NativeMacOsEnergyBridge_
     return (jint)result;
 }
 
+/* ---- nativeEnableLightEfficiencyMode ----------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_macos_NativeMacOsEnergyBridge_nativeEnableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    /*
+     * Light mode: only task_policy_set with TIER_5 QoS.
+     * This deprioritizes CPU scheduling without enabling
+     * I/O throttling or network throttling (no PRIO_DARWIN_BG).
+     */
+    struct task_qos_policy qos;
+    qos.task_latency_qos_tier    = LATENCY_QOS_TIER_5;
+    qos.task_throughput_qos_tier = THROUGHPUT_QOS_TIER_5;
+    kern_return_t kr = task_policy_set(mach_task_self(),
+                                       TASK_BASE_QOS_POLICY,
+                                       (task_policy_t)&qos,
+                                       TASK_QOS_POLICY_COUNT);
+
+    return (kr == KERN_SUCCESS) ? 0 : (jint)kr;
+}
+
+/* ---- nativeDisableLightEfficiencyMode --------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_macos_NativeMacOsEnergyBridge_nativeDisableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    /* Reset tiers to unspecified — let the system decide */
+    struct task_qos_policy qos;
+    qos.task_latency_qos_tier    = LATENCY_QOS_TIER_UNSPECIFIED;
+    qos.task_throughput_qos_tier = THROUGHPUT_QOS_TIER_UNSPECIFIED;
+    kern_return_t kr = task_policy_set(mach_task_self(),
+                                       TASK_BASE_QOS_POLICY,
+                                       (task_policy_t)&qos,
+                                       TASK_QOS_POLICY_COUNT);
+
+    return (kr == KERN_SUCCESS) ? 0 : (jint)kr;
+}
+
 /* ---- nativeEnableThreadEfficiencyMode ---------------------------- */
 
 JNIEXPORT jint JNICALL

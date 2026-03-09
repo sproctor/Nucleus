@@ -19,6 +19,12 @@ internal object NativeMacOsEnergyBridge {
     external fun nativeDisableEfficiencyMode(): Int
 
     @JvmStatic
+    external fun nativeEnableLightEfficiencyMode(): Int
+
+    @JvmStatic
+    external fun nativeDisableLightEfficiencyMode(): Int
+
+    @JvmStatic
     external fun nativeEnableThreadEfficiencyMode(): Int
 
     @JvmStatic

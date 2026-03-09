@@ -28,6 +28,12 @@ internal object MacOsEnergyManager : PlatformEnergyManager {
 
     override fun disableEfficiencyMode() = callNative { NativeMacOsEnergyBridge.nativeDisableEfficiencyMode() }
 
+    override fun enableLightEfficiencyMode(): EnergyManager.Result =
+        callNative { NativeMacOsEnergyBridge.nativeEnableLightEfficiencyMode() }
+
+    override fun disableLightEfficiencyMode(): EnergyManager.Result =
+        callNative { NativeMacOsEnergyBridge.nativeDisableLightEfficiencyMode() }
+
     override fun enableThreadEfficiencyMode(): EnergyManager.Result =
         callNative { NativeMacOsEnergyBridge.nativeEnableThreadEfficiencyMode() }
 

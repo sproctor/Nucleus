@@ -181,6 +181,61 @@ Java_io_github_kdroidfilter_nucleus_energymanager_windows_NativeWindowsEnergyBri
     return 0;
 }
 
+/* ---- nativeEnableLightEfficiencyMode ----------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_windows_NativeWindowsEnergyBridge_nativeEnableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    PFN_SetProcessInformation pfn = ResolveFn();
+    if (!pfn) return (jint)127; /* ERROR_PROC_NOT_FOUND */
+
+    /* EcoQoS only — no IDLE_PRIORITY_CLASS */
+    MY_PROCESS_POWER_THROTTLING_STATE state;
+    memset(&state, 0, sizeof(state));
+    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+                      | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask   = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+                      | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+
+    if (!pfn(GetCurrentProcess(), MY_ProcessPowerThrottling,
+             &state, sizeof(state))) {
+        return (jint)GetLastError();
+    }
+
+    return 0;
+}
+
+/* ---- nativeDisableLightEfficiencyMode ---------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_io_github_kdroidfilter_nucleus_energymanager_windows_NativeWindowsEnergyBridge_nativeDisableLightEfficiencyMode(
+    JNIEnv *env, jclass clazz)
+{
+    (void)env; (void)clazz;
+
+    PFN_SetProcessInformation pfn = ResolveFn();
+    if (!pfn) return (jint)127;
+
+    /* Disable EcoQoS only — don't touch priority class */
+    MY_PROCESS_POWER_THROTTLING_STATE state;
+    memset(&state, 0, sizeof(state));
+    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+                      | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask   = 0; /* ControlMask set but StateMask = 0 -> HighQoS */
+
+    if (!pfn(GetCurrentProcess(), MY_ProcessPowerThrottling,
+             &state, sizeof(state))) {
+        return (jint)GetLastError();
+    }
+
+    return 0;
+}
+
 /* ---- nativeEnableThreadEfficiencyMode --------------------------- */
 
 JNIEXPORT jint JNICALL

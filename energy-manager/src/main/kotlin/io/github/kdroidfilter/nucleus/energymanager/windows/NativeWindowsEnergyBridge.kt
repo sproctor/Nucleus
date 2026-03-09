@@ -25,6 +25,12 @@ internal object NativeWindowsEnergyBridge {
     external fun nativeDisableThreadEfficiencyMode(): Int
 
     @JvmStatic
+    external fun nativeEnableLightEfficiencyMode(): Int
+
+    @JvmStatic
+    external fun nativeDisableLightEfficiencyMode(): Int
+
+    @JvmStatic
     external fun nativeKeepScreenAwake(): Int
 
     @JvmStatic
