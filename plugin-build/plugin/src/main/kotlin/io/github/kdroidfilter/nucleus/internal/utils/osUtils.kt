@@ -38,13 +38,34 @@ internal val currentTarget by lazy {
 }
 
 internal val currentArch by lazy {
-    val osArch = System.getProperty("os.arch")
+    parseArch(System.getProperty("os.arch"))
+}
+
+/**
+ * Detects the architecture of the JDK at the given [javaHome] path
+ * by reading its `release` file (`OS_ARCH` property).
+ * Falls back to [currentArch] if the release file cannot be parsed.
+ */
+internal fun jdkArch(javaHome: File): Arch {
+    val releaseFile = javaHome.resolve("release")
+    if (releaseFile.isFile) {
+        val osArch =
+            releaseFile
+                .readLines()
+                .firstOrNull { it.startsWith("OS_ARCH=") }
+                ?.substringAfter("OS_ARCH=")
+                ?.trim('"')
+        if (osArch != null) return parseArch(osArch)
+    }
+    return currentArch
+}
+
+private fun parseArch(osArch: String): Arch =
     when (osArch) {
         "x86_64", "amd64" -> Arch.X64
         "aarch64" -> Arch.Arm64
         else -> error("Unsupported OS arch: $osArch")
     }
-}
 
 internal val currentOS: OS by lazy {
     val os = System.getProperty("os.name")
