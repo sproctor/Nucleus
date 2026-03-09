@@ -25,8 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -41,7 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -69,6 +69,9 @@ import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.energymanager.EnergyManager
 import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
 import io.github.kdroidfilter.nucleus.systemcolor.systemAccentColor
+import com.example.demo.gallery.GalleryScreen
+import com.materialkolor.DynamicMaterialTheme
+import com.materialkolor.PaletteStyle
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
@@ -142,17 +145,16 @@ fun main(args: Array<String>) {
                     ThemeMode.Light -> false
                 }
             val accentColor = systemAccentColor()
-            val baseScheme = if (isDark) darkColorScheme() else lightColorScheme()
-            val colorScheme =
-                if (accentColor != null) {
-                    baseScheme.copy(primary = accentColor, secondary = accentColor)
-                } else {
-                    baseScheme
-                }
+            val seedColor = accentColor ?: Color(0xFF6750A4)
 
             var isRtl by remember { mutableStateOf(false) }
 
-            MaterialTheme(colorScheme = colorScheme) {
+            DynamicMaterialTheme(
+                seedColor = seedColor,
+                isDark = isDark,
+                animate = true,
+                style = PaletteStyle.TonalSpot,
+            ) {
                 val state =
                     rememberWindowState(
                         position = WindowPosition.Aligned(Alignment.Center),
@@ -166,10 +168,8 @@ fun main(args: Array<String>) {
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
                     ) {
-                        var tabs by remember {
-                            mutableStateOf(listOf("Main.kt", "Build.gradle", "README.md", "Settings"))
-                        }
-                        var selectedTab by remember { mutableStateOf("Main.kt") }
+                        val tabs = listOf("Nucleus", "Gallery")
+                        var selectedTab by remember { mutableStateOf("Nucleus") }
 
                         MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
                             val titleBarAlignment =
@@ -234,12 +234,7 @@ fun main(args: Array<String>) {
                                 tabs = tabs,
                                 selectedTab = selectedTab,
                                 onSelect = { selectedTab = it },
-                                onReorder = { from, to ->
-                                    tabs =
-                                        tabs.toMutableList().apply {
-                                            add(to, removeAt(from))
-                                        }
-                                },
+                                onReorder = { _, _ -> },
                                 modifier = Modifier.align(Alignment.CenterHorizontally),
                             )
                         }
@@ -283,7 +278,20 @@ fun main(args: Array<String>) {
                             }
                         }
 
-                        app()
+                        when (selectedTab) {
+                            "Nucleus" -> NucleusContent()
+                            "Gallery" -> {
+                                val currentDensity = LocalDensity.current
+                                CompositionLocalProvider(
+                                    LocalDensity provides Density(
+                                        density = currentDensity.density * 0.75f,
+                                        fontScale = currentDensity.fontScale,
+                                    ),
+                                ) {
+                                    GalleryScreen(seedColor = seedColor)
+                                }
+                            }
+                        }
 
                         if (showInfoDialog) {
                             MaterialDecoratedDialog(
@@ -322,7 +330,7 @@ fun main(args: Array<String>) {
 }
 
 @Composable
-fun app() {
+fun NucleusContent() {
     val currentDeepLink by deepLinkUri
     val updater =
         remember {

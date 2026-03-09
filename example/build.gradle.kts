@@ -29,6 +29,8 @@ dependencies {
     implementation(project(":energy-manager"))
     implementation(project(":graalvm-runtime"))
     implementation(libs.reorderable)
+    implementation("com.materialkolor:material-kolor:4.1.1")
+    implementation(compose.materialIconsExtended)
 }
 
 val releaseVersion =
