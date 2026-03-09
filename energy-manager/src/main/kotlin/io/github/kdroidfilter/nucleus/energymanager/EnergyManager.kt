@@ -22,6 +22,7 @@ import java.util.concurrent.Executors
  *   Windows: SetThreadExecutionState (ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED).
  *   macOS/Linux: not yet implemented.
  */
+@Suppress("TooManyFunctions")
 object EnergyManager {
     data class Result(
         val success: Boolean,
@@ -61,7 +62,8 @@ object EnergyManager {
      * CPU scheduling without throttling I/O or network.
      *
      * macOS: task_policy_set(TIER_5) only — no PRIO_DARWIN_BG.
-     * Windows/Linux: not yet implemented (returns unsupported).
+     * Windows: EcoQoS only — no IDLE_PRIORITY_CLASS.
+     * Linux: nice +10 only — no ioprio, no timer slack.
      */
     fun enableLightEfficiencyMode(): Result = delegate?.enableLightEfficiencyMode() ?: unsupported
 

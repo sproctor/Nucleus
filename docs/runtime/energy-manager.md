@@ -10,7 +10,7 @@ The `energy-manager` module provides two capabilities for Compose Desktop applic
 | Feature | Windows | macOS | Linux |
 |---------|---------|-------|-------|
 | Full efficiency mode | EcoQoS + `IDLE_PRIORITY_CLASS` | `PRIO_DARWIN_BG` + QoS TIER_5 | nice +19, ioprio IDLE, timerslack 100ms |
-| Light efficiency mode | *not yet implemented* | `task_policy_set(TIER_5)` | *not yet implemented* |
+| Light efficiency mode | EcoQoS only | `task_policy_set(TIER_5)` | nice +10 |
 | Thread efficiency mode | EcoQoS + `THREAD_PRIORITY_IDLE` | `QOS_CLASS_BACKGROUND` | nice +19, ioprio IDLE, timerslack 100ms |
 | Screen-awake | `SetThreadExecutionState` | `IOPMAssertion` | DBus (GNOME / logind) or X11 `XScreenSaverSuspend` |
 
@@ -210,7 +210,7 @@ All three are reversible without root on any mainstream distribution.
 
 ### Light process efficiency mode
 
-#### macOS (currently the only supported platform)
+#### macOS
 
 **`task_policy_set(TASK_BASE_QOS_POLICY)`** with `LATENCY_QOS_TIER_5` / `THROUGHPUT_QOS_TIER_5` — deprioritizes CPU scheduling without enabling `PRIO_DARWIN_BG`. This means:
 
@@ -221,13 +221,19 @@ All three are reversible without root on any mainstream distribution.
 
 Disabled by resetting tiers to `UNSPECIFIED`.
 
-#### Planned: Windows
+#### Windows
 
-EcoQoS only (no `IDLE_PRIORITY_CLASS`) — the green leaf in Task Manager with normal process priority.
+EcoQoS only (no `IDLE_PRIORITY_CLASS`) — the green leaf in Task Manager with normal process priority. Disabled by clearing the `StateMask`.
 
-#### Planned: Linux
+#### Linux
 
-`nice +10` only — moderate CPU deprioritization without ioprio IDLE or timer slack.
+**`setpriority(PRIO_PROCESS, 0, 10)`** — moderate CPU deprioritization (nice +10) without ioprio IDLE or timer slack. This means:
+
+- CPU is moderately deprioritized
+- I/O is **not** throttled (no ioprio change)
+- Timer coalescing is **not** applied (no timerslack change)
+
+Disabled by resetting nice to 0.
 
 ### Thread efficiency mode
 

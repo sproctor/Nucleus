@@ -110,6 +110,50 @@ class EnergyManagerTest {
         assertEquals(0, mainNice, "Main thread should not be affected")
     }
 
+    @Test
+    fun `linux light efficiency mode sets nice to 10`() {
+        assumeLinux()
+        assertTrue(EnergyManager.isAvailable())
+
+        val enableResult = EnergyManager.enableLightEfficiencyMode()
+        val niceAfter = readNice()
+        val disableResult = EnergyManager.disableLightEfficiencyMode()
+
+        println("Light mode: nice after enable = $niceAfter")
+        println("Enable result: $enableResult")
+        println("Disable result: $disableResult")
+
+        assertTrue(enableResult.success, "Light enable failed: ${enableResult.message}")
+        assertEquals(10, niceAfter, "Expected nice = 10 after light enable")
+        assertTrue(disableResult.success, "Light disable failed: ${disableResult.message}")
+    }
+
+    @Test
+    fun `linux light efficiency mode does not change ioprio`() {
+        assumeLinux()
+        assertTrue(EnergyManager.isAvailable())
+
+        val tid = readTid()
+        val ioBefore = readIoClass(tid)
+        EnergyManager.enableLightEfficiencyMode()
+        val ioAfter = readIoClass(tid)
+        EnergyManager.disableLightEfficiencyMode()
+
+        println("IO class: $ioBefore -> $ioAfter")
+        assertEquals(ioBefore, ioAfter, "Light mode should not change IO class")
+    }
+
+    @Test
+    fun `linux light enable disable cycle is idempotent`() {
+        assumeLinux()
+        assertTrue(EnergyManager.isAvailable())
+
+        assertTrue(EnergyManager.enableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.enableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.disableLightEfficiencyMode().success)
+        assertTrue(EnergyManager.disableLightEfficiencyMode().success)
+    }
+
     // ── macOS tests ──────────────────────────────────────────────────
 
     @Test

@@ -28,6 +28,12 @@ internal object LinuxEnergyManager : PlatformEnergyManager {
 
     override fun disableEfficiencyMode() = callNative { NativeLinuxEnergyBridge.nativeDisableEfficiencyMode() }
 
+    override fun enableLightEfficiencyMode(): EnergyManager.Result =
+        callNative { NativeLinuxEnergyBridge.nativeEnableLightEfficiencyMode() }
+
+    override fun disableLightEfficiencyMode(): EnergyManager.Result =
+        callNative { NativeLinuxEnergyBridge.nativeDisableLightEfficiencyMode() }
+
     override fun enableThreadEfficiencyMode(): EnergyManager.Result =
         callNative { NativeLinuxEnergyBridge.nativeEnableThreadEfficiencyMode() }
 
