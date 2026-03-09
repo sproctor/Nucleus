@@ -62,7 +62,7 @@ internal val LocalExitFullscreen = compositionLocalOf<(() -> Unit)?> { null }
 internal class FullscreenTitleBarHolder {
     var content: (@Composable () -> Unit)? by mutableStateOf(null)
     var titleBarHeight: Dp by mutableStateOf(0.dp)
-    var compositionLocalContext: CompositionLocalContext? = null
+    var compositionLocalContext: CompositionLocalContext? by mutableStateOf(null)
 }
 
 internal val LocalFullscreenTitleBarHolder = compositionLocalOf<FullscreenTitleBarHolder?> { null }
