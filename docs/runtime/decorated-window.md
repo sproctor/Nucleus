@@ -44,6 +44,11 @@ This module does not depend on JBR, making it compatible with **any JVM** (OpenJ
 !!! warning "macOS: requires a JDK compiled with Xcode 26"
     The macOS native library (`libnucleus_macos_jni.dylib`) must be compiled with **Xcode 26** or later. This means the JDK you use to run your application must also have been built with Xcode 26. JDKs built with older Xcode versions will fail to load the native library at runtime, and the module will fall back to AWT client properties (no custom title bar positioning, no traffic light control).
 
+!!! note "Windows: no white background flash during resize"
+    On Windows, Skiko's rendering pipeline clears the DirectX canvas to white before each frame. When the window is resized larger, the newly exposed pixels remain white for one frame — producing a visible white flash. The JNI module eliminates this by adjusting Skiko's clear color to transparent for dark themes (rendered as opaque black on the DirectX surface), so the flash is invisible against a dark background. It also synchronizes the DWM caption and border colors (`DWMWA_CAPTION_COLOR`, `DWMWA_BORDER_COLOR`, `DWMWA_USE_IMMERSIVE_DARK_MODE`) with the title bar color for consistent Windows 11 window chrome styling.
+
+    This fix is **not present** in `decorated-window-jbr`.
+
 !!! warning "Less battle-tested"
     While the JNI module has no known bugs, it has not been as widely tested as the JBR implementation. Use it with appropriate caution in production, and report any issues you encounter.
 
