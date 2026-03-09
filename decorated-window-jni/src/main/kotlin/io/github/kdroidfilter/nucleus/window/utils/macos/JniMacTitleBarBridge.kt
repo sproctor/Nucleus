@@ -111,4 +111,13 @@ internal object JniMacTitleBarBridge {
         nsWindowPtr: Long,
         enabled: Boolean,
     )
+
+    // Sets the RTL (right-to-left) flag on the NSWindow.
+    // When enabled, traffic-light buttons are positioned on the right side.
+    // Re-applies constraints immediately so the change is visible live.
+    @JvmStatic
+    external fun nativeSetRTL(
+        nsWindowPtr: Long,
+        rtl: Boolean,
+    )
 }

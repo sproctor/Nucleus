@@ -1,4 +1,5 @@
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 #include <jni.h>
 #include <math.h>
@@ -16,6 +17,8 @@ static const char kMenuBarOffsetKey            = 8;
 static const char kMenuBarMonitorKey           = 9;
 static const char kMenuBarLastRawOffsetKey     = 10;
 static const char kLargeCornerRadiusKey        = 11;
+static const char kResizeObserverKey           = 12;
+static const char kRTLKey                     = 13;
 
 static const float kMinHeightForFullSize = 28.0f;
 static const float kDefaultButtonOffset  = 23.0f;
@@ -353,6 +356,68 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
 
 @end
 
+// ─── Live resize observer ────────────────────────────────────────────────────────
+
+// Recursively toggles presentsWithTransaction on all CAMetalLayer instances
+// found in the view hierarchy. During live resize, enabling this flag forces
+// Metal to present each frame synchronously, so the compositor uses the
+// freshly rendered frame instead of stretching the stale one.
+static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
+    CALayer *layer = view.layer;
+    if (layer && [layer isKindOfClass:[CAMetalLayer class]]) {
+        ((CAMetalLayer *)layer).presentsWithTransaction = value;
+    }
+    for (NSView *subview in view.subviews) {
+        setPresentsWithTransactionRecursive(subview, value);
+    }
+}
+
+// Invisible view added to the content view. Its sole purpose is to receive
+// viewWillStartLiveResize / viewDidEndLiveResize from AppKit and toggle
+// synchronous Metal presentation accordingly.
+@interface NucleusResizeObserverView : NSView
+@end
+
+@implementation NucleusResizeObserverView
+
+- (void)viewWillStartLiveResize {
+    [super viewWillStartLiveResize];
+    NSWindow *w = self.window;
+    if (w && w.contentView) {
+        setPresentsWithTransactionRecursive(w.contentView, YES);
+    }
+}
+
+- (void)viewDidEndLiveResize {
+    [super viewDidEndLiveResize];
+    NSWindow *w = self.window;
+    if (w && w.contentView) {
+        setPresentsWithTransactionRecursive(w.contentView, NO);
+    }
+}
+
+@end
+
+static void ensureResizeObserver(NSWindow *window) {
+    if (objc_getAssociatedObject(window, &kResizeObserverKey)) return;
+
+    NucleusResizeObserverView *observer = [[NucleusResizeObserverView alloc]
+        initWithFrame:NSZeroRect];
+    observer.hidden = YES;
+    [window.contentView addSubview:observer];
+    objc_setAssociatedObject(window, &kResizeObserverKey, observer,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void removeResizeObserver(NSWindow *window) {
+    NucleusResizeObserverView *observer =
+        objc_getAssociatedObject(window, &kResizeObserverKey);
+    if (!observer) return;
+    [observer removeFromSuperview];
+    objc_setAssociatedObject(window, &kResizeObserverKey, nil,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 // ─── Fullscreen button helpers ──────────────────────────────────────────────────
 
 // Hides the native NSToolbarFullScreenWindow so the system hover toolbar
@@ -395,16 +460,21 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     computeButtonMetrics(titleBarHeight, &btnWidth, &btnHeight, &offset);
 
     // Create container spanning the full title bar height at the top of the content view
+    BOOL isRTL = [objc_getAssociatedObject(window, &kRTLKey) boolValue];
     NucleusButtonsView *container = [[NucleusButtonsView alloc] init];
     NSView *parent = window.contentView;
     CGFloat y = parent.frame.size.height - titleBarHeight;
-    float leftMargin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
-    [container setFrame:NSMakeRect(0, y, leftMargin + 2.0f * offset + btnWidth, titleBarHeight)];
+    float margin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
+    float containerWidth = margin + 2.0f * offset + btnWidth;
+    CGFloat containerX = isRTL
+        ? parent.frame.size.width - containerWidth
+        : 0;
+    [container setFrame:NSMakeRect(containerX, y, containerWidth, titleBarHeight)];
 
     NSUInteger masks = [window styleMask];
 
-    // Create replacement buttons positioned with the same formula as applyConstraints:
-    // centerX = leftMargin + idx * offset, centerY = titleBarHeight/2
+    // Create replacement buttons positioned with the same formula as applyConstraints.
+    // In RTL mode, buttons are mirrored inside the container.
     NSArray<NSNumber *> *buttonTypes = @[
         @(NSWindowCloseButton), @(NSWindowMiniaturizeButton), @(NSWindowZoomButton)
     ];
@@ -413,7 +483,12 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     for (NSUInteger idx = 0; idx < 3; idx++) {
         NSButton *btn = [NSWindow standardWindowButton:[buttonTypes[idx] unsignedIntegerValue]
                                           forStyleMask:masks];
-        CGFloat centerX = leftMargin + idx * offset;
+        CGFloat centerX;
+        if (isRTL) {
+            centerX = containerWidth - margin - idx * offset;
+        } else {
+            centerX = margin + idx * offset;
+        }
         CGFloat centerY = titleBarHeight / 2.0f;
         [btn setFrame:NSMakeRect(centerX - btnWidth / 2.0f, centerY - btnHeight / 2.0f,
                                  btnWidth, btnHeight)];
@@ -569,17 +644,25 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
     NSNumber *storedMenuBarOffset = objc_getAssociatedObject(window, &kMenuBarOffsetKey);
     float menuBarOffset = storedMenuBarOffset ? [storedMenuBarOffset floatValue] : 0.0f;
 
-    float leftMargin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
+    BOOL isRTL = [objc_getAssociatedObject(window, &kRTLKey) boolValue];
+    float margin = fminf(titleBarHeight / 2.0f, kMaxButtonLeftMargin);
+    float containerWidth = margin + 2.0f * offset + btnWidth;
     CGFloat y = parent.frame.size.height - titleBarHeight - menuBarOffset;
-    [container setFrame:NSMakeRect(0, y,
-                                   leftMargin + 2.0f * offset + btnWidth,
-                                   titleBarHeight)];
+    CGFloat containerX = isRTL
+        ? parent.frame.size.width - containerWidth
+        : 0;
+    [container setFrame:NSMakeRect(containerX, y, containerWidth, titleBarHeight)];
 
     // Reposition each button inside the container
     NSArray<NSView *> *buttons = [container subviews];
     for (NSUInteger idx = 0; idx < buttons.count && idx < 3; idx++) {
         NSView *btn = buttons[idx];
-        CGFloat centerX = leftMargin + idx * offset;
+        CGFloat centerX;
+        if (isRTL) {
+            centerX = containerWidth - margin - idx * offset;
+        } else {
+            centerX = margin + idx * offset;
+        }
         CGFloat centerY = titleBarHeight / 2.0f;
         [btn setFrame:NSMakeRect(centerX - btnWidth / 2.0f, centerY - btnHeight / 2.0f,
                                  btnWidth, btnHeight)];
@@ -738,14 +821,20 @@ static void applyConstraints(NSWindow *window, float height) {
         ]];
     }
 
+    BOOL isRTL = [objc_getAssociatedObject(window, &kRTLKey) boolValue];
     float shrinkFactor = fminf(height / kMinHeightForFullSize, 1.0f);
     float offset       = shrinkFactor * kDefaultButtonOffset;
     float extraInset   = window.toolbar ? kToolbarExtraInset : 0.0f;
-    float leftMargin   = fminf(height / 2.0f, kMaxButtonLeftMargin) + extraInset;
+    float margin       = fminf(height / 2.0f, kMaxButtonLeftMargin) + extraInset;
+
+    NSLayoutAnchor *anchorEdge = isRTL
+        ? titlebarContainer.rightAnchor
+        : titlebarContainer.leftAnchor;
 
     NSArray *buttons = @[closeBtn, miniBtn, zoomBtn];
     [buttons enumerateObjectsUsingBlock:^(NSView *btn, NSUInteger idx, BOOL *stop) {
         btn.translatesAutoresizingMaskIntoConstraints = NO;
+        float c = margin + idx * offset;
         [constraints addObjectsFromArray:@[
             [btn.widthAnchor  constraintLessThanOrEqualToAnchor:titlebarContainer.heightAnchor
                                                      multiplier:0.5],
@@ -754,8 +843,8 @@ static void applyConstraints(NSWindow *window, float height) {
                                              constant:-2.0],
             [btn.centerYAnchor constraintEqualToAnchor:titlebarContainer.topAnchor
                                               constant:height / 2.0f],
-            [btn.centerXAnchor constraintEqualToAnchor:titlebarContainer.leftAnchor
-                                              constant:(leftMargin + idx * offset)],
+            [btn.centerXAnchor constraintEqualToAnchor:anchorEdge
+                                              constant:(isRTL ? -c : c)],
         ]];
     }];
 
@@ -890,6 +979,7 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
             [window setTitleVisibility:NSWindowTitleHidden];
             [window setMovable:NO];
             ensureDragView(window);
+            ensureResizeObserver(window);
             applyConstraints(window, capturedHeight);
         }
     });
@@ -910,6 +1000,7 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
             removeFullscreenObserver(window);
             removeZoomButtonResponder(window);
             removeDragView(window);
+            removeResizeObserver(window);
             removeExistingConstraints(window);
             objc_setAssociatedObject(window, &kTitleBarHeightKey, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -918,6 +1009,8 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
             objc_setAssociatedObject(window, &kMenuBarOffsetKey, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             objc_setAssociatedObject(window, &kLargeCornerRadiusKey, nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(window, &kRTLKey, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             window.toolbar = nil;
             [window setTitlebarAppearsTransparent:NO];
@@ -1105,6 +1198,35 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
             NSNumber *storedHeight = objc_getAssociatedObject(window, &kTitleBarHeightKey);
             if (storedHeight && !(window.styleMask & NSWindowStyleMaskFullScreen)) {
                 applyConstraints(window, [storedHeight floatValue]);
+            }
+        }
+    });
+}
+
+// Sets the RTL (right-to-left) flag on the window.
+// When enabled, the traffic-light buttons are positioned on the right side
+// of the title bar, mirroring the layout for RTL locales (Hebrew, Arabic, etc.).
+// Re-applies constraints immediately so the change is visible without delay.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativeSetRTL(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr, jboolean rtl) {
+
+    if (nsWindowPtr == 0) return;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    BOOL flag = (rtl == JNI_TRUE);
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            objc_setAssociatedObject(window, &kRTLKey, @(flag),
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            // Re-apply constraints so buttons move to the correct side
+            NSNumber *storedHeight = objc_getAssociatedObject(window, &kTitleBarHeightKey);
+            if (storedHeight) {
+                if (window.styleMask & NSWindowStyleMaskFullScreen) {
+                    updateFullScreenButtonsPosition(window);
+                } else {
+                    applyConstraints(window, [storedHeight floatValue]);
+                }
             }
         }
     });

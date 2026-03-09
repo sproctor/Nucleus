@@ -24,7 +24,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
@@ -85,6 +87,16 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         onDispose {
             val ptr = JniMacWindowUtil.getWindowPtr(window)
             if (ptr != 0L) JniMacTitleBarBridge.nativeResetTitleBar(ptr)
+        }
+    }
+
+    // Sync RTL state with native side so traffic-light buttons move to the
+    // correct side. Reacts to live changes in LocalLayoutDirection.
+    val layoutDirection = LocalLayoutDirection.current
+    LaunchedEffect(window, layoutDirection) {
+        val ptr = JniMacWindowUtil.getWindowPtr(window)
+        if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+            JniMacTitleBarBridge.nativeSetRTL(ptr, layoutDirection == LayoutDirection.Rtl)
         }
     }
 
