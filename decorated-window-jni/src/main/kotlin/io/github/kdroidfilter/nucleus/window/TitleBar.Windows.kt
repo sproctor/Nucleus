@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -93,6 +94,7 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
         // as a floating overlay outside the DecoratedWindowBody layout.
         val holder = LocalFullscreenTitleBarHolder.current
         if (holder != null) {
+            holder.compositionLocalContext = currentCompositionLocalContext
             holder.titleBarHeight = style.metrics.height
             holder.content = {
                 TitleBarImpl(

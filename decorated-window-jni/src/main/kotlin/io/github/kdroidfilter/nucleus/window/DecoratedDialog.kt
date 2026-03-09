@@ -10,6 +10,7 @@ import androidx.compose.ui.window.rememberDialogState
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import javax.swing.SwingUtilities
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -54,7 +55,11 @@ fun DecoratedDialog(
             val listener =
                 object : WindowAdapter() {
                     override fun windowOpened(e: WindowEvent?) {
-                        window.setLocationRelativeTo(window.owner)
+                        // Defer by one EDT cycle so macOS finishes its own
+                        // window positioning before we override it.
+                        SwingUtilities.invokeLater {
+                            window.setLocationRelativeTo(window.owner)
+                        }
                     }
                 }
             window.addWindowListener(listener)

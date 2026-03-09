@@ -3,10 +3,12 @@ package io.github.kdroidfilter.nucleus.window
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -52,10 +54,15 @@ internal val LocalExitFullscreen = compositionLocalOf<(() -> Unit)?> { null }
  * Holder for the fullscreen title bar content.
  * [NativeWindowsTitleBar] stores its rendering lambda here when in fullscreen,
  * and [DecoratedWindow] renders it as an overlay outside the normal layout.
+ *
+ * [compositionLocalContext] captures the CompositionLocal context from the
+ * original position in the tree (inside user content) so the overlay can
+ * replay it and make user-provided CompositionLocals available.
  */
 internal class FullscreenTitleBarHolder {
     var content: (@Composable () -> Unit)? by mutableStateOf(null)
     var titleBarHeight: Dp by mutableStateOf(0.dp)
+    var compositionLocalContext: CompositionLocalContext? = null
 }
 
 internal val LocalFullscreenTitleBarHolder = compositionLocalOf<FullscreenTitleBarHolder?> { null }
@@ -150,29 +157,55 @@ fun DecoratedWindow(
                     undecorated = undecorated,
                     content = content,
                 )
-            }
 
-            // Render the fullscreen title bar as an overlay on top of content
-            if (isNativeFullscreen) {
-                CompositionLocalProvider(
-                    LocalTitleBarInfo provides TitleBarInfo(title, icon),
-                ) {
-                    FullscreenTitleBarOverlay(
-                        holder = titleBarHolder,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                    )
-                }
+                FullscreenTitleBarRenderers(
+                    titleBarHolder = titleBarHolder,
+                    isNativeFullscreen = isNativeFullscreen,
+                    title = title,
+                    icon = icon,
+                )
             }
+        }
+    }
+}
 
-            // macOS: always-visible overlay managed by MacOSTitleBar
-            // (newFullscreenControls sets holder.content during macOS fullscreen)
-            if (!isNativeFullscreen && titleBarHolder.content != null) {
-                CompositionLocalProvider(
-                    LocalTitleBarInfo provides TitleBarInfo(title, icon),
-                ) {
-                    Box(modifier = Modifier.align(Alignment.TopCenter)) {
-                        titleBarHolder.content?.invoke()
-                    }
+/**
+ * Renders the fullscreen title bar overlay(s), wrapping with the captured
+ * [CompositionLocalContext] so user-provided CompositionLocals remain available.
+ */
+@Suppress("FunctionNaming")
+@Composable
+private fun BoxScope.FullscreenTitleBarRenderers(
+    titleBarHolder: FullscreenTitleBarHolder,
+    isNativeFullscreen: Boolean,
+    title: String,
+    icon: Painter?,
+) {
+    val ctx = titleBarHolder.compositionLocalContext
+    val wrapper: @Composable (@Composable () -> Unit) -> Unit = if (ctx != null) {
+        { content -> CompositionLocalProvider(ctx) { content() } }
+    } else {
+        { content -> content() }
+    }
+
+    if (isNativeFullscreen) {
+        wrapper {
+            CompositionLocalProvider(LocalTitleBarInfo provides TitleBarInfo(title, icon)) {
+                FullscreenTitleBarOverlay(
+                    holder = titleBarHolder,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
+        }
+    }
+
+    // macOS: always-visible overlay managed by MacOSTitleBar
+    // (newFullscreenControls sets holder.content during macOS fullscreen)
+    if (!isNativeFullscreen && titleBarHolder.content != null) {
+        wrapper {
+            CompositionLocalProvider(LocalTitleBarInfo provides TitleBarInfo(title, icon)) {
+                Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                    titleBarHolder.content?.invoke()
                 }
             }
         }

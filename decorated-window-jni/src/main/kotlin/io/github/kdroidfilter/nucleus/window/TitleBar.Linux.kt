@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +60,7 @@ private fun DecoratedWindowScope.NativeLinuxTitleBar(
     if (isNativeFullscreen && useNewFullscreenControls) {
         val holder = LocalFullscreenTitleBarHolder.current
         if (holder != null) {
+            holder.compositionLocalContext = currentCompositionLocalContext
             holder.titleBarHeight = linuxStyle.metrics.height
             holder.content = {
                 TitleBarImpl(
