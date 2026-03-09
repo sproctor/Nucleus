@@ -55,6 +55,22 @@ object EnergyManager {
     fun disableEfficiencyMode(): Result = delegate?.disableEfficiencyMode() ?: unsupported
 
     /**
+     * Enables light efficiency mode for the current process.
+     *
+     * This is a softer alternative to [enableEfficiencyMode] that deprioritizes
+     * CPU scheduling without throttling I/O or network.
+     *
+     * macOS: task_policy_set(TIER_5) only — no PRIO_DARWIN_BG.
+     * Windows/Linux: not yet implemented (returns unsupported).
+     */
+    fun enableLightEfficiencyMode(): Result = delegate?.enableLightEfficiencyMode() ?: unsupported
+
+    /**
+     * Disables light efficiency mode, restoring default QoS tiers.
+     */
+    fun disableLightEfficiencyMode(): Result = delegate?.disableLightEfficiencyMode() ?: unsupported
+
+    /**
      * Enables efficiency mode for the calling thread only.
      *
      * Windows: SetThreadInformation EcoQoS (Win 11+) + THREAD_PRIORITY_IDLE.
@@ -122,6 +138,28 @@ object EnergyManager {
         } finally {
             dispatcher.close()
             executor.shutdown()
+        }
+    }
+
+    /**
+     * Executes [block] with light efficiency mode enabled for the current process.
+     *
+     * Unlike [withEfficiencyMode], this applies process-level light QoS
+     * (no I/O or network throttling) and restores defaults when done.
+     *
+     * ```
+     * EnergyManager.withLightEfficiencyMode {
+     *     // Process runs with reduced CPU priority but normal I/O
+     *     performBackgroundWork()
+     * }
+     * ```
+     */
+    suspend fun <T> withLightEfficiencyMode(block: suspend () -> T): T {
+        enableLightEfficiencyMode()
+        return try {
+            block()
+        } finally {
+            disableLightEfficiencyMode()
         }
     }
 }

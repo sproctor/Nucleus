@@ -7,6 +7,12 @@ internal interface PlatformEnergyManager {
 
     fun disableEfficiencyMode(): EnergyManager.Result
 
+    fun enableLightEfficiencyMode(): EnergyManager.Result =
+        EnergyManager.Result(false, -1, "Light efficiency mode not supported on this platform")
+
+    fun disableLightEfficiencyMode(): EnergyManager.Result =
+        EnergyManager.Result(false, -1, "Light efficiency mode not supported on this platform")
+
     fun enableThreadEfficiencyMode(): EnergyManager.Result
 
     fun disableThreadEfficiencyMode(): EnergyManager.Result

@@ -250,7 +250,7 @@ fun main(args: Array<String>) {
                             }
                         }
 
-                        // Energy efficiency: enable when minimized or unfocused
+                        // Energy efficiency: full when minimized, light when unfocused
                         var isWindowFocused by remember { mutableStateOf(window.isFocused) }
                         DisposableEffect(window) {
                             val listener =
@@ -267,10 +267,19 @@ fun main(args: Array<String>) {
                             onDispose { window.removeWindowFocusListener(listener) }
                         }
                         LaunchedEffect(state.isMinimized, isWindowFocused) {
-                            if (state.isMinimized || !isWindowFocused) {
-                                EnergyManager.enableEfficiencyMode()
-                            } else {
-                                EnergyManager.disableEfficiencyMode()
+                            when {
+                                state.isMinimized -> {
+                                    EnergyManager.disableLightEfficiencyMode()
+                                    EnergyManager.enableEfficiencyMode()
+                                }
+                                !isWindowFocused -> {
+                                    EnergyManager.disableEfficiencyMode()
+                                    EnergyManager.enableLightEfficiencyMode()
+                                }
+                                else -> {
+                                    EnergyManager.disableEfficiencyMode()
+                                    EnergyManager.disableLightEfficiencyMode()
+                                }
                             }
                         }
 
