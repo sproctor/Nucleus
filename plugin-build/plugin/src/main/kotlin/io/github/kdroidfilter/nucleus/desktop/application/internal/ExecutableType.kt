@@ -42,6 +42,7 @@ internal fun updateExecutableTypeInAppImage(
     appImageDir: File,
     targetFormat: TargetFormat,
     logger: Logger,
+    appVersion: String? = null,
 ) {
     val cfgFiles =
         appImageDir
@@ -50,13 +51,47 @@ internal fun updateExecutableTypeInAppImage(
             .toList()
 
     if (cfgFiles.isEmpty()) {
-        logger.warn("No .cfg launcher file found in app image at ${appImageDir.absolutePath}")
+        // GraalVM native image: no .cfg launcher, write a marker file next to the binary
+        writeExecutableTypeMarker(appImageDir, targetFormat, appVersion, logger)
         return
     }
 
     cfgFiles.forEach { cfgFile ->
         updateExecutableTypeInCfg(cfgFile, targetFormat.executableTypeValue)
     }
+}
+
+internal const val EXECUTABLE_TYPE_MARKER = ".nucleus-executable-type"
+
+private fun writeExecutableTypeMarker(
+    appImageDir: File,
+    targetFormat: TargetFormat,
+    appVersion: String?,
+    logger: Logger,
+) {
+    // Find the directory that contains the native binary
+    val dir = findNativeBinaryDir(appImageDir)
+    if (dir == null) {
+        logger.warn("Could not locate native binary directory in ${appImageDir.absolutePath}")
+        return
+    }
+    val marker = dir.resolve(EXECUTABLE_TYPE_MARKER)
+    val content = buildString {
+        appendLine(targetFormat.executableTypeValue)
+        if (appVersion != null) appendLine(appVersion)
+    }
+    marker.writeText(content)
+    logger.info("Wrote executable type '${targetFormat.executableTypeValue}' (version=$appVersion) to ${marker.absolutePath}")
+}
+
+private fun findNativeBinaryDir(appImageDir: File): File? {
+    // macOS: AppName.app/Contents/MacOS/
+    val macOsDir = appImageDir.walkTopDown().maxDepth(3)
+        .firstOrNull { it.isDirectory && it.name == "MacOS" && it.parentFile?.name == "Contents" }
+    if (macOsDir != null) return macOsDir
+
+    // Windows/Linux: first subdirectory that contains an executable
+    return appImageDir.listFiles()?.firstOrNull { it.isDirectory }
 }
 
 private fun updateExecutableTypeInCfg(

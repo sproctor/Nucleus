@@ -222,7 +222,7 @@ abstract class AbstractElectronBuilderPackageTask
 
             ensureResourcesDirForElectronBuilder(workingAppDir)
             ensureLinuxExecutableAlias(workingAppDir)
-            updateExecutableTypeInAppImage(workingAppDir, targetFormat, logger)
+            updateExecutableTypeInAppImage(workingAppDir, targetFormat, logger, packageVersion.orNull)
             ensureMacAdHocSigning(workingAppDir, targetFormat)
 
             val npx = detectNpx()

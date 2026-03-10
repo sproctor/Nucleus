@@ -1,10 +1,14 @@
 package io.github.kdroidfilter.nucleus.updater
 
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.updater.provider.UpdateProvider
 import java.net.http.HttpClient
 
 class UpdaterConfig {
-    var currentVersion: String = System.getProperty("jpackage.app-version") ?: DEV_VERSION
+    var currentVersion: String =
+        System.getProperty("jpackage.app-version")
+            ?: ExecutableRuntime.markerVersion()
+            ?: DEV_VERSION
     lateinit var provider: UpdateProvider
     var channel: String = "latest"
     var allowDowngrade: Boolean = false
