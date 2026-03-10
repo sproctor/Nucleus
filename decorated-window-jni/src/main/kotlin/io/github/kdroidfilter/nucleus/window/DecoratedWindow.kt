@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
+
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -145,7 +145,27 @@ fun DecoratedWindow(
             titleBarHolder.content = null
         }
 
-        Box {
+        var fullscreenBarVisible by remember { mutableStateOf(false) }
+        val density = LocalDensity.current
+
+        LaunchedEffect(isNativeFullscreen) {
+            if (!isNativeFullscreen) fullscreenBarVisible = false
+        }
+
+        Box(
+            modifier = if (isNativeFullscreen) {
+                Modifier.pointerInput(titleBarHolder.titleBarHeight) {
+                    val titleBarHeightPx = with(density) { titleBarHolder.titleBarHeight.toPx() }
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val y = event.changes.firstOrNull()?.position?.y ?: continue
+                            fullscreenBarVisible = y < titleBarHeightPx
+                        }
+                    }
+                }
+            } else Modifier,
+        ) {
             CompositionLocalProvider(
                 LocalNativeFullscreen provides isNativeFullscreen,
                 LocalExitFullscreen provides exitFullscreen,
@@ -161,6 +181,7 @@ fun DecoratedWindow(
                 FullscreenTitleBarRenderers(
                     titleBarHolder = titleBarHolder,
                     isNativeFullscreen = isNativeFullscreen,
+                    fullscreenBarVisible = fullscreenBarVisible,
                     title = title,
                     icon = icon,
                 )
@@ -178,6 +199,7 @@ fun DecoratedWindow(
 private fun BoxScope.FullscreenTitleBarRenderers(
     titleBarHolder: FullscreenTitleBarHolder,
     isNativeFullscreen: Boolean,
+    fullscreenBarVisible: Boolean,
     title: String,
     icon: Painter?,
 ) {
@@ -194,6 +216,7 @@ private fun BoxScope.FullscreenTitleBarRenderers(
             CompositionLocalProvider(LocalTitleBarInfo provides TitleBarInfo(title, icon)) {
                 FullscreenTitleBarOverlay(
                     holder = titleBarHolder,
+                    visible = fullscreenBarVisible,
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
@@ -215,73 +238,33 @@ private fun BoxScope.FullscreenTitleBarRenderers(
 
 /**
  * Renders the fullscreen title bar as a sliding overlay.
- * Hidden above the top edge by default; slides down when the pointer
- * moves near the top of the screen.
+ * Hidden above the top edge by default; slides down when [visible] is true.
  *
- * Uses [Modifier.pointerInput] with [awaitPointerEventScope] for detection,
- * because [PointerEventType.Enter]/[Exit] on transparent composables
- * does not reliably fire on Linux compositors at screen edges.
+ * Visibility is controlled by the parent via [PointerEventPass.Initial] tracking
+ * on the root Box, which receives all pointer events without blocking content clicks.
  */
 @Suppress("FunctionNaming")
 @Composable
 private fun FullscreenTitleBarOverlay(
     holder: FullscreenTitleBarHolder,
+    visible: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val titleBarContent = holder.content ?: return
     val titleBarHeight = holder.titleBarHeight
-    val density = LocalDensity.current
-    val titleBarHeightPx = with(density) { titleBarHeight.toPx() }
-
-    var visible by remember { mutableStateOf(false) }
 
     val offsetY by animateDpAsState(
         targetValue = if (visible) 0.dp else -titleBarHeight,
         animationSpec = tween(durationMillis = 200),
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // Invisible full-screen pointer tracker.
-        // Shows the bar when pointer is near the top, hides it when pointer moves away.
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .pointerInput(titleBarHeightPx) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Main)
-                                val y =
-                                    event.changes
-                                        .firstOrNull()
-                                        ?.position
-                                        ?.y ?: continue
-                                visible = y < titleBarHeightPx
-                            }
-                        }
-                    },
-        )
-
-        // Sliding title bar
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .offset(y = offsetY)
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Main)
-                                val type = event.type
-                                if (type == PointerEventType.Enter || type == PointerEventType.Move) {
-                                    visible = true
-                                }
-                            }
-                        }
-                    },
-        ) {
-            titleBarContent()
-        }
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .offset(y = offsetY),
+    ) {
+        titleBarContent()
     }
 }
 
