@@ -999,11 +999,19 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
 
     if (nsWindowPtr == 0) return;
-    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
-    __weak NSWindow *weakWindow = window;
+    // Capture the raw pointer value — do NOT create a __weak reference here.
+    // This function is called from a Java thread, and if the NSWindow has
+    // already been deallocated on the main thread, creating a __weak
+    // reference would crash in objc_initWeak (EXC_BAD_ACCESS).
+    void *rawPtr = (void *)nsWindowPtr;
     dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
-            NSWindow *w = weakWindow;
+            // Verify the window is still alive by checking NSApp.windows.
+            NSWindow *w = nil;
+            NSWindow *candidate = (__bridge NSWindow *)rawPtr;
+            for (NSWindow *win in [NSApp windows]) {
+                if (win == candidate) { w = win; break; }
+            }
             if (!w) return;
             removeMenuBarMonitor(w);
             removeFullScreenButtons(w);
@@ -1169,12 +1177,22 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
 
     if (nsWindowPtr == 0) return;
-    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
-    __weak NSWindow *weakWindow = window;
+    // Capture the raw pointer value — do NOT create a __weak reference here.
+    // This function is called from a Java thread, and if the NSWindow has
+    // already been deallocated on the main thread, creating a __weak
+    // reference would crash in objc_initWeak (EXC_BAD_ACCESS).
+    void *rawPtr = (void *)nsWindowPtr;
     dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
-            NSWindow *w = weakWindow;
-            if (w) removeMenuBarMonitor(w);
+            // Verify the window is still alive by checking NSApp.windows.
+            // Pointer comparison is safe even for freed pointers.
+            NSWindow *candidate = (__bridge NSWindow *)rawPtr;
+            for (NSWindow *w in [NSApp windows]) {
+                if (w == candidate) {
+                    removeMenuBarMonitor(w);
+                    return;
+                }
+            }
         }
     });
 }
