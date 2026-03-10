@@ -862,16 +862,27 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
     } else {
         if (!state->isFullscreen) return; /* already not fullscreen */
 
-        /* Clear fullscreen flag BEFORE SetWindowLongW so every
-         * WM_NCCALCSIZE triggered by style restoration immediately
+        /* Clear fullscreen flag BEFORE style restoration so every
+         * WM_NCCALCSIZE triggered by the changes below immediately
          * uses the normal path (title-bar extension, resize borders). */
         state->isFullscreen = FALSE;
 
-        /* Restore window styles */
-        SetWindowLongW(hwnd, GWL_STYLE, state->savedStyle);
+        /* Restore extended styles first (no size/position side-effects). */
         SetWindowLongW(hwnd, GWL_EXSTYLE, state->savedExStyle);
 
-        /* Restore window placement (maximized/normal state + position) */
+        /* Restore the main style WITHOUT WS_MAXIMIZE initially.
+         * If we set WS_MAXIMIZE via SetWindowLongW, Windows constrains
+         * the window to the work area and sends WM_SIZE(SIZE_RESTORED)
+         * instead of WM_SIZE(SIZE_MAXIMIZED). AWT then misses the
+         * maximize event and Frame.getExtendedState() stays stale.
+         * SetWindowPlacement with SW_SHOWMAXIMIZED goes through the
+         * proper maximize code path and sends the correct events. */
+        LONG restoreStyle = state->savedStyle & ~(LONG)WS_MAXIMIZE;
+        SetWindowLongW(hwnd, GWL_STYLE, restoreStyle);
+
+        /* Restore window placement (maximized/normal state + position).
+         * For SW_SHOWMAXIMIZED this re-applies WS_MAXIMIZE internally
+         * and sends WM_SIZE(SIZE_MAXIMIZED) so AWT detects it. */
         SetWindowPlacement(hwnd, &state->savedPlacement);
 
         /* Remove topmost and force frame recalculation */

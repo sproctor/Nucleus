@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
@@ -23,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
-
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -39,6 +37,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.utils.linux.JniLinuxWindowBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsDecorationBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsWindowUtil
+import java.awt.Frame
 
 /**
  * Composition local that indicates whether the window is currently in
@@ -68,7 +67,7 @@ internal class FullscreenTitleBarHolder {
 
 internal val LocalFullscreenTitleBarHolder = compositionLocalOf<FullscreenTitleBarHolder?> { null }
 
-@Suppress("FunctionNaming", "LongParameterList")
+@Suppress("FunctionNaming", "LongParameterList", "CyclomaticComplexMethod", "LongMethod")
 @Composable
 fun DecoratedWindow(
     onCloseRequest: () -> Unit,
@@ -157,18 +156,25 @@ fun DecoratedWindow(
         }
 
         Box(
-            modifier = if (isNativeFullscreen) {
-                Modifier.pointerInput(titleBarHolder.titleBarHeight) {
-                    val titleBarHeightPx = with(density) { titleBarHolder.titleBarHeight.toPx() }
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val y = event.changes.firstOrNull()?.position?.y ?: continue
-                            fullscreenBarVisible = y < titleBarHeightPx
+            modifier =
+                if (isNativeFullscreen) {
+                    Modifier.pointerInput(titleBarHolder.titleBarHeight) {
+                        val titleBarHeightPx = with(density) { titleBarHolder.titleBarHeight.toPx() }
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                val y =
+                                    event.changes
+                                        .firstOrNull()
+                                        ?.position
+                                        ?.y ?: continue
+                                fullscreenBarVisible = y < titleBarHeightPx
+                            }
                         }
                     }
-                }
-            } else Modifier,
+                } else {
+                    Modifier
+                },
         ) {
             CompositionLocalProvider(
                 LocalNativeFullscreen provides isNativeFullscreen,
@@ -280,7 +286,10 @@ private fun FullscreenTitleBarOverlay(
  * Works on both Windows (Win32 fullscreen) and Linux (_NET_WM_STATE_FULLSCREEN).
  */
 @Composable
-private fun FrameWindowScope.NativeFullscreenEffect(state: WindowState, windowState: WindowState) {
+private fun FrameWindowScope.NativeFullscreenEffect(
+    state: WindowState,
+    windowState: WindowState,
+) {
     LaunchedEffect(state, window) {
         var isNativeFullscreen = false
         // Track the last non-Fullscreen placement so we can restore it correctly
@@ -313,6 +322,18 @@ private fun FrameWindowScope.NativeFullscreenEffect(state: WindowState, windowSt
                     Platform.Windows -> {
                         val hwnd = JniWindowsWindowUtil.getHwnd(window)
                         if (hwnd != 0L) JniWindowsDecorationBridge.nativeSetFullscreen(hwnd, false)
+                        // Safety net: ensure AWT's extendedState matches the
+                        // restored placement. SetWindowPlacement sends the proper
+                        // WM_SIZE events, but AWT may still miss the maximize
+                        // notification if it processed an intermediate resize
+                        // during style restoration. Explicitly setting extendedState
+                        // guarantees DecoratedWindowState.isMaximized stays in sync.
+                        if (lastNonFullscreenPlacement == WindowPlacement.Maximized) {
+                            window.extendedState = Frame.MAXIMIZED_BOTH
+                        } else {
+                            window.extendedState =
+                                window.extendedState and Frame.MAXIMIZED_BOTH.inv()
+                        }
                     }
                     Platform.Linux -> {
                         JniLinuxWindowBridge.nativeSetFullscreen(window, false)
@@ -356,18 +377,19 @@ private fun FrameWindowScope.NativeFullscreenSyncEffect(
     windowState: WindowState,
 ) {
     DisposableEffect(window) {
-        val listener = object : java.awt.event.ComponentAdapter() {
-            override fun componentResized(e: java.awt.event.ComponentEvent) {
-                if (state.placement != WindowPlacement.Fullscreen) return
-                val hwnd = JniWindowsWindowUtil.getHwnd(window)
-                if (hwnd != 0L && !JniWindowsDecorationBridge.nativeIsFullscreen(hwnd)) {
-                    val previous =
-                        (windowState as? NativeFullscreenWindowState)
-                            ?.placementBeforeFullscreen ?: WindowPlacement.Floating
-                    state.placement = previous
+        val listener =
+            object : java.awt.event.ComponentAdapter() {
+                override fun componentResized(e: java.awt.event.ComponentEvent) {
+                    if (state.placement != WindowPlacement.Fullscreen) return
+                    val hwnd = JniWindowsWindowUtil.getHwnd(window)
+                    if (hwnd != 0L && !JniWindowsDecorationBridge.nativeIsFullscreen(hwnd)) {
+                        val previous =
+                            (windowState as? NativeFullscreenWindowState)
+                                ?.placementBeforeFullscreen ?: WindowPlacement.Floating
+                        state.placement = previous
+                    }
                 }
             }
-        }
         window.addComponentListener(listener)
         onDispose { window.removeComponentListener(listener) }
     }
