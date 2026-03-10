@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -117,6 +118,9 @@ fun DecoratedWindow(
     ) {
         if (useNativeFullscreen) {
             NativeFullscreenEffect(state)
+            if (Platform.Current == Platform.Windows) {
+                NativeFullscreenSyncEffect(state, windowState)
+            }
         }
 
         val isNativeFullscreen = useNativeFullscreen && state.placement == WindowPlacement.Fullscreen
@@ -306,6 +310,46 @@ private fun FrameWindowScope.NativeFullscreenEffect(state: WindowState) {
                 isNativeFullscreen = false
             }
         }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+//  NativeFullscreenSyncEffect (Windows only)
+// ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Attaches a [java.awt.event.ComponentListener] that detects when the native
+ * window is resized while [state].placement is [WindowPlacement.Fullscreen].
+ *
+ * This covers the case where the WM_SIZE safety net in the native WndProc
+ * clears [isFullscreen] (e.g. because AWT called ShowWindow directly, bypassing
+ * WM_SYSCOMMAND blocking). When a resize is detected and [nativeIsFullscreen]
+ * returns false, Kotlin's placement is restored to the pre-fullscreen value so
+ * the two layers stay in sync.
+ *
+ * Setting [state].placement from the AWT event thread is safe because
+ * Compose's [mutableStateOf] backing is thread-safe.
+ */
+@Composable
+private fun FrameWindowScope.NativeFullscreenSyncEffect(
+    state: WindowState,
+    windowState: WindowState,
+) {
+    DisposableEffect(window) {
+        val listener = object : java.awt.event.ComponentAdapter() {
+            override fun componentResized(e: java.awt.event.ComponentEvent) {
+                if (state.placement != WindowPlacement.Fullscreen) return
+                val hwnd = JniWindowsWindowUtil.getHwnd(window)
+                if (hwnd != 0L && !JniWindowsDecorationBridge.nativeIsFullscreen(hwnd)) {
+                    val previous =
+                        (windowState as? NativeFullscreenWindowState)
+                            ?.placementBeforeFullscreen ?: WindowPlacement.Floating
+                    state.placement = previous
+                }
+            }
+        }
+        window.addComponentListener(listener)
+        onDispose { window.removeComponentListener(listener) }
     }
 }
 

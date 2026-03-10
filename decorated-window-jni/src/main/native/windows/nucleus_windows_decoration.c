@@ -419,9 +419,60 @@ static LRESULT CALLBACK decorationWndProc(
     }
 
     /* -------------------------------------------------------------- */
+    /*  WM_SYSCOMMAND: block state-changing commands while fullscreen  */
+    /*  to prevent native/Kotlin state desync. The application must   */
+    /*  exit fullscreen via its own UI controls.                       */
+    /* -------------------------------------------------------------- */
+    case WM_SYSCOMMAND: {
+        if (state->isFullscreen) {
+            WPARAM cmd = wParam & 0xFFF0;
+            if (cmd == SC_RESTORE || cmd == SC_MAXIMIZE ||
+                cmd == SC_SIZE   || cmd == SC_MOVE) {
+                return 0;
+            }
+        }
+        break;
+    }
+
+    /* -------------------------------------------------------------- */
+    /*  WM_SIZE: safety net — detect when the window is resized        */
+    /*  externally while fullscreen (e.g. via ShowWindow called        */
+    /*  directly by AWT). Clears the flag and restores styles so       */
+    /*  the frame is never permanently stripped.                       */
+    /* -------------------------------------------------------------- */
+    case WM_SIZE: {
+        if (state->isFullscreen && wParam != SIZE_MINIMIZED) {
+            int newW = (int)(short)LOWORD(lParam);
+            int newH = (int)(short)HIWORD(lParam);
+            HMONITOR hMon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi;
+            mi.cbSize = sizeof(mi);
+            if (GetMonitorInfoW(hMon, &mi)) {
+                int monW = mi.rcMonitor.right - mi.rcMonitor.left;
+                int monH = mi.rcMonitor.bottom - mi.rcMonitor.top;
+                if (newW != monW || newH != monH) {
+                    /* External resize detected — sync native state */
+                    state->isFullscreen = FALSE;
+                    SetWindowLongW(hwnd, GWL_STYLE, state->savedStyle);
+                    SetWindowLongW(hwnd, GWL_EXSTYLE, state->savedExStyle);
+                    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+                }
+            }
+        }
+        break;
+    }
+
+    /* -------------------------------------------------------------- */
     /*  WM_NCDESTROY: clean up state                                   */
     /* -------------------------------------------------------------- */
     case WM_NCDESTROY: {
+        /* Safety: restore window styles if destroyed while fullscreen
+         * so the OS does not hold stripped style bits in its cache.  */
+        if (state->isFullscreen) {
+            SetWindowLongW(hwnd, GWL_STYLE, state->savedStyle);
+            SetWindowLongW(hwnd, GWL_EXSTYLE, state->savedExStyle);
+        }
         WNDPROC origProc = state->originalWndProc;
         RemovePropW(hwnd, PROP_NAME);
         HeapFree(GetProcessHeap(), 0, state);
@@ -750,6 +801,11 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
         state->savedPlacement.length = sizeof(WINDOWPLACEMENT);
         GetWindowPlacement(hwnd, &state->savedPlacement);
 
+        /* Mark fullscreen BEFORE SetWindowLongW so every WM_NCCALCSIZE
+         * triggered by style changes already uses the fullscreen path
+         * (return 0 = client area fills the whole window). */
+        state->isFullscreen = TRUE;
+
         /* Remove window borders, title bar, and maximize flag.
          * WS_MAXIMIZE must be stripped because the system constrains
          * maximized windows to the work area (excluding the taskbar). */
@@ -769,12 +825,10 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
         mi.cbSize = sizeof(mi);
         GetMonitorInfoW(hMon, &mi);
 
-        /* Mark fullscreen BEFORE SetWindowPos so WM_NCCALCSIZE uses
-         * the fullscreen path. */
-        state->isFullscreen = TRUE;
-
-        /* Set window to cover entire monitor */
-        SetWindowPos(hwnd, HWND_TOP,
+        /* HWND_TOPMOST keeps the window above the auto-hide taskbar.
+         * Without it, a WS_EX_TOPMOST taskbar can slide over the window
+         * when the user hovers the screen edge. */
+        SetWindowPos(hwnd, HWND_TOPMOST,
             mi.rcMonitor.left, mi.rcMonitor.top,
             mi.rcMonitor.right - mi.rcMonitor.left,
             mi.rcMonitor.bottom - mi.rcMonitor.top,
@@ -782,20 +836,21 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
     } else {
         if (!state->isFullscreen) return; /* already not fullscreen */
 
+        /* Clear fullscreen flag BEFORE SetWindowLongW so every
+         * WM_NCCALCSIZE triggered by style restoration immediately
+         * uses the normal path (title-bar extension, resize borders). */
+        state->isFullscreen = FALSE;
+
         /* Restore window styles */
         SetWindowLongW(hwnd, GWL_STYLE, state->savedStyle);
         SetWindowLongW(hwnd, GWL_EXSTYLE, state->savedExStyle);
 
-        /* Clear fullscreen flag BEFORE restoring placement so
-         * WM_NCCALCSIZE uses the normal path. */
-        state->isFullscreen = FALSE;
-
         /* Restore window placement (maximized/normal state + position) */
         SetWindowPlacement(hwnd, &state->savedPlacement);
 
-        /* Force frame recalculation */
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        /* Remove topmost and force frame recalculation */
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
     }
 }
 
