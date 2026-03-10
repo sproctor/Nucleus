@@ -2772,6 +2772,64 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "byte[]"
+        },
+        {
+            "type": "char[]"
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.window.utils.macos.JniMacTitleBarBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "onMenuBarOffsetChanged",
+                    "parameterTypes": [
+                        "long",
+                        "float"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.awt.Image"
+        },
+        {
+            "type": "java.io.InputStream"
+        },
+        {
+            "type": "java.io.Reader"
+        },
+        {
+            "type": "java.net.URL"
+        },
+        {
+            "type": "java.nio.ByteBuffer"
+        },
+        {
+            "type": "java.nio.CharBuffer"
+        },
+        {
+            "type": "java.rmi.MarshalledObject"
+        },
+        {
+            "type": "java.rmi.Remote"
+        },
+        {
+            "type": "java.util.List"
+        },
+        {
+            "type": "sun.lwawt.macosx.CInputMethod",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "unmarkText",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         }
     ],
     "resources": [
@@ -4100,6 +4158,22 @@
         },
         {
             "glob": "themes/expUI/icons/dark/checkBoxSelected_dark.svg"
+        },
+        {
+            "glob": "com/intellij/ide/ui/laf/icons/darcula/checkBoxSelectedHovered.svg"
+        },
+        {
+            "glob": "com/intellij/ide/ui/laf/icons/darcula/checkBoxSelectedHovered@2x.svg"
+        },
+        {
+            "glob": "com/intellij/ide/ui/laf/icons/darcula/checkBoxSelectedHovered@2x_dark.svg"
+        },
+        {
+            "glob": "com/intellij/ide/ui/laf/icons/darcula/checkBoxSelectedHovered_dark.svg"
+        },
+        {
+            "module": "java.datatransfer",
+            "glob": "sun/datatransfer/resources/flavormap.properties"
         }
     ]
 }
