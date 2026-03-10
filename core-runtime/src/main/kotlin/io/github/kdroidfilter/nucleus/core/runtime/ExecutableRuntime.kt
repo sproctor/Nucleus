@@ -1,5 +1,7 @@
 package io.github.kdroidfilter.nucleus.core.runtime
 
+import java.io.File
+
 public enum class ExecutableType {
     // Windows
     EXE,
@@ -32,9 +34,14 @@ public enum class ExecutableType {
 @Suppress("TooManyFunctions")
 public object ExecutableRuntime {
     public const val TYPE_PROPERTY: String = "nucleus.executable.type"
+    private const val TYPE_MARKER_FILE: String = ".nucleus-executable-type"
 
     @JvmStatic
-    public fun type(): ExecutableType = parseType(System.getProperty(TYPE_PROPERTY))
+    public fun type(): ExecutableType {
+        val fromProperty = System.getProperty(TYPE_PROPERTY)
+        if (fromProperty != null) return parseType(fromProperty)
+        return parseType(markerData?.type)
+    }
 
     @JvmStatic
     public fun type(propertyName: String): ExecutableType = parseType(System.getProperty(propertyName))
@@ -115,5 +122,39 @@ public object ExecutableRuntime {
             // Dev
             "dev", "development", "app-image" -> ExecutableType.DEV
             else -> ExecutableType.DEV
+        }
+
+    private data class MarkerData(
+        val type: String,
+        val version: String?,
+    )
+
+    private val markerData: MarkerData? by lazy { readMarkerFile() }
+
+    /**
+     * Reads the app version from the marker file written by the Gradle plugin
+     * for GraalVM native-image builds (where jpackage.app-version is unavailable).
+     */
+    @JvmStatic
+    public fun markerVersion(): String? = markerData?.version
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun readMarkerFile(): MarkerData? =
+        try {
+            val execPath =
+                ProcessHandle
+                    .current()
+                    .info()
+                    .command()
+                    .orElse(null) ?: return null
+            val marker = File(execPath).parentFile?.resolve(TYPE_MARKER_FILE) ?: return null
+            if (!marker.isFile) return null
+            val lines = marker.readLines()
+            MarkerData(
+                type = lines.getOrNull(0)?.trim() ?: return null,
+                version = lines.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() },
+            )
+        } catch (_: Exception) {
+            null
         }
 }
