@@ -175,6 +175,53 @@
 -keep class io.github.kdroidfilter.nucleus.nativessl.windows.WindowsSslBridge {
     native <methods>;
 }
+
+# Nucleus system-color JNI (macOS)
+# NativeMacSystemColorBridge is looked up by name from native code (FindClass + GetStaticMethodID)
+-keep class io.github.kdroidfilter.nucleus.systemcolor.mac.NativeMacSystemColorBridge {
+    native <methods>;
+    static void onAccentColorChanged(float, float, float);
+    static void onContrastChanged(boolean);
+}
+
+# Nucleus system-color JNI (Linux)
+# NativeLinuxSystemColorBridge is looked up by name from native code (FindClass + GetStaticMethodID)
+-keep class io.github.kdroidfilter.nucleus.systemcolor.linux.NativeLinuxSystemColorBridge {
+    native <methods>;
+    static void onAccentColorChanged(float, float, float);
+    static void onHighContrastChanged(boolean);
+}
+
+# Nucleus system-color JNI (Windows)
+# NativeWindowsSystemColorBridge is looked up by name from native code (FindClass + GetStaticMethodID)
+-keep class io.github.kdroidfilter.nucleus.systemcolor.windows.NativeWindowsSystemColorBridge {
+    native <methods>;
+    static void onAccentColorChanged(int, int, int);
+    static void onHighContrastChanged(boolean);
+}
+-keep class io.github.kdroidfilter.nucleus.systemcolor.** { *; }
+
+# Nucleus energy-manager JNI (macOS)
+-keep class io.github.kdroidfilter.nucleus.energymanager.macos.NativeMacOsEnergyBridge {
+    native <methods>;
+}
+
+# Nucleus energy-manager JNI (Linux)
+-keep class io.github.kdroidfilter.nucleus.energymanager.linux.NativeLinuxEnergyBridge {
+    native <methods>;
+}
+
+# Nucleus energy-manager JNI (Windows)
+-keep class io.github.kdroidfilter.nucleus.energymanager.windows.NativeWindowsEnergyBridge {
+    native <methods>;
+}
+-keep class io.github.kdroidfilter.nucleus.energymanager.** { *; }
+
+# Nucleus linux-hidpi JNI
+-keep class io.github.kdroidfilter.nucleus.hidpi.HiDpiLinuxBridge {
+    native <methods>;
+}
+
 -dontwarn sun.misc.Unsafe
 -dontwarn sun.awt.**
 
