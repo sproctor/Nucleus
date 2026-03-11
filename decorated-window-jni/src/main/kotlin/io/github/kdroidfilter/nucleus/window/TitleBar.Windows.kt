@@ -31,12 +31,13 @@ internal fun DecoratedWindowScope.WindowsTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
     style: TitleBarStyle = LocalTitleBarStyle.current,
+    backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
     if (JniWindowsDecorationBridge.isLoaded) {
-        NativeWindowsTitleBar(modifier, gradientStartColor, style, content)
+        NativeWindowsTitleBar(modifier, gradientStartColor, style, backgroundContent, content)
     } else {
-        FallbackWindowsTitleBar(modifier, gradientStartColor, style, content)
+        FallbackWindowsTitleBar(modifier, gradientStartColor, style, backgroundContent, content)
     }
 }
 
@@ -47,6 +48,7 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
     modifier: Modifier,
     gradientStartColor: Color,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
     val isNativeFullscreen = LocalNativeFullscreen.current
@@ -131,6 +133,7 @@ private fun DecoratedWindowScope.NativeWindowsTitleBar(
             PaddingValues(0.dp)
         },
         backgroundContent = {
+            backgroundContent()
             Spacer(
                 modifier =
                     Modifier
@@ -179,6 +182,7 @@ private fun DecoratedWindowScope.FallbackWindowsTitleBar(
     modifier: Modifier,
     gradientStartColor: Color,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
     val viewConfig = LocalViewConfiguration.current
@@ -206,6 +210,7 @@ private fun DecoratedWindowScope.FallbackWindowsTitleBar(
         style = style,
         applyTitleBar = { _, _ -> PaddingValues(0.dp) },
         backgroundContent = {
+            backgroundContent()
             Spacer(modifier = Modifier.fillMaxSize().windowDragHandler(window))
         },
     ) { currentState ->

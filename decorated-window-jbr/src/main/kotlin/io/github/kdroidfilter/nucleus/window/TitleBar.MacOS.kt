@@ -60,6 +60,7 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
     style: TitleBarStyle = LocalTitleBarStyle.current,
+    backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
     val newFullscreenControls =
@@ -111,6 +112,7 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
                 MacUtil.updateFullScreenButtons(window)
             }
         },
+        backgroundContent = backgroundContent,
         content = content,
     )
 }

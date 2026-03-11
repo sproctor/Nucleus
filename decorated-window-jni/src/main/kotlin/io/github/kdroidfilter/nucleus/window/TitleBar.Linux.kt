@@ -27,12 +27,13 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
     if (JniLinuxWindowBridge.isLoaded) {
-        NativeLinuxTitleBar(modifier, gradientStartColor, style, content)
+        NativeLinuxTitleBar(modifier, gradientStartColor, style, backgroundContent, content)
     } else {
-        FallbackLinuxTitleBar(modifier, gradientStartColor, style, content)
+        FallbackLinuxTitleBar(modifier, gradientStartColor, style, backgroundContent, content)
     }
 }
 
@@ -46,6 +47,7 @@ private fun DecoratedWindowScope.NativeLinuxTitleBar(
     modifier: Modifier,
     gradientStartColor: Color,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
     val linuxStyle = createLinuxTitleBarStyle(style)
@@ -96,6 +98,7 @@ private fun DecoratedWindowScope.NativeLinuxTitleBar(
             }
         },
         backgroundContent = {
+            backgroundContent()
             Spacer(
                 modifier =
                     Modifier
@@ -151,6 +154,7 @@ private fun DecoratedWindowScope.FallbackLinuxTitleBar(
     modifier: Modifier,
     gradientStartColor: Color,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
     val linuxStyle = createLinuxTitleBarStyle(style)
@@ -186,8 +190,8 @@ private fun DecoratedWindowScope.FallbackLinuxTitleBar(
                 PaddingValues(0.dp)
             }
         },
-        // Compose-based drag replaces JBR.getWindowMove()
         backgroundContent = {
+            backgroundContent()
             Spacer(modifier = Modifier.fillMaxSize().windowDragHandler(window))
         },
     ) { currentState ->

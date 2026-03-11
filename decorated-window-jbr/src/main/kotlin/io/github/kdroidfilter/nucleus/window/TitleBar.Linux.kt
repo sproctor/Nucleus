@@ -24,6 +24,7 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
     style: TitleBarStyle,
+    backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
     val linuxStyle = createLinuxTitleBarStyle(style)
@@ -59,6 +60,7 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
                 PaddingValues(0.dp)
             }
         },
+        backgroundContent = backgroundContent,
     ) { currentState ->
         WindowControlArea(window, currentState, linuxStyle)
         content(currentState)
