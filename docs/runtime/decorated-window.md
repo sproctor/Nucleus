@@ -393,6 +393,52 @@ TitleBar(
 
 When `gradientStartColor` is `Color.Unspecified` (the default), the background is a solid color.
 
+## Custom Background
+
+The `TitleBar` composable accepts a `backgroundContent` parameter: a composable rendered inside the title bar `Box`, between the base background fill and the user content. This lets you draw arbitrary shapes, gradients, or images that need full layout access — things that cannot be expressed as a plain `Color` or a simple horizontal gradient.
+
+```kotlin
+TitleBar(
+    backgroundContent = {
+        // Drawn on top of the background fill, behind all title bar content.
+        // The Box is sized to the full title bar area.
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(color = Color(0xFF6200EE), size = Size(size.width / 2, size.height))
+        }
+    },
+) { state ->
+    Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
+}
+```
+
+A typical use case is a **diagonal color band** on the leading edge, covering the native window controls area:
+
+```kotlin
+TitleBar(
+    backgroundContent = {
+        val brandColor = Color(0xFFD32F2F)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val slantWidth = size.height * 4f
+            drawPath(
+                path = Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(slantWidth, 0f)
+                    lineTo(slantWidth - size.height, size.height)
+                    lineTo(0f, size.height)
+                    close()
+                },
+                color = brandColor,
+            )
+        }
+    },
+) { _ -> /* content */ }
+```
+
+This draws a solid trapezoid from the left edge with a 45° diagonal cut. Adjust `size.height * N` to control the width.
+
+!!! note "Interaction layer ordering"
+    On platforms that use a native `Spacer` for drag handling (Windows fallback, Linux), `backgroundContent` is composed **before** the drag `Spacer`, so pointer events pass through to the drag handler correctly.
+
 ## Fullscreen Title Bar
 
 ### `newFullscreenControls()` — Sliding Overlay Title Bar

@@ -79,20 +79,52 @@ MaterialDecoratedDialog(
 
 ### `MaterialTitleBar` / `MaterialDialogTitleBar`
 
-Material-styled title bars. They read `MaterialTheme.colorScheme` and build a `TitleBarStyle` from it. They accept the same `gradientStartColor` parameter as the base `TitleBar`.
+Material-styled title bars. They read `MaterialTheme.colorScheme` and build a `TitleBarStyle` from it. They accept the same `gradientStartColor` and `backgroundContent` parameters as the base `TitleBar`.
 
 ```kotlin
 MaterialTitleBar(
     modifier = Modifier
         .newFullscreenControls()   // sliding overlay title bar in fullscreen (all platforms)
         .macOSLargeCornerRadius(), // 26pt corner radius on macOS (Finder/Safari style)
-    gradientStartColor = Color.Unspecified, // optional gradient
+    gradientStartColor = Color.Unspecified, // optional horizontal gradient
+    backgroundContent = {},                // optional custom background layer
 ) { state ->
     // TitleBarScope content
 }
 ```
 
 See [Decorated Window — Fullscreen Title Bar](decorated-window.md#fullscreen-title-bar) for details on the sliding overlay behavior and the large corner radius modifier.
+
+#### Custom background with `backgroundContent`
+
+`backgroundContent` is a composable drawn behind the title bar content, on top of the base `background` fill. Use it to render shapes, gradients, or images that require full layout control. The lambda receives a `Box` scope sized to the full title bar area.
+
+A common use case is a diagonal color band on the leading edge — for example a branded accent that covers the native window controls area:
+
+```kotlin
+MaterialTitleBar(
+    backgroundContent = {
+        val brandColor = Color(0xFFD32F2F)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val slantWidth = size.height * 4f
+            drawPath(
+                path = Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(slantWidth, 0f)
+                    lineTo(slantWidth - size.height, size.height)
+                    lineTo(0f, size.height)
+                    close()
+                },
+                color = brandColor,
+            )
+        }
+    },
+) { _ ->
+    // content
+}
+```
+
+This draws a solid red trapezoid from the left edge with a 45° diagonal cut. Adjust `size.height * N` to control the width.
 
 ## Color Mapping
 

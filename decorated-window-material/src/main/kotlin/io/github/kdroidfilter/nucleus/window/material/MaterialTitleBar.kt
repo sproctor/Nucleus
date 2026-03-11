@@ -14,6 +14,7 @@ import io.github.kdroidfilter.nucleus.window.TitleBarScope
 fun DecoratedWindowScope.MaterialTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
+    backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
     val style = rememberMaterialTitleBarStyle(MaterialTheme.colorScheme)
@@ -21,6 +22,7 @@ fun DecoratedWindowScope.MaterialTitleBar(
         modifier = modifier,
         gradientStartColor = gradientStartColor,
         style = style,
+        backgroundContent = backgroundContent,
         content = content,
     )
 }
