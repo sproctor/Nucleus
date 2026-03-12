@@ -1,11 +1,15 @@
 # Decorated Window
 
-Compose for Desktop does not allow drawing custom content in the title bar while keeping native window controls and native behavior (drag, resize, double-click maximize). You must choose between a native title bar you cannot customize, or a fully undecorated window where you reimplement everything from scratch.
+Compose for Desktop does not natively expose a way to draw custom content in the title bar while keeping native window controls and behavior (drag, resize, double-click maximize). On macOS, the underlying Swing layer does offer `JRootPane` client properties (such as `apple.awt.fullWindowContent` and `apple.awt.transparentTitleBar`) that let you extend Compose content into the title bar area while keeping native traffic lights — but this is a Swing-level mechanism, not a Compose API, and it does not give you a composable layout model for the title bar. On Windows and Linux there is no equivalent — your only option is a fully undecorated window where you reimplement everything from scratch.
 
-The decorated window modules bridge this gap. They are a fork of [Jewel](https://github.com/JetBrains/intellij-community/tree/master/platform/jewel)'s decorated window, **without any dependency on Jewel itself**. Key differences from Jewel:
+The decorated window modules bridge this gap. They are **completely design-system agnostic** — no dependency on Jewel, no dependency on Material 3. You wire in whatever color tokens your app uses (Material 3, Jewel, your own design system, or a plain `Color` literal).
+
+The optional [`decorated-window-material`](decorated-window-material.md) module exists as a convenience layer that reads `MaterialTheme.colorScheme` automatically — but it is a separate artifact and is not required by the base modules.
+
+The implementation was originally inspired by [Jewel](https://github.com/JetBrains/intellij-community/tree/master/platform/jewel)'s decorated window. Key divergences from Jewel's own implementation:
 
 - **No JNA** — all native calls use JNI only, removing the JNA dependency entirely
-- **Design-system agnostic** — no Material dependency; easily map any theme (Material 3, Jewel, your own) to its styling tokens
+- **No Jewel dependency** — the base modules have zero runtime dependency on Jewel
 - **`DecoratedDialog`** — custom title bar for dialog windows, which Jewel does not provide
 - **Reworked Linux rendering** — the entire Linux experience has been rebuilt from the ground up to look as native as possible, even though everything is drawn with Compose: platform-accurate GNOME Adwaita and KDE Breeze window controls, proper window shape clipping, border styling, and full behavior emulation (drag, double-click maximize, focus-aware button states)
 
@@ -84,16 +88,17 @@ dependencies {
 }
 ```
 
-If you use Material 3, add the companion module:
+**Optionally**, if you use Material 3 and want automatic `MaterialTheme.colorScheme` wiring, add the companion module. This is **not required** for the base decorated window to work.
 
 ```kotlin
 dependencies {
+    // Optional — only needed if you use MaterialDecoratedWindow / MaterialTitleBar
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
 }
 ```
 
 !!! note
-    See [`decorated-window-material`](decorated-window-material.md) for automatic `MaterialTheme.colorScheme` wiring.
+    See [`decorated-window-material`](decorated-window-material.md) for details on the Material 3 wrappers. If you use a different design system (Jewel, a custom theme, etc.), skip this module and map your colors manually as shown in the [Styling](#styling) section below.
 
 ## Quick Start
 
