@@ -37,6 +37,7 @@ import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import java.awt.ComponentOrientation
+import java.awt.Desktop
 import java.awt.Frame
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
@@ -181,6 +182,7 @@ fun FrameWindowScope.DecoratedWindowBody(
     title: String,
     icon: Painter?,
     undecorated: Boolean,
+    onCloseRequest: () -> Unit = {},
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
     var decoratedWindowState by remember { mutableStateOf(DecoratedWindowState.of(window)) }
@@ -280,10 +282,15 @@ fun FrameWindowScope.DecoratedWindowBody(
         window.addWindowStateListener(adapter)
         window.addComponentListener(adapter)
 
+        val quitHandlerInstalled = installSystemQuitHandler(onCloseRequest)
+
         onDispose {
             window.removeWindowListener(adapter)
             window.removeWindowStateListener(adapter)
             window.removeComponentListener(adapter)
+            if (quitHandlerInstalled) {
+                Desktop.getDesktop().setQuitHandler(null)
+            }
         }
     }
 
@@ -403,3 +410,26 @@ fun FrameWindowScope.DecoratedWindowBody(
         )
     }
 }
+
+/**
+ * Installs a system-level quit handler that delegates to [onCloseRequest].
+ * On macOS this intercepts Cmd+Q, Dock → Quit, and App Menu → Quit.
+ * The system quit is always cancelled — [onCloseRequest] decides whether
+ * to call exitApplication() or show a confirmation dialog.
+ *
+ * @return true if the handler was installed successfully.
+ */
+private fun installSystemQuitHandler(onCloseRequest: () -> Unit): Boolean =
+    try {
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
+            Desktop.getDesktop().setQuitHandler { _, response ->
+                onCloseRequest()
+                response.cancelQuit()
+            }
+            true
+        } else {
+            false
+        }
+    } catch (_: UnsupportedOperationException) {
+        false
+    }

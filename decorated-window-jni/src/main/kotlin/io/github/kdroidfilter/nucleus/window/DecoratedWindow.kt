@@ -185,6 +185,7 @@ fun DecoratedWindow(
                     title = title,
                     icon = icon,
                     undecorated = undecorated,
+                    onCloseRequest = onCloseRequest,
                     content = content,
                 )
 
