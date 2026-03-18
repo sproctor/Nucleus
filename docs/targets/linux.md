@@ -212,7 +212,17 @@ linux {
 
 ### Build Requirements
 
-Flatpak requires `flatpak` and `flatpak-builder` with the target runtime and SDK installed:
+Flatpak requires `flatpak` and `flatpak-builder` with the target runtime and SDK installed. If these tools are missing, the packaging task will skip gracefully with a clear message.
+
+**Using the `setup-nucleus` GitHub Action** (recommended):
+
+```yaml
+- uses: kdroidFilter/Nucleus/.github/actions/setup-nucleus@main
+  with:
+    flatpak: 'true'
+```
+
+**Manual setup:**
 
 ```bash
 sudo apt-get install -y flatpak flatpak-builder
