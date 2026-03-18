@@ -25,6 +25,8 @@ import java.io.File
  *
  * Maps Nucleus DSL properties to the electron-builder configuration schema,
  * producing a `electron-builder.yml` file consumed by `electron-builder --prepackaged`.
+ *
+ * @see io.github.kdroidfilter.nucleus.desktop.application.internal.padDmgBackgroundForTitleBar
  */
 @Suppress("TooManyFunctions")
 internal class ElectronBuilderConfigGenerator {
@@ -47,6 +49,7 @@ internal class ElectronBuilderConfigGenerator {
         windowsIconOverride: File? = null,
         linuxAfterInstallTemplate: File? = null,
         executableName: String? = null,
+        dmgBackgroundOverride: File? = null,
     ): String {
         val yaml = StringBuilder()
 
@@ -85,7 +88,7 @@ internal class ElectronBuilderConfigGenerator {
 
         // --- Platform-specific config ---
         when (currentOS) {
-            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat, targetArch)
+            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat, targetArch, dmgBackgroundOverride)
             OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, targetArch, windowsIconOverride, executableName)
             OS.Linux ->
                 generateLinuxConfig(
@@ -123,6 +126,7 @@ internal class ElectronBuilderConfigGenerator {
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
         targetArch: Arch,
+        dmgBackgroundOverride: File? = null,
     ) {
         yaml.appendLine("mac:")
         yaml.appendLine("  target:")
@@ -146,7 +150,7 @@ internal class ElectronBuilderConfigGenerator {
         }
 
         when (targetFormat) {
-            TargetFormat.Dmg -> generateDmgConfig(yaml, distributions.macOS.dmg)
+            TargetFormat.Dmg -> generateDmgConfig(yaml, distributions.macOS.dmg, dmgBackgroundOverride)
             TargetFormat.Pkg -> {
                 yaml.appendLine("pkg:")
                 appendIfNotNull(yaml, "  installLocation", distributions.macOS.installationPath)
@@ -167,16 +171,16 @@ internal class ElectronBuilderConfigGenerator {
     private fun generateDmgConfig(
         yaml: StringBuilder,
         dmg: DmgSettings,
+        dmgBackgroundOverride: File? = null,
     ) {
         yaml.appendLine("dmg:")
         yaml.appendLine("  sign: ${dmg.sign}")
-        appendIfNotNull(
-            yaml,
-            "  background",
-            dmg.background.orNull
-                ?.asFile
-                ?.absolutePath,
-        )
+        val backgroundPath =
+            dmgBackgroundOverride?.absolutePath
+                ?: dmg.background.orNull
+                    ?.asFile
+                    ?.absolutePath
+        appendIfNotNull(yaml, "  background", backgroundPath)
         appendIfNotNull(yaml, "  backgroundColor", dmg.backgroundColor)
         appendIfNotNull(
             yaml,

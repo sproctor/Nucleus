@@ -108,6 +108,9 @@ private fun configureNativeApplication(
                 dmgDsl.window.height?.let { dmgWindowHeight.set(it) }
                 dmgDsl.title?.let { dmgTitle.set(it) }
                 dmgDsl.backgroundColor?.let { dmgBackgroundColor.set(it) }
+                if (dmgDsl.background.isPresent) {
+                    dmgBackgroundImage.set(dmgDsl.background)
+                }
                 if (dmgDsl.contents.isNotEmpty()) {
                     dmgContents.set(dmgDsl.contents.toList())
                 }

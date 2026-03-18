@@ -17,6 +17,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuild
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.ElectronBuilderToolManager
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.NodeJsDetector
 import io.github.kdroidfilter.nucleus.desktop.application.internal.files.isDylibPath
+import io.github.kdroidfilter.nucleus.desktop.application.internal.padDmgBackgroundForTitleBar
 import io.github.kdroidfilter.nucleus.desktop.application.internal.updateExecutableTypeInAppImage
 import io.github.kdroidfilter.nucleus.desktop.application.internal.validation.ValidatedMacOSSigningSettings
 import io.github.kdroidfilter.nucleus.desktop.application.internal.validation.validate
@@ -352,6 +353,19 @@ abstract class AbstractElectronBuilderPackageTask
         ): File {
             val configGenerator = ElectronBuilderConfigGenerator()
             val resolvedArch = Arch.entries.first { it.id == targetArch.get() }
+
+            // Pad the DMG background image to compensate for the macOS title bar (issue #26).
+            // electron-builder uses the image dimensions as the window size, causing the bottom
+            // of the image to be clipped by the height of the title bar.
+            val dmgBackgroundOverride =
+                if (targetFormat == TargetFormat.Dmg) {
+                    distributions.macOS.dmg.background.orNull?.asFile?.let { bgFile ->
+                        padDmgBackgroundForTitleBar(bgFile, outputDir.resolve("dmg-assets"), logger)
+                    }
+                } else {
+                    null
+                }
+
             val configContent =
                 configGenerator.generateConfig(
                     distributions = distributions,
@@ -363,6 +377,7 @@ abstract class AbstractElectronBuilderPackageTask
                     windowsIconOverride = windowsIconOverride,
                     linuxAfterInstallTemplate = linuxAfterInstallTemplate,
                     executableName = executableName.orNull,
+                    dmgBackgroundOverride = dmgBackgroundOverride,
                 )
             val configFile = File(outputDir, "electron-builder.yml")
             configFile.writeText(configContent)
@@ -418,9 +433,15 @@ abstract class AbstractElectronBuilderPackageTask
             val sign = mac.signing.sign.orNull == true
             val dmg = mac.dmg
 
-            // Copy DMG asset files to a subdirectory so they travel with the metadata artifact
+            // Copy DMG asset files to a subdirectory so they travel with the metadata artifact.
+            // The background image is padded with extra pixels at the bottom to compensate for
+            // the macOS title bar — see issue #26 and padDmgBackgroundForTitleBar().
             val assetsDir = File(outputDir, "dmg-assets")
-            val dmgBackground = copyDmgAsset(dmg.background.orNull?.asFile, assetsDir, "background")
+            val dmgBackground =
+                dmg.background.orNull?.asFile?.let { bgFile ->
+                    val padded = padDmgBackgroundForTitleBar(bgFile, assetsDir, logger)
+                    copyDmgAsset(padded, assetsDir, "background")
+                }
             val dmgBadgeIcon = copyDmgAsset(dmg.badgeIcon.orNull?.asFile, assetsDir, "badge-icon")
             val dmgIcon = copyDmgAsset(dmg.icon.orNull?.asFile, assetsDir, "icon")
 
