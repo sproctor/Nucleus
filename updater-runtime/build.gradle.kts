@@ -13,9 +13,9 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    implementation(project(":core-runtime"))
+    api(project(":core-runtime"))
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation(libs.coroutines.core)
     testImplementation(libs.junit)
 }
 
