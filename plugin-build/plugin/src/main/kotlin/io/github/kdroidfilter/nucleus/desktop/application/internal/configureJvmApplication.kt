@@ -794,8 +794,11 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                         }
                     },
                 )
-                // PKG is always treated as App Store — ignore the deprecated user setting.
-                packageTask.macAppStore.set(packageTask.targetFormat.isStoreFormat)
+                // The jpackage task always builds a RawAppImage, so targetFormat.isStoreFormat
+                // is always false. Use the sandboxed flag instead: sandboxed distributable feeds
+                // store formats (PKG) and must pass --mac-app-store to jpackage so it searches
+                // for the correct certificate type ("3rd Party Mac Developer Application").
+                packageTask.macAppStore.set(sandboxed)
                 packageTask.macAppCategory.set(mac.appCategory)
                 packageTask.macMinimumSystemVersion.set(mac.minimumSystemVersion)
                 val defaultAppEntitlements =
