@@ -470,7 +470,21 @@ abstract class AbstractElectronBuilderPackageTask
                     appendLine("    \"windowX\": ${dmg.window.x ?: "null"},")
                     appendLine("    \"windowY\": ${dmg.window.y ?: "null"},")
                     appendLine("    \"windowWidth\": ${dmg.window.width ?: "null"},")
-                    appendLine("    \"windowHeight\": ${dmg.window.height ?: "null"}")
+                    appendLine("    \"windowHeight\": ${dmg.window.height ?: "null"},")
+                    appendLine("    \"contents\": [")
+                    for ((index, entry) in dmg.contents.withIndex()) {
+                        val comma = if (index < dmg.contents.size - 1) "," else ""
+                        val parts =
+                            buildList {
+                                add("\"x\": ${entry.x}")
+                                add("\"y\": ${entry.y}")
+                                entry.type?.let { add("\"type\": \"${it.id}\"") }
+                                entry.name?.let { add("\"name\": \"${it.escapeForJson()}\"") }
+                                entry.path?.let { add("\"path\": \"${it.escapeForJson()}\"") }
+                            }
+                        appendLine("      {${parts.joinToString(", ")}}$comma")
+                    }
+                    appendLine("    ]")
                     appendLine("  }")
                     appendLine("}")
                 }
