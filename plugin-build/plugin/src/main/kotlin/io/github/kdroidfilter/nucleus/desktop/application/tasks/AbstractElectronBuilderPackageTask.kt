@@ -852,6 +852,17 @@ abstract class AbstractElectronBuilderPackageTask
                         false
                     }
                 }
+                TargetFormat.Flatpak -> {
+                    if (!isCommandAvailable("flatpak")) {
+                        logger.lifecycle(
+                            "Skipping Flatpak packaging: 'flatpak' is not available on this runner. " +
+                                "Install it with: sudo apt-get install -y flatpak flatpak-builder",
+                        )
+                        true
+                    } else {
+                        false
+                    }
+                }
                 else -> false
             }
         }
