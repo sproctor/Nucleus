@@ -37,11 +37,21 @@ internal fun DecoratedWindowScope.WindowsTitleBar(
 ) {
     if (JniWindowsDecorationBridge.isLoaded) {
         NativeWindowsTitleBar(
-            modifier, gradientStartColor, style, controlButtonsDirection, backgroundContent, content,
+            modifier,
+            gradientStartColor,
+            style,
+            controlButtonsDirection,
+            backgroundContent,
+            content,
         )
     } else {
         FallbackWindowsTitleBar(
-            modifier, gradientStartColor, style, controlButtonsDirection, backgroundContent, content,
+            modifier,
+            gradientStartColor,
+            style,
+            controlButtonsDirection,
+            backgroundContent,
+            content,
         )
     }
 }
