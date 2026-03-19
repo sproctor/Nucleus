@@ -6,8 +6,8 @@ Nucleus provides machine-readable documentation files designed for Large Languag
 
 | File | Description | Use Case |
 |------|-------------|----------|
-| [`llms.txt`](../llms.txt) | Concise overview (~100 lines) | Quick context for simple questions |
-| [`llms-full.txt`](../llms-full.txt) | Complete documentation (~750 lines) | Full reference for code generation and in-depth tasks |
+| [`llms.txt`](../llms.txt) | Concise overview (~130 lines) | Quick context for simple questions |
+| [`llms-full.txt`](../llms-full.txt) | Complete documentation (~900 lines) | Full reference for code generation and in-depth tasks |
 
 ## Usage
 
@@ -43,7 +43,7 @@ curl -s https://nucleus.kdroidfilter.com/llms-full.txt   # complete
 
 - Project overview and key features
 - Quick start snippet
-- Runtime libraries summary
+- Runtime libraries summary (all 17 libraries)
 - Links to all documentation pages
 - Migration guide from `org.jetbrains.compose`
 
@@ -51,9 +51,17 @@ curl -s https://nucleus.kdroidfilter.com/llms-full.txt   # complete
 
 - Full Gradle DSL reference (all properties and enums)
 - Platform-specific configuration (macOS, Windows, Linux)
+- macOS 26 Liquid Glass and SDK version patching
 - Sandboxing pipeline details
 - Code signing and notarization (Windows PFX, Azure Trusted Signing, macOS Developer ID)
 - Auto-update runtime API with Compose integration example
 - Publishing to GitHub Releases and S3
 - CI/CD workflows and all composite actions
-- All runtime APIs with code examples (executable type, AOT cache, single instance, deep links, decorated window, dark mode detector)
+- GraalVM Native Image configuration and DSL reference
+- All runtime APIs with code examples:
+    - Executable type, AOT cache, single instance, deep links
+    - Decorated window (JBR and JNI backends, fullscreen controls, large corner radius, `controlButtonsDirection`, `clientRegion`, `backgroundContent`)
+    - Design system wrappers (Material 3, Material 2, Jewel)
+    - Dark mode detector, system color, energy manager
+    - Native SSL, native HTTP (java.net.http, OkHttp, Ktor)
+    - Linux HiDPI, GraalVM runtime bootstrap

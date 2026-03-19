@@ -13,7 +13,12 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 - `native-ssl` / `native-http` / `native-http-okhttp` / `native-http-ktor` - OS trust store integration
 - `linux-hidpi` - Native HiDPI scale detection on Linux
 - `graalvm-runtime` - GraalVM native-image bootstrap
-- `decorated-window-core` / `-jbr` / `-jni` / `-jewel` / `-material2` / `-material3` - Custom window decorations
+- `decorated-window-core` - Shared types, layout, styling (design-system agnostic)
+- `decorated-window-jbr` - JBR-based implementation (requires JetBrains Runtime)
+- `decorated-window-jni` - JNI-based implementation (any JVM, GraalVM compatible)
+- `decorated-window-jewel` - Jewel (IntelliJ theme) integration
+- `decorated-window-material2` - Material 2 color mapping
+- `decorated-window-material3` - Material 3 color mapping
 - `plugin-build/plugin` - Gradle plugin for packaging & distribution
 - `example` / `jewel-sample` / `sample-cmp` - Sample applications
 
@@ -29,16 +34,18 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 
 ## Key Technologies
 
-- Kotlin 2.0+ with Compose Desktop
-- JNA/JNA-Platform for native interop (JNI bridges for macOS, Windows, Linux)
-- JBR (JetBrains Runtime) API
-- Gradle 8+ with version catalog (`gradle/libs.versions.toml`)
+- Kotlin 2.3+ with Compose Desktop 1.10+
+- JNI for all native interop (no JNA in runtime modules)
+- JBR (JetBrains Runtime) API for decorated-window-jbr
+- Gradle 9+ with version catalog (`gradle/libs.versions.toml`)
 - Detekt + KtLint for code quality
 
 ## Development Notes
 
 - Target: JDK 17+ runtime, JDK 25+ recommended for AOT
-- JNI code: be careful with macOS ARC/retain and weak references (recent crash fixes in PRs #97–#101)
+- JNI code: be careful with macOS ARC/retain and weak references
 - Native modules use platform-specific JNI implementations — test on each OS
 - Plugin is published via included build in `plugin-build/`
 - Version catalog is the source of truth for all dependency versions
+- `decorated-window-jni` is the recommended backend for new projects (fixes resize artifacts, true Windows fullscreen, GraalVM compatible)
+- macOS Liquid Glass enabled by default via `macOsSdkVersion = "26.0"` (vtool SDK patching)

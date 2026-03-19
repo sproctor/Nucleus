@@ -1,6 +1,6 @@
 # Nucleus
 
-> Nucleus is the all-in-one toolkit for shipping JVM desktop applications. It combines a Gradle plugin, runtime libraries, and GitHub Actions to handle performance (AOT), distribution (16 packaging formats), and native look & feel (decorated windows, dark mode). Compatible with any JVM application, optimized for Compose Desktop.
+> Nucleus is the all-in-one toolkit for shipping JVM desktop applications. It combines a Gradle plugin, runtime libraries, and GitHub Actions to handle performance (AOT), distribution (16 packaging formats), native look & feel (decorated windows, dark mode, system colors), and GraalVM Native Image support. Compatible with any JVM application, optimized for Compose Desktop.
 
 Docs: https://nucleus.kdroidfilter.com
 GitHub: https://github.com/kdroidFilter/Nucleus
@@ -12,6 +12,7 @@ License: MIT
 
 ### Performance
 - **JDK 25+ AOT cache (Project Leyden)** — Dramatically faster cold startup with ahead-of-time class loading cache, enabled as a simple Gradle flag, no GraalVM required
+- **GraalVM Native Image** — ~0.5s cold boot, ~100–150 MB RAM, smaller bundle size (experimental, requires reflection configuration)
 
 ### Distribution
 - **16 packaging formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archives
@@ -21,8 +22,12 @@ License: MIT
 - **One DSL** — Configure everything from a single `nucleus.application { }` block
 
 ### Native Look & Feel
-- **Decorated windows** — Custom title bar content (icons, text, gradients) while preserving native window controls and behavior on all platforms
+- **Decorated windows** — Custom title bar content (icons, text, gradients) while preserving native window controls and behavior on all platforms. Two backends: JBR and JNI
+- **Fullscreen sliding overlay** — Native-style sliding title bar in fullscreen (Safari-like on macOS, Edge-like on Windows, Firefox-like on Linux)
+- **Liquid Glass (macOS 26)** — Automatic SDK version patching via `vtool`, works with any JDK
 - **Reactive dark mode detection** — OS-level dark mode listener via JNI (no JNA), triggers recomposition instantly when the user changes their theme
+- **System accent color & high contrast** — Reactive OS accent color and high contrast detection via JNI on all platforms
+- **Energy management** — Process/thread energy efficiency mode and screen-awake (caffeine) API
 - **Trusted CA certificates** — Import custom CA certs into the bundled JVM at build time; no SSL errors behind corporate proxies or ISP filters
 - **Platform-accurate Linux rendering** — GNOME Adwaita and KDE Breeze window controls, proper window shape clipping, border styling, and full behavior emulation
 
@@ -71,20 +76,23 @@ dependencies {
     // Auto-update library (includes core-runtime)
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
 
-    // Custom decorated window with native title bar
-    implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
+    // Custom decorated window with native title bar — choose one backend:
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jbr:<version>")  // JBR backend (requires JetBrains Runtime)
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jni:<version>")  // JNI backend (any JVM, GraalVM)
 
-    // Jewel (IntelliJ theme) integration for decorated windows
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-jewel:<version>")
-
-    // Material 2 integration for decorated windows
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
-
-    // Material 3 integration for decorated windows
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
+    // Optional design system wrappers for decorated windows:
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jewel:<version>")    // Jewel (IntelliJ)
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>") // Material 2
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>") // Material 3
 
     // Reactive dark mode detection
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
+
+    // Reactive system accent color and high contrast detection
+    implementation("io.github.kdroidfilter:nucleus.system-color:<version>")
+
+    // Energy efficiency mode and screen-awake API
+    implementation("io.github.kdroidfilter:nucleus.energy-manager:<version>")
 
     // OS trust store integration — merges native certs with JVM defaults
     implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
@@ -97,6 +105,12 @@ dependencies {
 
     // Ktor HttpClient extension for native OS trust (CIO, Java, OkHttp, Apache5)
     implementation("io.github.kdroidfilter:nucleus.native-http-ktor:<version>")
+
+    // Linux HiDPI scale detection (for non-JBR runtimes)
+    implementation("io.github.kdroidfilter:nucleus.linux-hidpi:<version>")
+
+    // GraalVM native-image bootstrap (includes linux-hidpi)
+    implementation("io.github.kdroidfilter:nucleus.graalvm-runtime:<version>")
 }
 ```
 
@@ -132,6 +146,14 @@ nucleus.application {
 | `packageReleaseDistributionForCurrentOS` | Same as above with ProGuard release build |
 | `createDistributable` | Create the application image without an installer |
 | `createReleaseDistributable` | Same with ProGuard |
+
+### GraalVM Native Image
+
+| Task | Description |
+|------|-------------|
+| `runWithNativeAgent` | Run with GraalVM tracing agent to collect reflection metadata |
+| `packageGraalvmNative` | Compile as native binary |
+| `packageGraalvmDeb` / `packageGraalvmDmg` / `packageGraalvmNsis` | Package native image as installer |
 
 ### Utility
 
@@ -187,6 +209,7 @@ nativeDistributions {
 nativeDistributions {
     macOS {
         iconFile.set(project.file("icons/app.icns"))
+        layeredIconDir.set(project.file("icons/MyApp.icon")) // macOS 26+ layered icons
     }
     windows {
         iconFile.set(project.file("icons/app.ico"))
@@ -287,29 +310,37 @@ nucleus.application {
         windows { /* ... */ }
         linux { /* ... */ }
     }
+
+    graalvm {
+        isEnabled = true
+        imageName = "my-app"
+        javaLanguageVersion = 25
+        jvmVendor = JvmVendorSpec.BELLSOFT
+        buildArgs.addAll("-H:+AddAllCharsets", "-Djava.awt.headless=false", "-Os")
+    }
 }
 ```
 
 ## Target Formats
 
-| Format | Platform | Backend | Task Name |
-|--------|----------|---------|-----------|
-| `TargetFormat.Dmg` | macOS | electron-builder | `packageDmg` |
-| `TargetFormat.Pkg` | macOS | electron-builder | `packagePkg` |
-| `TargetFormat.Exe` | Windows | electron-builder | `packageExe` |
-| `TargetFormat.Msi` | Windows | electron-builder | `packageMsi` |
-| `TargetFormat.Nsis` | Windows | electron-builder | `packageNsis` |
-| `TargetFormat.NsisWeb` | Windows | electron-builder | `packageNsisWeb` |
-| `TargetFormat.Portable` | Windows | electron-builder | `packagePortable` |
-| `TargetFormat.AppX` | Windows | electron-builder | `packageAppX` |
-| `TargetFormat.Deb` | Linux | electron-builder | `packageDeb` |
-| `TargetFormat.Rpm` | Linux | electron-builder | `packageRpm` |
-| `TargetFormat.AppImage` | Linux | electron-builder | `packageAppImage` |
-| `TargetFormat.Snap` | Linux | electron-builder | `packageSnap` |
-| `TargetFormat.Flatpak` | Linux | electron-builder | `packageFlatpak` |
-| `TargetFormat.Zip` | All | electron-builder | `packageZip` |
-| `TargetFormat.Tar` | All | electron-builder | `packageTar` |
-| `TargetFormat.SevenZ` | All | electron-builder | `packageSevenZ` |
+| Format | Platform | Task Name |
+|--------|----------|-----------|
+| `TargetFormat.Dmg` | macOS | `packageDmg` |
+| `TargetFormat.Pkg` | macOS | `packagePkg` |
+| `TargetFormat.Exe` | Windows | `packageExe` |
+| `TargetFormat.Msi` | Windows | `packageMsi` |
+| `TargetFormat.Nsis` | Windows | `packageNsis` |
+| `TargetFormat.NsisWeb` | Windows | `packageNsisWeb` |
+| `TargetFormat.Portable` | Windows | `packagePortable` |
+| `TargetFormat.AppX` | Windows | `packageAppX` |
+| `TargetFormat.Deb` | Linux | `packageDeb` |
+| `TargetFormat.Rpm` | Linux | `packageRpm` |
+| `TargetFormat.AppImage` | Linux | `packageAppImage` |
+| `TargetFormat.Snap` | Linux | `packageSnap` |
+| `TargetFormat.Flatpak` | Linux | `packageFlatpak` |
+| `TargetFormat.Zip` | All | `packageZip` |
+| `TargetFormat.Tar` | All | `packageTar` |
+| `TargetFormat.SevenZ` | All | `packageSevenZ` |
 
 Target all formats at once:
 
@@ -498,9 +529,12 @@ nucleus.application {
         protocol(name, vararg schemes)
         fileAssociation(mimeType, extension, description, linuxIconFile?, windowsIconFile?, macOSIconFile?)
         publish { github { ... }, s3 { ... }, generic { ... } }
-        macOS { iconFile, bundleID, dockName, appCategory, layeredIconDir, signing { ... }, notarization { ... }, dmg { ... }, infoPlist { ... } }
+        macOS { iconFile, bundleID, dockName, appCategory, layeredIconDir, macOsSdkVersion, signing { ... }, notarization { ... }, dmg { ... }, infoPlist { ... } }
         windows { iconFile, upgradeUuid, signing { ... }, nsis { ... }, appx { ... } }
         linux { iconFile, debMaintainer, debDepends, rpmRequires, appImage { ... }, snap { ... }, flatpak { ... } }
+    }
+    graalvm {
+        isEnabled, imageName, javaLanguageVersion, jvmVendor, march, buildArgs, nativeImageConfigBaseDir
     }
 }
 ```
@@ -540,6 +574,19 @@ nativeDistributions {
     }
 }
 ```
+
+## macOS 26 Window Appearance (Liquid Glass)
+
+macOS 26 introduces Liquid Glass window chrome: larger traffic light buttons and more rounded window corners. Nucleus **automatically patches** the app launcher's `LC_BUILD_VERSION` via `vtool` so that AppKit enables Liquid Glass. This works with **any JDK**.
+
+```kotlin
+macOS {
+    macOsSdkVersion = "26.0"  // default — enables Liquid Glass
+    // macOsSdkVersion = null // disable SDK version patching
+}
+```
+
+The `run` task uses a cached patched copy of the JVM. Distributable builds patch the launcher before signing. Requires Xcode Command Line Tools.
 
 ## DMG Customization
 
@@ -589,7 +636,6 @@ PKG targets automatically use the sandboxed build pipeline with native library e
 
 ```kotlin
 macOS {
-    appStore = true
     provisioningProfile.set(project.file("packaging/MyApp.provisionprofile"))
     runtimeProvisioningProfile.set(project.file("packaging/MyApp_Runtime.provisionprofile"))
 }
@@ -619,8 +665,8 @@ macOS {
 | `bundleID` | `String?` | `null` | macOS bundle identifier |
 | `dockName` | `String?` | `null` | Name displayed in the Dock |
 | `appCategory` | `String?` | `null` | App Store / Finder category |
-| `appStore` | `Boolean` | `false` | Build for Mac App Store |
 | `minimumSystemVersion` | `String?` | `null` | Minimum macOS version |
+| `macOsSdkVersion` | `String?` | `"26.0"` | SDK version for Liquid Glass. Set to `null` to disable. |
 | `layeredIconDir` | `DirectoryProperty` | — | `.icon` directory for macOS 26+ |
 | `installationPath` | `String?` | `/Applications` | PKG install location / DMG symlink target |
 | `entitlementsFile` | `RegularFileProperty` | — | Entitlements plist |
@@ -823,51 +869,6 @@ Nucleus automatically manages a store build pipeline for store formats. When you
 5. **Sign native libraries** (macOS) — Individually code-sign `.dylib` files
 6. **Handle Skiko and icudtl.dat** — Adjust library paths
 
-### JVM Arguments (macOS)
-
-```
--Djava.library.path=$APPDIR/../Frameworks
--Djna.nounpack=true
--Djna.nosys=true
--Djna.boot.library.path=$APPDIR/../Frameworks
--Djna.library.path=$APPDIR/../Frameworks
-```
-
-### JVM Arguments (Windows / Linux)
-
-```
--Djava.library.path=$APPDIR/resources
--Djna.nounpack=true
--Djna.nosys=true
--Djna.boot.library.path=$APPDIR/resources
--Djna.library.path=$APPDIR/resources
-```
-
-## macOS App Sandbox Entitlements
-
-Non-sandboxed (DMG, ZIP):
-
-```xml
-<dict>
-    <key>com.apple.security.cs.allow-jit</key>                        <true/>
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>  <true/>
-    <key>com.apple.security.cs.disable-library-validation</key>        <true/>
-</dict>
-```
-
-Sandboxed app (PKG — App Store):
-
-```xml
-<dict>
-    <key>com.apple.security.app-sandbox</key>                         <true/>
-    <key>com.apple.security.cs.allow-jit</key>                        <true/>
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>  <true/>
-    <key>com.apple.security.cs.disable-library-validation</key>        <true/>
-    <key>com.apple.security.network.client</key>                      <true/>
-    <key>com.apple.security.files.user-selected.read-write</key>      <true/>
-</dict>
-```
-
 ---
 
 # Code Signing
@@ -926,53 +927,11 @@ macOS {
 }
 ```
 
-### Granular Signing (Universal Binaries — Inside-Out Order)
-
-1. `.dylib` files (with runtime entitlements)
-2. `.jnilib` files (with runtime entitlements)
-3. Main executables in `Contents/MacOS/` (with app entitlements)
-4. Runtime executables in `Contents/runtime/Contents/Home/bin/` (with runtime entitlements)
-5. `.framework` bundles
-6. Runtime bundle (`Contents/runtime`)
-7. The `.app` bundle itself (with app entitlements)
-
-All signing uses `--options runtime --timestamp`.
-
-### Distribution Flows
-
-**DMG + ZIP (Direct Distribution)**:
-- Non-sandboxed `.app` signed with Developer ID Application identity
-- Notarized via `xcrun notarytool` after packaging
-- DMG is stapled directly; ZIP is extracted, `.app` is stapled, then re-zipped
-
-**PKG (App Store)**:
-- Sandboxed `.app` signed with 3rd Party Mac Developer Application identity
-- Provisioning profiles embedded in `Contents/embedded.provisionprofile`
-- PKG built via `productbuild --component` and signed with 3rd Party Mac Developer Installer identity
-
 ---
 
 # Auto Update
 
 Nucleus provides a complete auto-update solution compatible with the electron-builder update format.
-
-## How It Works
-
-```
-Build & Publish          Check & Install
-┌─────────────┐         ┌─────────────────┐
-│ Gradle build │────────>│ GitHub Release   │
-│ + YML files  │         │ or S3 bucket     │
-└─────────────┘         └────────┬────────┘
-                                 │
-                    ┌────────────v────────────┐
-                    │ App fetches latest-*.yml │
-                    │ Compares versions        │
-                    │ Downloads new installer  │
-                    │ Verifies SHA-512         │
-                    │ Launches installer       │
-                    └─────────────────────────┘
-```
 
 ## Updatable Formats
 
@@ -1127,16 +1086,6 @@ fun UpdateBanner() {
 }
 ```
 
-### Installer Behavior
-
-| Platform | Format | Command |
-|----------|--------|---------|
-| Linux | DEB | `sudo dpkg -i <file>` |
-| Linux | RPM | `sudo rpm -U <file>` |
-| macOS | DMG/PKG | `open <file>` |
-| Windows | EXE/NSIS | `<file> /S` (silent) |
-| Windows | MSI | `msiexec /i <file> /passive` |
-
 ### Using a Native HTTP Client
 
 By default, the updater uses a plain `java.net.http.HttpClient` backed by the JDK trust store. On machines with enterprise proxies, corporate CAs, or user-installed certificates, HTTPS requests may fail with `SSLHandshakeException`.
@@ -1160,29 +1109,6 @@ val updater = NucleusUpdater {
     httpClient = NativeHttpClient.create()
 }
 ```
-
-The injected client is used for both the metadata check and the file download. You can also compose additional options via the builder extension:
-
-```kotlin
-import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient.withNativeSsl
-import java.net.http.HttpClient
-import java.time.Duration
-
-val updater = NucleusUpdater {
-    provider = GitHubProvider(owner = "myorg", repo = "myapp")
-    httpClient = HttpClient.newBuilder()
-        .withNativeSsl()
-        .connectTimeout(Duration.ofSeconds(30))
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .build()
-}
-```
-
-### Security
-
-- All downloads verified with SHA-512 checksums (base64-encoded)
-- If verification fails, the downloaded file is deleted and an error is returned
-- GitHub token transmitted via `Authorization` header for private repos
 
 ---
 
@@ -1220,8 +1146,6 @@ publish {
 
 ## Generic HTTP Server
 
-For self-hosted update distribution. Generates `latest-*.yml` metadata and configures the auto-updater URL. Upload artifacts to your server manually.
-
 ```kotlin
 publish {
     generic {
@@ -1233,47 +1157,9 @@ publish {
 }
 ```
 
-## Release Channels
-
-| Channel | YML Prefix | Version Pattern | Audience |
-|---------|------------|-----------------|----------|
-| `ReleaseChannel.Latest` | `latest-` | `1.0.0` | All users |
-| `ReleaseChannel.Beta` | `beta-` | `1.0.0-beta.1` | Beta testers |
-| `ReleaseChannel.Alpha` | `alpha-` | `1.0.0-alpha.1` | Internal testers |
-
 ---
 
 # CI/CD
-
-## Overview
-
-```
-Tag push (v1.0.0)
-       │
-       v
-┌──────────────────────────────────┐
-│  Build (6 parallel runners)      │
-│  Ubuntu amd64 / arm64            │
-│  Windows amd64 / arm64           │
-│  macOS arm64 / x64               │
-└──────────┬───────────────────────┘
-           │
-     ┌─────┴──────┐
-     v            v
-┌─────────────┐ ┌──────────┐
-│ macOS       │ │ Windows  │
-│ Universal   │ │ MSIX     │
-│ Binary      │ │ Bundle   │
-│ + Signing   │ └────┬─────┘
-│ + Notarize  │      │
-└──────┬──────┘      │
-       │             │
-       v             v
-┌──────────────────────────────────┐
-│  Publish — GitHub Release        │
-│  + Update YML metadata           │
-└──────────────────────────────────┘
-```
 
 ## `setup-nucleus` Action
 
@@ -1500,7 +1386,13 @@ val isSingle = SingleInstanceManager.isSingleInstance(
 
 ## Decorated Window
 
-Custom title bar with native window controls. Two modules: `decorated-window-jbr` (JetBrains Runtime) and `decorated-window-jni` (any JVM, including GraalVM).
+Custom title bar with native window controls. Two backends: `decorated-window-jbr` (JetBrains Runtime) and `decorated-window-jni` (any JVM, including GraalVM).
+
+Both backends expose the same public API. Choose based on your runtime:
+- **JBR backend**: Battle-tested, uses JBR's `CustomTitleBar` API. Requires JetBrains Runtime. Known issue: window cannot open in maximized state on Windows.
+- **JNI backend**: No JBR dependency, works on any JVM. Fixes resize artifacts (macOS, Windows), true fullscreen on Windows, DWM dark mode sync. Supports GraalVM native-image.
+
+### Quick Start
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.window.*
@@ -1524,51 +1416,118 @@ fun main() = application {
 }
 ```
 
-| | macOS | Windows | Linux |
-|---|-------|---------|-------|
-| Decoration | JBR `CustomTitleBar` or JNI | JBR `CustomTitleBar` or JNI DLL | Fully undecorated |
-| Window controls | Native traffic lights | Native (JBR) or Compose SVG (JNI) | Compose `WindowControlArea` |
-| Drag | JBR hit-test or JNI | JBR `forceHitTest` or JNI | `_NET_WM_MOVERESIZE` or Compose |
-| Window shape | Native | Native | Rounded top corners (GNOME 12dp, KDE 5dp) |
+### Components
 
-Components: `DecoratedWindow`, `DecoratedDialog`, `TitleBar`, `DialogTitleBar`, `NucleusDecoratedWindowTheme`
+- `DecoratedWindow` — Drop-in replacement for Compose `Window()`. Manages window state and platform decorations. `onCloseRequest` intercepts macOS Cmd+Q and Dock quit events.
+- `DecoratedDialog` — Same concept for dialogs. Auto-centers on parent window (JNI only).
+- `TitleBar` / `DialogTitleBar` — Platform-dispatched title bar. Content uses `Modifier.align(Alignment.Start/CenterHorizontally/End)`.
+- `NucleusDecoratedWindowTheme` — Provides styling via `CompositionLocal`. Accepts custom `DecoratedWindowStyle` and `TitleBarStyle`.
 
-Styling: `DecoratedWindowStyle` (border), `TitleBarStyle` (colors, metrics, icons). Map any design system.
+### `controlButtonsDirection` — Independent Button Placement
 
-### Fullscreen Title Bar (`newFullscreenControls()`)
+Decouples window control buttons from the content layout direction:
 
-Native-style sliding overlay in fullscreen (Safari-like on macOS, Edge-like on Windows, Firefox-like on Linux). Title bar hides and slides down (200ms animation) when pointer moves near the top edge. Works on all platforms with `decorated-window-jni`. On macOS, syncs with the system menu bar and traffic light buttons via native NSEvent monitor. On Windows/Linux, window controls move to the overlay.
+```kotlin
+TitleBar(
+    controlButtonsDirection = ControlButtonsDirection.Ltr,
+) { state ->
+    // Content follows LocalLayoutDirection (e.g. RTL for Arabic),
+    // but control buttons always stay on the right side.
+    Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
+}
+```
 
-### Large Corner Radius (`macOSLargeCornerRadius()`)
+| Value | Behavior |
+|-------|----------|
+| `Auto` | Follows Compose `LocalLayoutDirection` (default) |
+| `System` | Follows the JVM platform locale |
+| `Ltr` | Always places buttons as in a left-to-right layout |
+| `Rtl` | Always places buttons as in a right-to-left layout |
 
-Applies 26pt window corner radius on macOS by installing an invisible NSToolbar. Traffic lights are repositioned (+6pt inset). Toolbar is removed before fullscreen and reinstalled after. macOS + `decorated-window-jni` only, no-op on other platforms.
+### `Modifier.clientRegion()` — Interactive Title Bar Regions (JBR only)
 
-## Decorated Window — Material 3
+Registers composable elements as interactive areas within the title bar, so clicks go to the element instead of triggering window dragging:
+
+```kotlin
+TitleBar { state ->
+    Dropdown(
+        modifier = Modifier.align(Alignment.Start).clientRegion("main_menu"),
+    ) { Text("File") }
+}
+```
+
+The JNI module handles this automatically via native platform APIs — no `clientRegion` needed.
+
+### `backgroundContent` — Custom Title Bar Background
+
+Composable rendered behind title bar content, for custom gradients, shapes, or images:
+
+```kotlin
+TitleBar(
+    backgroundContent = {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(color = Color(0xFF6200EE), size = Size(size.width / 2, size.height))
+        }
+    },
+) { state -> /* content */ }
+```
+
+### `newFullscreenControls()` — Sliding Overlay Title Bar
+
+Safari-like on macOS, Edge-like on Windows, Firefox-like on Linux. Title bar hides in fullscreen and slides down on pointer-near-top. Available on all platforms with `decorated-window-jni`.
+
+### `macOSLargeCornerRadius()` — 26pt Corner Radius
+
+Applies 26pt window corner radius on macOS by installing an invisible NSToolbar. Traffic lights repositioned to match Finder/Safari. macOS + `decorated-window-jni` only.
+
+### Platform Comparison Summary
+
+| Capability | JBR | JNI |
+|---|:---:|:---:|
+| Custom title bar | ✅ | ✅ |
+| Works on any JDK | | ✅ |
+| GraalVM native-image | | ✅ |
+| No resize artifacts (macOS/Windows) | macOS only | ✅ |
+| True fullscreen (Windows) | | ✅ |
+| DWM dark mode sync (Windows) | | ✅ |
+| 26pt corner radius (macOS) | | ✅ |
+| Fullscreen sliding title bar (all) | | ✅ |
+| RTL live hot-swap (all) | | ✅ |
+
+## Decorated Window — Design System Wrappers
+
+Three optional modules provide automatic color mapping for decorated windows:
+
+### Material 3
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.window.material.*
 
-fun main() = application {
-    val isDark = isSystemInDarkMode()
-    val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
-
-    MaterialTheme(colorScheme = colorScheme) {
-        MaterialDecoratedWindow(
-            onCloseRequest = ::exitApplication,
-            title = "My App",
-        ) {
-            MaterialTitleBar { state ->
-                Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-            Surface(modifier = Modifier.fillMaxSize()) { /* content */ }
-        }
+MaterialTheme(colorScheme = colorScheme) {
+    MaterialDecoratedWindow(onCloseRequest = ::exitApplication, title = "My App") {
+        MaterialTitleBar { state -> Text(title) }
+        Surface(modifier = Modifier.fillMaxSize()) { /* content */ }
     }
 }
 ```
 
-Components: `MaterialDecoratedWindow`, `MaterialDecoratedDialog`, `MaterialTitleBar`, `MaterialDialogTitleBar`
+Components: `MaterialDecoratedWindow`, `MaterialDecoratedDialog`, `MaterialTitleBar`, `MaterialDialogTitleBar`. Color mapping: surface → title bar background, onSurface → content, outlineVariant → borders, error → close button hover.
 
-Color mapping from Material 3: surface -> title bar background, onSurface -> content, outlineVariant -> borders, error -> close button hover.
+### Material 2
+
+Same API as Material 3 but reads from `MaterialTheme.colors` instead of `MaterialTheme.colorScheme`. Import from `io.github.kdroidfilter.nucleus.window.material2.*`.
+
+### Jewel (IntelliJ Theme)
+
+```kotlin
+IntUiTheme(theme = theme, styling = ComponentStyling.default()) {
+    JewelDecoratedWindow(onCloseRequest = ::exitApplication, title = "My App") {
+        JewelTitleBar { state -> Text(title) }
+    }
+}
+```
+
+Components: `JewelDecoratedWindow`, `JewelDecoratedDialog`, `JewelTitleBar`, `JewelDialogTitleBar`. Color mapping from `JewelTheme.globalColors`.
 
 ## Dark Mode Detector
 
@@ -1594,8 +1553,6 @@ fun App() {
 | Windows | Registry key `AppsUseLightTheme` + `RegNotifyChangeKeyValue` | Yes — background thread |
 | Linux | D-Bus `org.freedesktop.portal.Settings` | Yes — `SettingChanged` signal |
 
-Native libraries shipped: macOS `libnucleus_darkmode.dylib`, Windows `nucleus_windows_theme.dll`, Linux `libnucleus_linux_theme.so` (all architectures).
-
 ## System Color
 
 Reactive OS accent color and high contrast detection via JNI.
@@ -1616,33 +1573,85 @@ fun App() {
 | Windows | DWM `AccentColor` registry (AABBGGRR) | `SPI_GETHIGHCONTRAST` | Yes — `RegNotifyChangeKeyValue` |
 | Linux | XDG Desktop Portal `accent-color` (D-Bus) | XDG Portal `contrast` | Yes — `SettingChanged` signal |
 
+### Material You on Desktop
+
+Combine with [material-kolor](https://github.com/jordond/MaterialKolor) for dynamic theming from system accent color:
+
+```kotlin
+@Composable
+fun App() {
+    val accentColor = systemAccentColor()
+    val seedColor = accentColor ?: Color(0xFF6750A4)
+
+    DynamicMaterialTheme(
+        seedColor = seedColor,
+        isDark = isSystemInDarkTheme(),
+        animate = true,
+        style = PaletteStyle.TonalSpot,
+    ) {
+        // Entire color scheme adapts to OS accent color in real time
+    }
+}
+```
+
 ## Energy Manager
 
 Process/thread energy efficiency mode and screen-awake (caffeine) API.
 
 ```kotlin
-EnergyManager.enableEfficiencyMode()   // process-level low power
-EnergyManager.disableEfficiencyMode()  // restore normal priority
-EnergyManager.withEfficiencyMode { }   // thread-level, suspend block
-EnergyManager.keepScreenAwake()        // prevent display sleep
-EnergyManager.releaseScreenAwake()     // allow sleep again
+import io.github.kdroidfilter.nucleus.energymanager.EnergyManager
+
+// Process-level efficiency
+EnergyManager.enableEfficiencyMode()     // full power saving (CPU + I/O throttling)
+EnergyManager.disableEfficiencyMode()
+EnergyManager.enableLightEfficiencyMode()  // light (CPU only, no I/O throttling)
+EnergyManager.disableLightEfficiencyMode()
+
+// Thread-level efficiency (coroutines)
+val result = EnergyManager.withEfficiencyMode { computeHeavyReport() }
+EnergyManager.withLightEfficiencyMode { syncDataFromServer() }
+
+// Thread-level efficiency (raw threads)
+EnergyManager.enableThreadEfficiencyMode()
+EnergyManager.disableThreadEfficiencyMode()
+
+// Screen-awake (caffeine)
+EnergyManager.keepScreenAwake()
+EnergyManager.releaseScreenAwake()
+EnergyManager.isScreenAwakeActive()
 ```
 
 | Feature | Windows | macOS | Linux |
 |---------|---------|-------|-------|
-| Process efficiency | EcoQoS + IDLE_PRIORITY_CLASS | PRIO_DARWIN_BG + QoS TIER_5 | nice +19, ioprio IDLE, timerslack 100ms |
+| Full efficiency | EcoQoS + IDLE_PRIORITY_CLASS | PRIO_DARWIN_BG + QoS TIER_5 | nice +19, ioprio IDLE, timerslack 100ms |
+| Light efficiency | EcoQoS only | task_policy_set(TIER_5) | nice +10 |
 | Thread efficiency | EcoQoS + THREAD_PRIORITY_IDLE | QOS_CLASS_BACKGROUND | nice +19, ioprio IDLE, timerslack 100ms |
 | Screen-awake | SetThreadExecutionState | IOPMAssertion | DBus (GNOME/logind) or X11 XScreenSaverSuspend |
 
-## Native SSL
-
-JVM applications shipped with a bundled JRE use only the certificates baked into that JRE. Certificates added by the user, an enterprise IT policy, or a corporate proxy are invisible to the JVM, causing `SSLHandshakeException`. The `native-ssl` module reads trusted certificates from the OS trust store and merges them with the JVM defaults.
+### Recommended: Focus-aware efficiency
 
 ```kotlin
-dependencies {
-    implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
+LaunchedEffect(state.isMinimized, isWindowFocused) {
+    when {
+        state.isMinimized -> {
+            EnergyManager.disableLightEfficiencyMode()
+            EnergyManager.enableEfficiencyMode()  // full power saving
+        }
+        !isWindowFocused -> {
+            EnergyManager.disableEfficiencyMode()
+            EnergyManager.enableLightEfficiencyMode()  // light (CPU only)
+        }
+        else -> {
+            EnergyManager.disableEfficiencyMode()
+            EnergyManager.disableLightEfficiencyMode()  // normal
+        }
+    }
 }
 ```
+
+## Native SSL
+
+JVM applications shipped with a bundled JRE use only the certificates baked into that JRE. The `native-ssl` module reads trusted certificates from the OS trust store and merges them with the JVM defaults.
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.nativessl.NativeTrustManager
@@ -1652,34 +1661,15 @@ val sslContext: SSLContext = NativeTrustManager.sslContext
 val sslSocketFactory: SSLSocketFactory = NativeTrustManager.sslSocketFactory
 ```
 
-### Platform Details
-
-**macOS** — Security framework via JNI (`libnucleus_ssl.dylib`, `arm64` + `x86_64`). Two passes:
-1. `SecTrustCopyAnchorCertificates()` — Apple-shipped system root CAs.
-2. `SecTrustSettingsCopyCertificates()` — user/admin domain certs with explicit trust settings. Each cert is evaluated via `isTrustedRoot()`: checks trust settings domain, verifies `kSecTrustSettingsResult = TrustRoot`, requires self-signed (DN equality + cryptographic signature verification via `SecTrustSetAnchorCertificates`), and validates `kSecPolicyAppleSSL` OID if present.
-
-**Windows** — Crypt32 via JNI (`nucleus_ssl.dll`, `x64` + `ARM64`). Scans `ROOT` (all certs trusted) and `CA` stores (validated via `CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_BASE)`) across five locations: `CURRENT_USER`, `LOCAL_MACHINE`, `CURRENT_USER_GROUP_POLICY`, `LOCAL_MACHINE_GROUP_POLICY`, `LOCAL_MACHINE_ENTERPRISE`. Falls back to `SunMSCAPI` if JNI fails.
-
-**Linux** — Pure JVM, no native library. Reads PEM bundles and per-cert directories using the same paths as Go's `crypto/x509` (Debian, Fedora, RHEL, openSUSE, Alpine, etc.).
-
-### ProGuard
-
-The Nucleus plugin includes these rules automatically:
-
-```proguard
--keep class io.github.kdroidfilter.nucleus.nativessl.mac.NativeSslBridge { native <methods>; }
--keep class io.github.kdroidfilter.nucleus.nativessl.windows.WindowsSslBridge { native <methods>; }
-```
+| Platform | Method |
+|----------|--------|
+| macOS | Security framework via JNI — system root CAs + user/admin domain certs |
+| Windows | Crypt32 via JNI — ROOT + CA stores across 5 locations. Falls back to SunMSCAPI. |
+| Linux | Pure JVM — reads PEM bundles from standard paths (Debian, Fedora, RHEL, openSUSE, Alpine) |
 
 ## Native HTTP
 
 Three integration modules provide HTTP clients pre-wired with `NativeTrustManager`. All pull in `native-ssl` transitively.
-
-| Module | Artifact | Client |
-|--------|----------|--------|
-| `native-http` | `io.github.kdroidfilter:nucleus.native-http` | `java.net.http.HttpClient` (JDK 11+) |
-| `native-http-okhttp` | `io.github.kdroidfilter:nucleus.native-http-okhttp` | OkHttp 4 |
-| `native-http-ktor` | `io.github.kdroidfilter:nucleus.native-http-ktor` | Ktor Client (CIO, Java, OkHttp, Apache5) |
 
 ### java.net.http.HttpClient
 
@@ -1687,12 +1677,8 @@ Three integration modules provide HTTP clients pre-wired with `NativeTrustManage
 import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
 
 val client = NativeHttpClient.create()
-
-// or compose into an existing builder:
-val client = HttpClient.newBuilder()
-    .withNativeSsl()
-    .connectTimeout(Duration.ofSeconds(30))
-    .build()
+// or:
+val client = HttpClient.newBuilder().withNativeSsl().connectTimeout(Duration.ofSeconds(30)).build()
 ```
 
 ### OkHttp
@@ -1701,36 +1687,64 @@ val client = HttpClient.newBuilder()
 import io.github.kdroidfilter.nucleus.nativehttp.okhttp.NativeOkHttpClient
 
 val client = NativeOkHttpClient.create()
-
-// or compose into an existing builder:
-val client = OkHttpClient.Builder()
-    .withNativeSsl()
-    .callTimeout(30, TimeUnit.SECONDS)
-    .build()
+// or:
+val client = OkHttpClient.Builder().withNativeSsl().callTimeout(30, TimeUnit.SECONDS).build()
 ```
 
 ### Ktor
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.nativehttp.ktor.installNativeSsl
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 
-val client = HttpClient(CIO) {
-    installNativeSsl()
+val client = HttpClient(CIO) { installNativeSsl() }
+```
+
+`installNativeSsl()` auto-detects the active engine (CIO, Java, OkHttp, Apache5) and applies the correct SSL config.
+
+## Linux HiDPI
+
+Native scale factor detection for non-JBR runtimes (GraalVM, OpenJDK). Call before AWT initializes:
+
+```kotlin
+import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
+
+fun main() {
+    if (System.getProperty("sun.java2d.uiScale") == null) {
+        val scale = getLinuxNativeScaleFactor()
+        if (scale > 0.0) System.setProperty("sun.java2d.uiScale", scale.toString())
+    }
+    application { /* ... */ }
 }
 ```
 
-`installNativeSsl()` probes the active engine at runtime and applies the correct SSL config:
+Detection sources (priority order): `J2D_UISCALE`, GSettings, `GDK_SCALE`, `GDK_DPI_SCALE`, `Xft.dpi`.
 
-| Engine | Configuration applied |
-|--------|-----------------------|
-| CIO | `https { trustManager = NativeTrustManager.trustManager }` |
-| Java | `config { sslContext(NativeTrustManager.sslContext) }` |
-| OkHttp | `config { sslSocketFactory(..., NativeTrustManager.trustManager) }` |
-| Apache5 | `sslContext = NativeTrustManager.sslContext` |
+## GraalVM Runtime
 
-Engine JARs are `compileOnly` — only the one declared at runtime is required.
+Bootstrap module for GraalVM native-image. Handles Metal L&F, `java.home`, `java.library.path`, charset init, fontmanager preload, and Linux HiDPI.
+
+```kotlin
+import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
+
+fun main() {
+    GraalVmInitializer.initialize()  // Must be first line
+    application { Window(onCloseRequest = ::exitApplication) { App() } }
+}
+```
+
+Requires BellSoft Liberica NIK 25 (full). Use `decorated-window-jni` for decorated windows in native-image builds.
+
+### GraalVM DSL Reference
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `isEnabled` | `Boolean` | `false` | Enable GraalVM native compilation |
+| `javaLanguageVersion` | `Int` | `25` | Gradle toolchain language version |
+| `jvmVendor` | `JvmVendorSpec` | — | Set to `BELLSOFT` for Liberica NIK |
+| `imageName` | `String` | project name | Output executable name |
+| `march` | `String` | `"native"` | CPU architecture target |
+| `buildArgs` | `ListProperty<String>` | empty | Extra `native-image` arguments |
+| `nativeImageConfigBaseDir` | `DirectoryProperty` | — | Directory containing `reachability-metadata.json` |
 
 ---
 
@@ -1744,7 +1758,7 @@ Nucleus extends the official JetBrains Compose Desktop plugin. All existing conf
 
 ```diff
  plugins {
-     id("org.jetbrains.compose") version "1.10.1"
+     id("org.jetbrains.compose") version "1.10.2"
 +    id("io.github.kdroidfilter.nucleus") version "<version>"
  }
 ```
@@ -1768,9 +1782,9 @@ This applies to all DSL types (`TargetFormat`, `CompressionLevel`, `SigningAlgor
  }
 ```
 
-4. Add Nucleus features (optional): `cleanupNativeLibs`, `enableAotCache`, `protocol()`, `fileAssociation()`, new formats, `publish {}`, etc.
+4. Add Nucleus features (optional): `cleanupNativeLibs`, `enableAotCache`, `protocol()`, `fileAssociation()`, new formats, `publish {}`, `graalvm {}`, etc.
 
-5. Add runtime libraries (optional): `nucleus.core-runtime`, `nucleus.aot-runtime`, `nucleus.updater-runtime`, etc.
+5. Add runtime libraries (optional): `nucleus.core-runtime`, `nucleus.aot-runtime`, `nucleus.updater-runtime`, `nucleus.decorated-window-jni`, etc.
 
 ## What Changes
 
@@ -1781,6 +1795,8 @@ This applies to all DSL types (`TargetFormat`, `CompressionLevel`, `SigningAlgor
 | Target formats | DMG, PKG, MSI, EXE, DEB, RPM | + NSIS, AppX, Portable, AppImage, Snap, Flatpak, archives |
 | Native lib cleanup | Manual | `cleanupNativeLibs = true` |
 | AOT cache | Not available | `enableAotCache = true` |
+| GraalVM Native Image | Not available | `graalvm { isEnabled = true }` |
+| Liquid Glass | Not available | Automatic (`macOsSdkVersion = "26.0"`) |
 | Deep links | Manual (macOS only) | Cross-platform `protocol()` |
 | File associations | Limited | Cross-platform `fileAssociation()` |
 | Store pipeline | Not available | Automatic for PKG, AppX, Flatpak |

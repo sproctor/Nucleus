@@ -1,6 +1,6 @@
 # Nucleus
 
-> Nucleus is the all-in-one toolkit for shipping JVM desktop applications. It combines a Gradle plugin, runtime libraries, and GitHub Actions to handle performance (AOT), distribution (16 packaging formats), and native look & feel (decorated windows, dark mode). Compatible with any JVM application, optimized for Compose Desktop.
+> Nucleus is the all-in-one toolkit for shipping JVM desktop applications. It combines a Gradle plugin, runtime libraries, and GitHub Actions to handle performance (AOT), distribution (16 packaging formats), native look & feel (decorated windows, dark mode, system colors), and GraalVM Native Image support. Compatible with any JVM application, optimized for Compose Desktop.
 
 Docs: https://nucleus.kdroidfilter.com
 GitHub: https://github.com/kdroidFilter/Nucleus
@@ -35,12 +35,17 @@ nucleus.application {
 
 - **16 packaging formats**: DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, ZIP, TAR, 7Z
 - **JDK 25+ AOT cache (Project Leyden)**: faster cold startup, no GraalVM
+- **GraalVM Native Image**: ~0.5s cold boot, ~100–150 MB RAM, smaller bundle (experimental)
+- **Liquid Glass (macOS 26)**: automatic SDK version patching via `vtool`, works with any JDK
 - **Store-ready**: Mac App Store (PKG), Microsoft Store (AppX), Snapcraft (Snap), Flathub (Flatpak) with automatic sandboxing pipeline
 - **Code signing & notarization**: Windows (PFX, Azure Trusted Signing) and macOS (Developer ID) with notarization
 - **Auto-update**: Integrated update engine with SHA-512 verification, GitHub Releases, S3, or generic HTTP server
-- **Decorated windows**: Custom title bar content with native controls on all platforms (JBR required)
+- **Decorated windows**: Custom title bar content with native controls on all platforms — two backends: JBR (JetBrains Runtime) and JNI (any JVM/GraalVM). Features: fullscreen sliding overlay, large corner radius, RTL support, control buttons direction, background content slot
 - **Reactive dark mode detection**: OS-level listener via JNI, triggers recomposition instantly
-- **Trusted CA certificates**: Import custom CA certs into the bundled JVM at build time — no SSL errors behind corporate proxies or ISP filters
+- **System accent color & high contrast**: Reactive OS accent color and high contrast detection via JNI
+- **Energy management**: Process/thread energy efficiency mode and screen-awake APIs
+- **Trusted CA certificates**: Import custom CA certs into the bundled JVM at build time
+- **Native SSL & HTTP clients**: OS trust store integration for java.net.http, OkHttp, and Ktor
 - **CI/CD**: Reusable GitHub Actions for multi-platform matrix builds, universal macOS binaries, MSIX bundles
 
 ## Requirements
@@ -53,16 +58,17 @@ nucleus.application {
 
 - [Getting Started](https://nucleus.kdroidfilter.com/getting-started/): Installation, minimal config, Gradle tasks
 - [Configuration](https://nucleus.kdroidfilter.com/configuration/): Full DSL reference
-- [macOS Targets](https://nucleus.kdroidfilter.com/targets/macos/): DMG, PKG, universal binaries, layered icons
+- [macOS Targets](https://nucleus.kdroidfilter.com/targets/macos/): DMG, PKG, universal binaries, layered icons, Liquid Glass
 - [Windows Targets](https://nucleus.kdroidfilter.com/targets/windows/): NSIS, MSI, AppX, Portable
 - [Linux Targets](https://nucleus.kdroidfilter.com/targets/linux/): DEB, RPM, AppImage, Snap, Flatpak
-- [Sandboxing](https://nucleus.kdroidfilter.com/sandboxing/): App Sandbox, MSIX, Flatpak sandbox
-- [Code Signing](https://nucleus.kdroidfilter.com/code-signing/): Windows PFX/Azure + macOS signing & notarization
-- [Auto Update](https://nucleus.kdroidfilter.com/auto-update/): Updater runtime, YML metadata, release channels, native HTTP client integration
-- [Publishing](https://nucleus.kdroidfilter.com/publishing/): GitHub Releases, S3, and generic HTTP server
-- [CI/CD](https://nucleus.kdroidfilter.com/ci-cd/): GitHub Actions workflows and composite actions
-- [Runtime APIs](https://nucleus.kdroidfilter.com/runtime/): Executable type, AOT cache, single instance, deep links, decorated window, dark mode, native SSL, native HTTP
-- [Trusted CA Certificates](https://nucleus.kdroidfilter.com/trusted-certificates/): Import custom CA certs into the bundled JVM at build time
+- [Sandboxing](https://nucleus.kdroidfilter.com/features/sandboxing/): App Sandbox, MSIX, Flatpak sandbox
+- [Code Signing](https://nucleus.kdroidfilter.com/features/code-signing/): Windows PFX/Azure + macOS signing & notarization
+- [Auto Update](https://nucleus.kdroidfilter.com/features/auto-update/): Updater runtime, YML metadata, release channels, native HTTP client integration
+- [Publishing](https://nucleus.kdroidfilter.com/features/publishing/): GitHub Releases, S3, and generic HTTP server
+- [CI/CD](https://nucleus.kdroidfilter.com/features/ci-cd/): GitHub Actions workflows and composite actions
+- [GraalVM Native Image](https://nucleus.kdroidfilter.com/graalvm-native-image/): Compile Compose Desktop apps into standalone native binaries
+- [Runtime APIs](https://nucleus.kdroidfilter.com/runtime/): All runtime libraries
+- [Trusted CA Certificates](https://nucleus.kdroidfilter.com/features/trusted-certificates/): Import custom CA certs into the bundled JVM at build time
 - [Migration](https://nucleus.kdroidfilter.com/migration/): Migrate from org.jetbrains.compose
 - [Full LLM Documentation](https://nucleus.kdroidfilter.com/llms-full.txt): Complete documentation in a single file
 
@@ -73,15 +79,19 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.core-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
-    implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jbr:<version>")  // or -jni
     implementation("io.github.kdroidfilter:nucleus.decorated-window-jewel:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
+    implementation("io.github.kdroidfilter:nucleus.system-color:<version>")
+    implementation("io.github.kdroidfilter:nucleus.energy-manager:<version>")
     implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
     implementation("io.github.kdroidfilter:nucleus.native-http:<version>")
     implementation("io.github.kdroidfilter:nucleus.native-http-okhttp:<version>")
     implementation("io.github.kdroidfilter:nucleus.native-http-ktor:<version>")
+    implementation("io.github.kdroidfilter:nucleus.linux-hidpi:<version>")
+    implementation("io.github.kdroidfilter:nucleus.graalvm-runtime:<version>")
 }
 ```
 
@@ -90,15 +100,20 @@ dependencies {
 | `nucleus.core-runtime` | Platform detection, executable type, single instance, deep links |
 | `nucleus.aot-runtime` | AOT cache mode detection (includes core-runtime) |
 | `nucleus.updater-runtime` | Auto-update engine with download progress, SHA-512 verification, and custom HTTP client support |
-| `nucleus.decorated-window` | Custom title bar with native window controls (requires JBR) |
+| `nucleus.decorated-window-jbr` | Custom title bar with native window controls — JBR backend (requires JetBrains Runtime) |
+| `nucleus.decorated-window-jni` | Custom title bar with native window controls — JNI backend (any JVM, GraalVM compatible) |
 | `nucleus.decorated-window-jewel` | Jewel (IntelliJ theme) integration for decorated windows |
 | `nucleus.decorated-window-material2` | Material 2 integration for decorated windows |
 | `nucleus.decorated-window-material3` | Material 3 integration for decorated windows |
 | `nucleus.darkmode-detector` | Reactive OS dark mode detection via JNI |
+| `nucleus.system-color` | Reactive OS accent color and high contrast detection via JNI |
+| `nucleus.energy-manager` | Process/thread energy efficiency mode and screen-awake (caffeine) API |
 | `nucleus.native-ssl` | OS trust store integration — merges native certs with JVM defaults |
 | `nucleus.native-http` | `java.net.http.HttpClient` pre-configured with native OS trust |
 | `nucleus.native-http-okhttp` | OkHttp client pre-configured with native OS trust |
 | `nucleus.native-http-ktor` | Ktor `HttpClient` extension for native OS trust (CIO, Java, OkHttp, Apache5) |
+| `nucleus.linux-hidpi` | Native HiDPI scale factor detection on Linux |
+| `nucleus.graalvm-runtime` | GraalVM native-image bootstrap + font substitutions (includes linux-hidpi) |
 
 ## Migration from org.jetbrains.compose
 
@@ -106,7 +121,7 @@ Nucleus extends the official JetBrains Compose Desktop plugin. Add the plugin, u
 
 ```diff
  plugins {
-     id("org.jetbrains.compose") version "1.10.1"
+     id("org.jetbrains.compose") version "1.10.2"
 +    id("io.github.kdroidfilter.nucleus") version "<version>"
  }
 
