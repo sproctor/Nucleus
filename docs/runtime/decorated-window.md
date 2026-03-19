@@ -4,7 +4,7 @@ Compose for Desktop does not natively expose a way to draw custom content in the
 
 The decorated window modules bridge this gap. They are **completely design-system agnostic** — no dependency on Jewel, no dependency on Material 3. You wire in whatever color tokens your app uses (Material 3, Jewel, your own design system, or a plain `Color` literal).
 
-The optional [`decorated-window-material`](decorated-window-material.md) module exists as a convenience layer that reads `MaterialTheme.colorScheme` automatically — but it is a separate artifact and is not required by the base modules.
+Optional convenience modules exist for automatic color wiring: [`decorated-window-material2`](decorated-window-material2.md) reads `MaterialTheme.colors` and [`decorated-window-material3`](decorated-window-material3.md) reads `MaterialTheme.colorScheme` — but they are separate artifacts and are not required by the base modules.
 
 The implementation was originally inspired by [Jewel](https://github.com/JetBrains/intellij-community/tree/master/platform/jewel)'s decorated window. Key divergences from Jewel's own implementation:
 
@@ -87,17 +87,18 @@ dependencies {
 }
 ```
 
-**Optionally**, if you use Material 3 and want automatic `MaterialTheme.colorScheme` wiring, add the companion module. This is **not required** for the base decorated window to work.
+**Optionally**, if you use Material and want automatic color wiring, add the companion module matching your design system. This is **not required** for the base decorated window to work.
 
 ```kotlin
 dependencies {
-    // Optional — only needed if you use MaterialDecoratedWindow / MaterialTitleBar
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
+    // Optional — pick one depending on your Material version
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>") // Material 2
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>") // Material 3
 }
 ```
 
 !!! note
-    See [`decorated-window-material`](decorated-window-material.md) for details on the Material 3 wrappers. If you use a different design system (Jewel, a custom theme, etc.), skip this module and map your colors manually as shown in the [Styling](#styling) section below.
+    See [`decorated-window-material2`](decorated-window-material2.md) or [`decorated-window-material3`](decorated-window-material3.md) for details on the Material wrappers. If you use a different design system (Jewel, a custom theme, etc.), skip these modules and map your colors manually as shown in the [Styling](#styling) section below.
 
 ## Quick Start
 
