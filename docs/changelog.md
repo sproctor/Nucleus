@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.1
+
+**Released: 2026-03-19**
+
+### Improvements
+
+- **Add `controlButtonsDirection` to `JewelTitleBar` and Material 2 `MaterialTitleBar`** — Forward the `controlButtonsDirection` parameter to the underlying `TitleBar` so consumers can control window button placement independently of the content layout direction. Material 3 `MaterialTitleBar` already had this parameter; Jewel and Material 2 are now aligned.
+
+---
+
 ## v1.5.0
 
 **Released: 2026-03-19**
