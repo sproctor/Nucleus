@@ -53,6 +53,7 @@ internal fun nativeSystemLayoutDirection(): LayoutDirection {
     val language = System.getProperty("user.language") ?: return LayoutDirection.Ltr
     val country = System.getProperty("user.country").orEmpty()
     val variant = System.getProperty("user.variant").orEmpty()
+
     @Suppress("DEPRECATION")
     val nativeLocale = java.util.Locale(language, country, variant)
     return if (ComponentOrientation.getOrientation(nativeLocale).isLeftToRight) {
