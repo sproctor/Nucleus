@@ -74,8 +74,11 @@ dependencies {
     // Custom decorated window with native title bar
     implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
 
+    // Material 2 integration for decorated windows
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
+
     // Material 3 integration for decorated windows
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
 
     // Reactive dark mode detection
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")

@@ -20,7 +20,8 @@ dependencies {
     compileOnly(project(":decorated-window-jbr"))
     api(project(":core-runtime"))
     compileOnly(compose.desktop.common)
-    compileOnly(compose.material3)
+    @Suppress("DEPRECATION")
+    compileOnly(compose.material)
 }
 
 java {
@@ -35,11 +36,11 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-material", publishVersion)
+    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-material2", publishVersion)
 
     pom {
-        name.set("Nucleus Material Decorated Window")
-        description.set("Material 3 integration for Nucleus Decorated Window")
+        name.set("Nucleus Material 2 Decorated Window")
+        description.set("Material 2 integration for Nucleus Decorated Window")
         url.set("https://github.com/kdroidFilter/Nucleus")
 
         licenses {

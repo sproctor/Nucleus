@@ -10,7 +10,8 @@ Nucleus provides runtime libraries for use in your application code. All are pub
 | AOT Runtime | `io.github.kdroidfilter:nucleus.aot-runtime` | AOT cache detection (includes core-runtime via `api`) |
 | Updater Runtime | `io.github.kdroidfilter:nucleus.updater-runtime` | Auto-update library (includes core-runtime) |
 | Decorated Window | `io.github.kdroidfilter:nucleus.decorated-window` | Custom window decorations with native title bar |
-| Decorated Window — Material | `io.github.kdroidfilter:nucleus.decorated-window-material` | Material 3 color mapping for decorated windows |
+| Decorated Window — Material 2 | `io.github.kdroidfilter:nucleus.decorated-window-material2` | Material 2 color mapping for decorated windows |
+| Decorated Window — Material 3 | `io.github.kdroidfilter:nucleus.decorated-window-material3` | Material 3 color mapping for decorated windows |
 | Dark Mode Detector | `io.github.kdroidfilter:nucleus.darkmode-detector` | Reactive OS dark mode detection via JNI |
 | System Color | `io.github.kdroidfilter:nucleus.system-color` | Reactive system accent color and high contrast detection via JNI |
 | Energy Manager | `io.github.kdroidfilter:nucleus.energy-manager` | Process-level and thread-level energy efficiency mode and screen-awake (caffeine) API for Windows, macOS, and Linux |
@@ -28,7 +29,8 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
     implementation("io.github.kdroidfilter:nucleus.system-color:<version>")
     implementation("io.github.kdroidfilter:nucleus.energy-manager:<version>")

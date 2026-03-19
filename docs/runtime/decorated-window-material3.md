@@ -1,12 +1,12 @@
 # Decorated Window — Material 3
 
-The `decorated-window-material` module provides Material 3 wrappers around the [Decorated Window](decorated-window.md) components. It reads colors from `MaterialTheme.colorScheme` and automatically builds the matching `DecoratedWindowStyle` and `TitleBarStyle` — no manual color mapping needed.
+The `decorated-window-material3` module provides Material 3 wrappers around the [Decorated Window](decorated-window.md) components. It reads colors from `MaterialTheme.colorScheme` and automatically builds the matching `DecoratedWindowStyle` and `TitleBarStyle` — no manual color mapping needed.
 
 ## Installation
 
 ```kotlin
 dependencies {
-    implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
     // Transitive: nucleus.decorated-window is pulled in via `api`
 }
 ```
