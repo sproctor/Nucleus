@@ -332,6 +332,13 @@ if [[ -n "$METADATA_FILE" ]]; then
   DMG_WIN_Y="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowY'); print(v if v is not None else '')")"
   DMG_WIN_W="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowWidth'); print(v if v is not None else '')")"
   DMG_WIN_H="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowHeight'); print(v if v is not None else '')")"
+  # Read DMG contents entries (icon positions) as JSON lines: "x y type name path"
+  DMG_CONTENTS_JSON="$(python3 -c "
+import json, sys
+m = json.load(open('$METADATA_FILE'))
+for c in m.get('dmg', {}).get('contents', []):
+    print(json.dumps(c))
+")"
   DMG_BACKGROUND=""
   [[ -n "$DMG_BACKGROUND_REL" && -f "$METADATA_DIR/$DMG_BACKGROUND_REL" ]] && DMG_BACKGROUND="$METADATA_DIR/$DMG_BACKGROUND_REL"
   DMG_BADGE_ICON=""
@@ -362,6 +369,7 @@ else
   DMG_WIN_Y=""
   DMG_WIN_W=""
   DMG_WIN_H=""
+  DMG_CONTENTS_JSON=""
 fi
 
 # Override artifactName to force universal suffix
@@ -411,6 +419,24 @@ generate_eb_config() {
         [[ -n "$DMG_WIN_Y" ]] && echo "    y: $DMG_WIN_Y"
         [[ -n "$DMG_WIN_W" ]] && echo "    width: $DMG_WIN_W"
         [[ -n "$DMG_WIN_H" ]] && echo "    height: $DMG_WIN_H"
+      fi
+      # Emit DMG contents entries (icon positions)
+      if [[ -n "$DMG_CONTENTS_JSON" ]]; then
+        echo "  contents:"
+        while IFS= read -r entry_json; do
+          [[ -z "$entry_json" ]] && continue
+          local cx cy ctype cname cpath
+          cx="$(echo "$entry_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['x'])")"
+          cy="$(echo "$entry_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['y'])")"
+          ctype="$(echo "$entry_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('type') or '')")"
+          cname="$(echo "$entry_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('name') or '')")"
+          cpath="$(echo "$entry_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('path') or '')")"
+          echo "    - x: $cx"
+          echo "      y: $cy"
+          [[ -n "$ctype" ]] && echo "      type: $ctype"
+          [[ -n "$cname" ]] && echo "      name: \"$cname\""
+          [[ -n "$cpath" ]] && echo "      path: \"$cpath\""
+        done <<< "$DMG_CONTENTS_JSON"
       fi
     elif [[ "$target_format" == "pkg" ]]; then
       echo "pkg:"
