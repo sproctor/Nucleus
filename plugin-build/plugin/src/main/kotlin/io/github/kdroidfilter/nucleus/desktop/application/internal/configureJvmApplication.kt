@@ -870,6 +870,9 @@ private fun JvmApplicationContext.configureRunTask(
                         "Process finished with non-zero exit value $exitCode",
                     )
                 }
+                // Skip the JavaExec action — we already ran the process above.
+                // This is necessary because Gradle 9.4 finalizes javaLauncher before
+                // execution, preventing us from changing executable to the patched path.
                 throw org.gradle.api.tasks
                     .StopExecutionException()
             }
@@ -1023,9 +1026,11 @@ private fun getOrCreatePatchedJvm(
     val patched = java.io.File(cacheDir, "bin/java")
     val stampFile = java.io.File(cacheDir, ".source_hash")
 
+    // Include sdkVersion in the cache key so changing the DSL property invalidates the cache
     val sourceHash =
         javaBin.inputStream().use { stream ->
             java.security.MessageDigest.getInstance("SHA-256").let { md ->
+                md.update(sdkVersion.toByteArray())
                 val buf = ByteArray(8192)
                 var n: Int
                 while (stream.read(buf).also { n = it } != -1) md.update(buf, 0, n)
@@ -1056,22 +1061,28 @@ private fun getOrCreatePatchedJvm(
         .redirectErrorStream(true)
         .start()
         .waitFor()
-    ProcessBuilder(
-        "vtool",
-        "-set-build-version",
-        "macos",
-        "11.0",
-        sdkVersion,
-        "-tool",
-        "ld",
-        "0.0",
-        "-replace",
-        "-output",
-        patched.absolutePath,
-        patched.absolutePath,
-    ).redirectErrorStream(true)
-        .start()
-        .waitFor()
+    val vtoolExit =
+        ProcessBuilder(
+            "vtool",
+            "-set-build-version",
+            "macos",
+            "11.0",
+            sdkVersion,
+            "-tool",
+            "ld",
+            "0.0",
+            "-replace",
+            "-output",
+            patched.absolutePath,
+            patched.absolutePath,
+        ).redirectErrorStream(true)
+            .start()
+            .waitFor()
+    if (vtoolExit != 0) {
+        logger.warn("vtool exited with code $vtoolExit — Liquid Glass patch may have failed")
+        return javaBin.absolutePath
+    }
+    // Ad-hoc re-sign the patched copy (required for macOS to allow execution)
     ProcessBuilder("codesign", "-s", "-", "-f", patched.absolutePath)
         .redirectErrorStream(true)
         .start()
