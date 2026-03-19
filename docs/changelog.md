@@ -1,15 +1,137 @@
 # Changelog
 
-## Unreleased
+## v1.5.0
+
+**Released: 2026-03-19**
 
 ### New Features
 
 - **Automatic Liquid Glass support via `macOsSdkVersion`** — Nucleus now automatically patches the app launcher's `LC_BUILD_VERSION` Mach-O header to macOS SDK 26.0 using `vtool`, enabling Liquid Glass window decorations (larger traffic lights, rounded corners). This works with **any JDK** — a JDK compiled with Xcode 26 is no longer required. The `run` task uses a cached patched copy of the JVM, while distributable builds patch the launcher before signing. Controlled via `macOS { macOsSdkVersion = "26.0" }` (enabled by default, set to `null` to disable). Requires Xcode Command Line Tools. See [macOS 26 Window Appearance](targets/macos.md#macos-26-window-appearance-liquid-glass).
 - **`Modifier.clientRegion()` for JBR title bar hit testing** — New modifier function that registers composable elements as interactive client regions within a `DecoratedWindow`'s title bar. Client regions receive mouse events (clicks, presses) instead of triggering window dragging. Uses AWT-level mouse listeners with precise coordinate-based hit testing, replacing the old pointer-event-based `customTitleBarMouseEventHandler`. See [Decorated Window](runtime/decorated-window.md).
+- **`decorated-window-jewel` module** — New module providing Jewel theme integration for `DecoratedWindow`. Used by the jewel-sample app.
+- **`decorated-window-material2` module** — New module providing Material 2 theme color mapping for `DecoratedWindow`, complementing the existing Material 3 module.
+- **`decorated-window-material3` module** — Renamed from `decorated-window-material` for clarity. Provides Material 3 color mapping for `DecoratedWindow`.
+- **Decouple control buttons direction from title bar content direction** — Window control buttons (close, minimize, maximize) now follow their platform-native position regardless of the title bar's layout direction.
+- **Intercept system quit events** — `onCloseRequest` in `DecoratedWindow` now intercepts macOS Cmd+Q and Dock quit events, giving the app a chance to confirm or cancel the quit.
+- **`backgroundContent` slot in `TitleBar`** — New composable slot for rendering content behind the title bar (e.g. a gradient or blurred background).
+- **Surface notarization details on failure** — Notarization errors now include the Apple submission ID and log URL for easier debugging.
 
 ### Bug Fixes
 
 - **Fix title bar drag on Windows (`decorated-window-jbr`)** — Window dragging via the title bar no longer occasionally fails on the first attempt when another window has focus. The new `WindowMouseEventEffect` approach uses AWT mouse listeners for reliable hit-test forwarding to JBR's `CustomTitleBar`, fixing the intermittent missed drag events. ([#53](https://github.com/kdroidFilter/Nucleus/issues/53))
+- Promote `core-runtime` to `api` scope in `updater-runtime` and `system-color` so consumers no longer need to declare it separately.
+- Include generic provider in publish mode detection.
+- Skip Flatpak packaging gracefully when `flatpak` CLI is missing.
+- Use sandboxed flag for jpackage `macAppStore` instead of relying on `targetFormat`.
+- Propagate DMG contents entries to universal CI build.
+- Compensate macOS title bar height in DMG background image.
+- Migrate from deprecated `painterResource` to `ImageVector` icons.
+- Replace deprecated Compose accessors with version catalog entries.
+- Add Gradle 9.4 task caching and normalization annotations across all task classes.
+
+### Deprecations
+
+- **`decorated-window-material` renamed** — Use `decorated-window-material3` instead.
+
+---
+
+## v1.4.8
+
+**Released: 2026-03-18**
+
+### New Features
+
+- **Intercept system quit events via `onCloseRequest`** — `DecoratedWindow` now intercepts macOS Cmd+Q and Dock quit events.
+- **Surface notarization submission ID and Apple log on failure** — Easier debugging of notarization issues.
+
+### Bug Fixes
+
+- **Reliable title bar drag via AWT-level `clientRegion` hit testing** — Fixes intermittent missed drag events on Windows when another window has focus.
+- Promote `core-runtime` to `api` scope in `updater-runtime` and `system-color`.
+- Include generic provider in publish mode detection.
+- Skip Flatpak packaging gracefully when `flatpak` CLI is missing.
+- Use sandboxed flag for jpackage `macAppStore` instead of `targetFormat`.
+
+---
+
+## v1.4.7
+
+**Released: 2026-03-11**
+
+### New Features
+
+- **`backgroundContent` slot in `TitleBar` and `MaterialTitleBar`** — New composable slot for rendering content behind the title bar (e.g. a gradient or blurred background).
+
+---
+
+## v1.4.6
+
+**Released: 2026-03-11**
+
+### Bug Fixes
+
+- **Fix `objc_retain` crash on freed `NSWindow` during disposal** — Prevent crash when the Objective-C runtime attempts to retain an already-deallocated `NSWindow` reference from a JNI callback.
+
+---
+
+## v1.4.5
+
+**Released: 2026-03-10**
+
+### Bug Fixes
+
+- **Fix crash on `__weak` `NSWindow` reference from JNI thread during disposal** — Prevent crash when a weak reference to `NSWindow` is accessed from a JNI thread after the window has been deallocated.
+
+---
+
+## v1.4.4
+
+**Released: 2026-03-10**
+
+### Bug Fixes
+
+- **Fix crash on `NSWindow` cleanup during fullscreen transition** — Prevent crash when the window is being cleaned up while a fullscreen animation is still in progress.
+
+---
+
+## v1.4.3
+
+**Released: 2026-03-10**
+
+### New Features
+
+- **Safari-like fullscreen title bar behavior on macOS** — Fullscreen title bar renders as a translucent overlay that pushes content down, matching native Safari behavior.
+- **Executable type and version detection for GraalVM native-image builds** — `ExecutableType` now correctly identifies GraalVM native binaries and their version.
+
+### Bug Fixes
+
+- Enable redirect following in `NativeHttpClient` and add SSL lib to native-image resources.
+
+---
+
+## v1.4.2
+
+**Released: 2026-03-10**
+
+### Bug Fixes
+
+- **Harden fullscreen state management on Windows** — Fix multiple fullscreen-related issues:
+    - Improve fullscreen exit state restoration and maximize handling.
+    - Override delegate placement on fullscreen exit with saved state.
+    - Restore correct placement on fullscreen exit and eliminate maximize glitch.
+    - Restore pointer events to content area in fullscreen mode.
+
+---
+
+## v1.4.1
+
+**Released: 2026-03-10**
+
+### Bug Fixes
+
+- Add missing ProGuard rules for `system-color`, `energy-manager`, and `linux-hidpi`.
+- Apply `macOSLargeCornerRadius` to jewel-sample title bar.
+- Update GraalVM reachability metadata for macOS.
 
 ---
 
@@ -27,7 +149,7 @@
 - **macOS live resize sync and RTL traffic-light support** — Smooth live resize synchronization and correct traffic light button positioning in right-to-left layouts. See [Decorated Window](runtime/decorated-window.md).
 - **Centralized native library loading** — New `NativeLibraryLoader` with persistent cache replaces per-module loading logic.
 - **Fullscreen-aware window controls** — Maximize button shows exit-fullscreen icon when in fullscreen mode on Linux and Windows, with new SVG icon variants (active/inactive/dark). See [Decorated Window](runtime/decorated-window.md).
-- **AWT window background sync on macOS** — Idempotent property application prevents redundant `PropertyChangeEvent` firings, reducing visual jitter during layout passes. See [Decorated Window](runtime/decorated-window.md).
+- **AWT window background sync on macOS** — Idempotent property application prevents redundant `PropertyChangeEvent` firings, reducing visual jitter during layout passes.
 - **Sample CMP module** (`sample-cmp`) — New Kotlin Multiplatform Compose sample with Android and Desktop targets.
 - **Example app gallery** — Material 3 component showcase with actions, communication, containment, selection, text inputs, typography, elevation, and color screens.
 
@@ -38,29 +160,33 @@
 - **Skip Android configurations in `CleanNativeLibsTransform`** — Fixes build issues when Android targets are present. ([#79](https://github.com/kdroidFilter/ComposeDeskKit/issues/79))
 - **Skip ZIP stapling to preserve blockmap** — Prevents breaking auto-update blockmap integrity during notarization. ([#70](https://github.com/kdroidFilter/ComposeDeskKit/issues/70))
 - **Detect target arch from JDK release file for cross-building** — Fixes architecture detection when cross-compiling. ([#71](https://github.com/kdroidFilter/ComposeDeskKit/issues/71))
-- Move Windows dark mode monitoring to native thread for reliability
+- Move Windows dark mode monitoring to native thread for reliability.
+- Correct D-Bus `ReadOne` variant parsing for Linux accent color.
 
 ### Deprecations
 
 - **`appStore` property deprecated** — PKG distributions are now always treated as App Store builds. The `appStore` property is no longer needed. ([#65](https://github.com/kdroidFilter/ComposeDeskKit/issues/65))
 
-### Refactoring
+---
 
-- Simplify tab drag-and-drop using Reorderable library
-- Centralize native library loading with persistent cache
+## v1.3.8
 
-### Documentation
+**Released: 2026-03-02**
 
-- Rewrite energy-manager docs for full platform coverage
-- Add system-color module documentation
-- Update decorated window docs with fullscreen title bar and large corner radius sections
-- Document Windows resize white flash fix in decorated-window-jni
-- Simplify single-instance and deep-links code examples
+### Bug Fixes
 
-### CI/CD
+- Match native macOS traffic light button spacing.
 
-- Add energy-manager native build and pre-merge verification for all platforms
-- Add system-color native build workflows
+---
+
+## v1.3.7
+
+**Released: 2026-03-02**
+
+### Bug Fixes
+
+- Handle ZIP stapling by extracting `.app`, stapling, and re-zipping.
+- Remove deprecated `internetEnabled` DMG setting.
 
 ---
 
@@ -70,15 +196,11 @@
 
 ### Bug Fixes
 
-- Fix fullscreen button transitions and alignment
-- Restore title bar appearance before fullscreen exit animation
-- Fallback to default icon for GraalVM native image on Windows
-- Update `latest-mac.yml` checksums and file sizes after notarization
-- Remove `xvfb-run` from test-graalvm workflow (Xvfb already started by setup-nucleus)
-
-### Documentation
-
-- Add homepage requirement note for electron-builder DEB packaging
+- Fix fullscreen button transitions and alignment.
+- Restore title bar appearance before fullscreen exit animation.
+- Fallback to default icon for GraalVM native image on Windows.
+- Update `latest-mac.yml` checksums and file sizes after notarization.
+- Remove `xvfb-run` from test-graalvm workflow (Xvfb already started by `setup-nucleus`).
 
 ---
 
@@ -88,7 +210,7 @@
 
 ### Bug Fixes
 
-- Add `homepage` to jewel-sample `nativeDistributions` for electron-builder DEB packaging
+- Add `homepage` to jewel-sample `nativeDistributions` for electron-builder DEB packaging.
 
 ---
 
@@ -98,7 +220,7 @@
 
 ### Bug Fixes
 
-- Remove `xvfb-run` from graalvm workflow (Xvfb already started by setup-nucleus)
+- Remove `xvfb-run` from graalvm workflow (Xvfb already started by `setup-nucleus`).
 
 ---
 
@@ -108,18 +230,14 @@
 
 ### New Features
 
-- Add `graalvm` option to `setup-nucleus` composite action
-- Configure Windows code signing for jewel-sample using shared certificate
+- Add `graalvm` option to `setup-nucleus` composite action.
+- Configure Windows code signing for jewel-sample using shared certificate.
 
 ### Bug Fixes
 
-- Add `libx11-dev` and `libdbus-1-dev` to graalvm release Linux dependencies
-- Configure jewel-sample `nativeDistributions` with icons, deb maintainer, and platform settings
-- Use `packageGraalvmDeb`/`Dmg`/`Nsis` tasks instead of raw native image output
-
-### CI/CD
-
-- Simplify graalvm workflows with setup-nucleus graalvm option
+- Add `libx11-dev` and `libdbus-1-dev` to graalvm release Linux dependencies.
+- Configure jewel-sample `nativeDistributions` with icons, deb maintainer, and platform settings.
+- Use `packageGraalvmDeb`/`Dmg`/`Nsis` tasks instead of raw native image output.
 
 ---
 
@@ -137,14 +255,10 @@ No user-facing changes (tag only).
 
 ### Bug Fixes
 
-- Use `packageGraalvmDeb`/`Dmg`/`Nsis` tasks instead of raw native image output
-- Add missing native artifact downloads and `libx11-dev` to publish-plugin workflow
-- Pass repository to `gh release` commands in graalvm workflow
-- Remove custom icons from jewel-sample, use default icons instead
-
-### CI/CD
-
-- Configure jewel-sample `nativeDistributions` with icons, deb maintainer, and platform settings
+- Use `packageGraalvmDeb`/`Dmg`/`Nsis` tasks instead of raw native image output.
+- Add missing native artifact downloads and `libx11-dev` to publish-plugin workflow.
+- Pass repository to `gh release` commands in graalvm workflow.
+- Remove custom icons from jewel-sample, use default icons instead.
 
 ---
 
@@ -154,33 +268,35 @@ No user-facing changes (tag only).
 
 ### New Features
 
-- **GraalVM Native Image support (experimental)**: compile Compose Desktop apps into standalone native binaries with instant cold boot (~0.5s), lower memory usage, and smaller bundles
-- **New `graalvm-runtime` module** (`nucleus.graalvm-runtime`): centralizes native-image bootstrap logic into a single `GraalVmInitializer.initialize()` call
-- **Decorated Window module split**: `decorated-window` split into `decorated-window-core`, `decorated-window-jbr`, and `decorated-window-jni`
-- **Linux HiDPI scaling support** with native GDK_SCALE handling
-- CI workflow to release Jewel Sample as GraalVM native image on tags
-- Auto-notarize macOS distributions in `packageDistributionForCurrentOS`
+- **GraalVM Native Image support (experimental)** — Compile Compose Desktop apps into standalone native binaries with instant cold boot (~0.5 s), lower memory usage (~100–150 MB vs ~300–400 MB on JVM), and smaller bundles. New `graalvm {}` DSL block, `runWithNativeAgent` task for reflection metadata collection, and `packageGraalvmNative` / `packageGraalvmDeb` / `packageGraalvmDmg` / `packageGraalvmNsis` packaging tasks. Requires [BellSoft Liberica NIK 25](https://bell-sw.com/liberica-native-image-kit/). See [GraalVM Native Image](graalvm-native-image.md).
+- **New `graalvm-runtime` module** (`nucleus.graalvm-runtime`) — Centralizes native-image bootstrap logic into a single `GraalVmInitializer.initialize()` call: Metal L&F, `java.home`/`java.library.path` setup, charset/fontmanager early init, Linux HiDPI detection, and GraalVM `@TargetClass` font substitutions for Windows and Linux.
+- **Decorated Window module split** — `decorated-window` split into `decorated-window-core`, `decorated-window-jbr` (JBR-based, same behavior as before), and `decorated-window-jni` (JBR-free, works with GraalVM). See [Migration Guide](#migration-guide-12x--13x) below.
+- **`decorated-window-jni` module** — New JNI-based implementation of `DecoratedWindow` that works without JetBrains Runtime, including support for Linux via native JNI bridge. Compatible with GraalVM Native Image.
+- **Linux HiDPI scaling support** — Native `GDK_SCALE` handling for correct rendering on HiDPI Linux displays.
+- **Auto-notarize macOS distributions** — `packageDistributionForCurrentOS` now automatically notarizes on macOS when notarization credentials are configured.
+- **Jewel Sample app** — Standalone Jewel UI showcase with GraalVM native image CI, platform-specific packaging, and Windows code signing.
 
 ### Bug Fixes
 
-- Replace `OBJC_ASSOCIATION_ASSIGN` with `RETAIN_NONATOMIC` to prevent dangling pointer on macOS
-- Use per-platform winCodeSign archives to fix AppX build on Windows
-- Resolve fontmanager loading on Linux native image
-- Ensure Skiko library is extracted and loaded in GraalVM Native Image
-- Use `onlyIf` instead of `enabled` for native build tasks (configuration cache compatibility)
+- Replace `OBJC_ASSOCIATION_ASSIGN` with `RETAIN_NONATOMIC` to prevent dangling pointer on macOS.
+- Resolve fontmanager loading on Linux native image.
+- Ensure Skiko library is extracted and loaded in GraalVM Native Image.
+- Use `onlyIf` instead of `enabled` for native build tasks (configuration cache compatibility).
+- Detect unconsumed double-clicks before triggering macOS zoom.
 
 ### Documentation
 
-- Comprehensive GraalVM Native Image guide for Compose Desktop
-- macOS 26 window appearance guide for JVM and native image
-- Linux HiDPI runtime documentation
-- AOT cache documentation rewrite with motivation and Project Leyden reference
-- Decorated window docs update with changelog and migration guide
+- Comprehensive GraalVM Native Image guide for Compose Desktop.
+- macOS 26 window appearance guide for JVM and native image.
+- Linux HiDPI runtime documentation.
+- AOT cache documentation rewrite with motivation and Project Leyden reference.
+- Decorated window docs update with changelog and migration guide.
 
 ### CI/CD
 
-- GraalVM native-image build workflow for PR CI
-- Migrate detekt to 2.0.0-alpha.2 for JDK 25 support
+- GraalVM native-image build workflow for PR CI.
+- CI workflow to release Jewel Sample as GraalVM native image on tags.
+- Migrate detekt to 2.0.0-alpha.2 for JDK 25 support.
 
 ---
 
@@ -191,7 +307,7 @@ No user-facing changes (tag only).
 The `decorated-window` module has been split into three modules:
 
 | Before (1.2.x) | After (1.3.x) |
-|-----------------|----------------|
+|---|---|
 | `nucleus.decorated-window` | `nucleus.decorated-window-core` (shared) |
 | | `nucleus.decorated-window-jbr` (JBR implementation) |
 | | `nucleus.decorated-window-jni` (JNI implementation, new) |
@@ -225,17 +341,309 @@ These platform-specific button state colors are now handled internally by each m
 
 See [Decorated Window](runtime/decorated-window.md) for full details on choosing between JBR and JNI.
 
-### GraalVM Native Image support (experimental)
+---
 
-Nucleus now supports compiling Compose Desktop applications into standalone native binaries using GraalVM Native Image. This brings instant cold boot (~0.5 s), significantly lower memory usage (~100–150 MB vs ~300–400 MB on JVM), and smaller bundle sizes.
+## v1.2.7
 
-- New `graalvm {}` DSL block in `build.gradle.kts`
-- `runWithNativeAgent` task to collect reflection metadata with the GraalVM tracing agent
-- `packageGraalvmNative` task to compile and package the native binary
-- Full packaging pipeline per platform: `.app` bundle on macOS, `.exe` + DLLs on Windows, ELF + `.so` on Linux
-- Pre-configured `reachability-metadata.json` files in the example app for all three platforms
-- New **`graalvm-runtime`** module (`nucleus.graalvm-runtime`) — centralizes all native-image bootstrap logic into a single `GraalVmInitializer.initialize()` call: Metal L&F, `java.home`/`java.library.path` setup, charset/fontmanager early init, Linux HiDPI detection, and GraalVM `@TargetClass` font substitutions for Windows and Linux
-- Requires [BellSoft Liberica NIK 25](https://bell-sw.com/liberica-native-image-kit/) (full distribution)
+**Released: 2026-02-22**
 
-!!! danger "Experimental"
-    This feature requires significant configuration effort (reflection metadata) and is reserved for advanced developers. See [GraalVM Native Image](graalvm-native-image.md) for the full guide.
+### Bug Fixes
+
+- Use per-platform winCodeSign archives to fix AppX build on Windows.
+
+---
+
+## v1.2.6
+
+**Released: 2026-02-22**
+
+### Bug Fixes
+
+- Preserve sandbox entitlements when re-signing PKG for App Store without certificate.
+
+---
+
+## v1.2.5
+
+**Released: 2026-02-22**
+
+### Bug Fixes
+
+- Map `PublishMode.Auto` to `"onTag"` for electron-builder.
+
+---
+
+## v1.2.4
+
+**Released: 2026-02-22**
+
+### Bug Fixes
+
+- Add decorated-window native macOS build and publish steps to CI.
+
+---
+
+## v1.2.3
+
+**Released: 2026-02-21**
+
+### Bug Fixes
+
+- Round bottom corners of decorated window on GNOME.
+- Use Developer ID signing for DMG/ZIP formats to pass notarization.
+
+---
+
+## v1.2.2
+
+**Released: 2026-02-20**
+
+### New Features
+
+- **Generic publish provider** — New `generic` provider for self-hosted update servers, alongside GitHub and S3. See [Auto-Update](auto-update.md).
+
+---
+
+## v1.2.1
+
+**Released: 2026-02-20**
+
+### Bug Fixes
+
+- Prevent crash when no publish provider is configured in electron-builder.
+
+---
+
+## v1.2.0
+
+**Released: 2026-02-20**
+
+### New Features
+
+- **Native SSL module** (`nucleus.native-ssl`) — Load OS-trusted certificates via JNI: macOS Keychain (`SecTrustCopyAnchorCertificates`), Windows Crypt32, Linux system cert paths. Aligns with JetBrains `jvm-native-trusted-roots`. Includes cryptographic `isSelfSigned` verification on macOS. See [Native SSL](runtime/native-ssl.md).
+- **Native HTTP modules** (`nucleus.native-http`, `nucleus.native-http-okhttp`, `nucleus.native-http-ktor`) — HTTP clients that use the OS trust store out of the box, with OkHttp and Ktor adapters. See [Native HTTP](runtime/native-http.md).
+- **CA certificate patching** — New build-time task patches the JVM's `cacerts` with OS-trusted certificates.
+- **ProGuard JNI keep rules** — Default ProGuard template now includes keep rules for `native-ssl`.
+
+### Documentation
+
+- Add native-ssl and native-http module documentation.
+- Update comparison with CA certificate patching and native SSL details.
+
+---
+
+## v1.1.6
+
+**Released: 2026-02-20**
+
+### New Features
+
+- Default `artifactName` to `${name}-${version}-${os}-${arch}.${ext}` for consistent naming.
+
+### Bug Fixes
+
+- Preserve symlinks when copying app image on macOS.
+- Isolate app image and electron-builder cache per task.
+- Add PR packaging test workflow for all platforms.
+
+---
+
+## v1.1.4
+
+**Released: 2026-02-19**
+
+### Bug Fixes
+
+- Isolate npm cache per task to prevent `EPERM` on parallel builds.
+- Resolve configuration cache serialization error for sandboxed pipeline.
+
+---
+
+## v1.1.3
+
+**Released: 2026-02-19**
+
+### Bug Fixes
+
+- Default `setup-node` to `true` and remove npm cache workaround.
+
+---
+
+## v1.1.2
+
+**Released: 2026-02-19**
+
+### Bug Fixes
+
+- Clean npm cache on Windows runners to prevent `ECOMPROMISED` errors.
+- Only enable sandboxed pipeline for OS-compatible store formats.
+
+### Documentation
+
+- Add `TargetFormat` import change note (from `compose` to `nucleus`) to migration guide.
+- Add ProGuard rules documentation for JNI libraries.
+- Add LLM documentation (`llms.txt`, `llms-full.txt`).
+- Add comprehensive packaging tools comparison page.
+
+---
+
+## v1.1.1
+
+**Released: 2026-02-19**
+
+### Bug Fixes
+
+- Unseal `jbr-api` JAR to prevent sealing violation on startup.
+
+---
+
+## v1.1.0
+
+**Released: 2026-02-19**
+
+### New Features
+
+- **Decorated Window module** (`nucleus.decorated-window`) — Custom window decorations with native title bars, traffic light buttons on macOS, window controls on Windows (close/minimize/maximize), and GNOME/KDE styling on Linux. Replaces JNA/Unsafe with an Objective-C JNI bridge on macOS. See [Decorated Window](runtime/decorated-window.md).
+- **Material theme module** (`nucleus.decorated-window-material`) — Automatic Material 3 color mapping for `DecoratedWindow`.
+- **Darkmode Detector module** (`nucleus.darkmode-detector`) — Reactive OS dark mode detection via JNI on macOS, Windows, and Linux (XDG Desktop Portal). Replaces the JNA-based implementation with pure JNI for smaller binaries and no external dependencies. See [Darkmode Detector](runtime/darkmode-detector.md).
+- **RTL layout support** — Title bar respects right-to-left layout direction with dedicated toggle icons.
+- **KDE Breeze window styling** — Dedicated icon set, corner radius, and hover/pressed states matching KDE Plasma.
+- **GNOME window styling** — Rounded corners, subtle border, and inactive title bar styling matching GNOME/Adwaita.
+
+### Bug Fixes
+
+- Dispatch AppKit calls to main thread in JNI bridge.
+- Hide border when window is maximized in any direction or fills the screen.
+- Use rounded border shape matching GNOME/KDE window corners.
+
+---
+
+## v1.0.9
+
+**Released: 2026-02-18**
+
+### Bug Fixes
+
+- Flatten native lib extraction to resources root for sandboxed builds.
+
+---
+
+## v1.0.8
+
+**Released: 2026-02-18**
+
+### Bug Fixes
+
+- Move native dylibs to `Contents/Frameworks/` for sandboxed macOS builds.
+- Place universal-arch native libs in resources root.
+
+---
+
+## v1.0.7
+
+**Released: 2026-02-18**
+
+### Bug Fixes
+
+- Prevent JAR filename collisions in sandboxed pipeline.
+- Ad-hoc sign `jspawnhelper` instead of stripping signature.
+
+---
+
+## v1.0.6
+
+**Released: 2026-02-18**
+
+### Bug Fixes
+
+- Inject `application-identifier` for App Store signing and fix configuration cache.
+
+---
+
+## v1.0.5
+
+**Released: 2026-02-17**
+
+### Bug Fixes
+
+- Bypass electron-builder for App Store PKG signing.
+- Use full installer identity for PKG signing.
+
+---
+
+## v1.0.4
+
+**Released: 2026-02-17**
+
+### Bug Fixes
+
+- Re-sign macOS app after `.cfg` modification for PKG builds.
+- Use separate sandboxed entitlements for App Store PKG signing.
+
+---
+
+## v1.0.3
+
+**Released: 2026-02-17**
+
+### Bug Fixes
+
+- Strip certificate prefix from PKG identity for electron-builder.
+
+---
+
+## v1.0.2
+
+**Released: 2026-02-17**
+
+### New Features
+
+- **`installAndQuit()`** — Silent background update API that installs the update and exits without restarting.
+
+---
+
+## v1.0.1
+
+**Released: 2026-02-17**
+
+### Bug Fixes
+
+- Resolve Gradle configuration cache serialization failures.
+- Derive plugin version from Git tag instead of `gradle.properties`.
+- Move `installationPath` to macOS-only DSL.
+
+---
+
+## v1.0.0
+
+**Released: 2026-02-17**
+
+Initial release — fork of the JetBrains Compose Desktop Gradle plugin, repackaged as **Nucleus** with extended packaging, distribution, and runtime features.
+
+### Packaging & Distribution
+
+- **Electron-builder backend** — DMG, PKG, NSIS, NSIS Web, AppImage, DEB, RPM, Snap, and AppX formats. Replaces jpackage for installer generation.
+- **macOS code signing and notarization** — Developer ID and App Store signing, automatic notarization via `notarytool`.
+- **macOS App Sandbox** — Sandboxed PKG builds with JNI library extraction, entitlements management, and provisioning profiles.
+- **Windows code signing** — SignTool integration with SHA-256 hashing.
+- **AppX packaging** — Windows Store packaging with tile assets and identity configuration.
+- **DMG customization** — Background images, icon positioning, window size, badge icons, and format selection.
+- **Layered icons** — macOS 26+ `.icon` directory support for dynamic tilt/depth effects.
+- **Splash screen** — Splash image support in JVM launcher.
+- **Universal macOS binaries** — CI workflow for `lipo`-based fat binaries (Apple Silicon + Intel).
+- **Type-safe DSL** — Enums for target formats, publish modes, and compression settings replace raw strings.
+- **Linux packaging options** — `startupWMClass`, `debDepends`, `rpmRequires`, `debCompression`, `rpmCompression`, after-install scripts, and architecture suffixes.
+- **File associations** — macOS `CFBundleURLTypes` injection and Linux/Windows file association support via electron-builder.
+
+### Runtime Modules
+
+- **`core-runtime`** — Executable type detection, platform identification, `SingleInstanceManager`, `DeepLinkHandler`.
+- **`aot-runtime`** — AOT cache mode detection for JDK 25+ (Project Leyden). AOT cache generation task with safety timeout.
+- **`updater-runtime`** — Auto-update engine with GitHub and S3 providers. SHA-512 verification, progress tracking, `installAndRestart()`. Platform-specific install strategies: detached shell script on macOS, background PowerShell on Windows, AppImage replacement on Linux.
+
+### Build & CI
+
+- **Composite actions** — `setup-nucleus`, `update-yml`, and release publishing actions.
+- **Cross-platform release workflow** — macOS (arm64 + x64 + universal), Windows (x64 + arm64), Linux (x64 + arm64).
+- **Configuration cache support** — Full Gradle configuration cache compatibility.
+- **Plugin version from Git tag** — No manual version management in `gradle.properties`.
