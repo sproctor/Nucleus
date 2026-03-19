@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.2
+
+**Released: 2026-03-19**
+
+### Bug Fixes
+
+- **Sync control buttons layout direction with `controlButtonsDirection`** — Control buttons (close, maximize, minimize) now inherit the resolved `controlButtonsDirection` as their `LocalLayoutDirection`. Previously, in RTL apps with `ControlButtonsDirection.System`, button internals were rendered in RTL even though the buttons were placed on the correct side. Introduces `LocalControlButtonsDirection` composition local, consumed by `WindowControlArea` and `WindowsWindowControlArea`.
+
+---
+
 ## v1.5.1
 
 **Released: 2026-03-19**
