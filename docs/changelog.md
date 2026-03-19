@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **Automatic Liquid Glass support via `macOsSdkVersion`** — Nucleus now automatically patches the app launcher's `LC_BUILD_VERSION` Mach-O header to macOS SDK 26.0 using `vtool`, enabling Liquid Glass window decorations (larger traffic lights, rounded corners). This works with **any JDK** — a JDK compiled with Xcode 26 is no longer required. The `run` task uses a cached patched copy of the JVM, while distributable builds patch the launcher before signing. Controlled via `macOS { macOsSdkVersion = "26.0" }` (enabled by default, set to `null` to disable). Requires Xcode Command Line Tools. See [macOS 26 Window Appearance](targets/macos.md#macos-26-window-appearance-liquid-glass).
 - **`Modifier.clientRegion()` for JBR title bar hit testing** — New modifier function that registers composable elements as interactive client regions within a `DecoratedWindow`'s title bar. Client regions receive mouse events (clicks, presses) instead of triggering window dragging. Uses AWT-level mouse listeners with precise coordinate-based hit testing, replacing the old pointer-event-based `customTitleBarMouseEventHandler`. See [Decorated Window](runtime/decorated-window.md).
 
 ### Bug Fixes

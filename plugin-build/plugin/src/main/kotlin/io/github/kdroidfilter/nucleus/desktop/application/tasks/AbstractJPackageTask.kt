@@ -248,6 +248,10 @@ abstract class AbstractJPackageTask
         internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
 
         @get:Input
+        @get:Optional
+        val macOsSdkVersion: Property<String> = objects.nullableProperty()
+
+        @get:Input
         val sandboxingEnabled: Property<Boolean> = objects.notNullProperty(false)
 
         private val iconMapping by lazy {
@@ -581,6 +585,15 @@ abstract class AbstractJPackageTask
                 target = runtimeDir.resolve("Contents/embedded.provisionprofile"),
                 overwrite = true,
             )
+            // Patch the jpackage launcher's LC_BUILD_VERSION to claim the configured
+            // macOS SDK version, enabling SDK-gated AppKit features (e.g. Liquid Glass).
+            macOsSdkVersion.orNull?.let { sdkVersion ->
+                val launcher = appDir.resolve("Contents/MacOS/${packageName.get()}")
+                if (launcher.exists()) {
+                    patchMachOSdkVersion(launcher, sdkVersion)
+                }
+            }
+
             val appEntitlementsFile = macEntitlementsFile.ioFileOrNull
             val runtimeEntitlementsFile = macRuntimeEntitlementsFile.ioFileOrNull
 
@@ -649,6 +662,46 @@ abstract class AbstractJPackageTask
                     }
                 }
             }
+        }
+
+        private fun patchMachOSdkVersion(
+            binary: File,
+            sdkVersion: String,
+        ) {
+            val vtool = File("/usr/bin/vtool")
+            if (!vtool.exists()) {
+                logger.warn(
+                    "vtool not found at /usr/bin/vtool — skipping macOS SDK version patch. " +
+                        "Install Xcode Command Line Tools to enable this feature.",
+                )
+                return
+            }
+            logger.lifecycle("Patching ${binary.name} LC_BUILD_VERSION to macOS SDK $sdkVersion")
+            // Remove existing code signature (vtool cannot modify signed binaries)
+            runExternalTool(
+                tool = File("/usr/bin/codesign"),
+                args = listOf("--remove-signature", binary.absolutePath),
+                checkExitCodeIsNormal = false,
+            )
+            // Set build version: min deployment 11.0, SDK sdkVersion
+            runExternalTool(
+                tool = vtool,
+                args =
+                    listOf(
+                        "-set-build-version",
+                        "macos",
+                        "11.0",
+                        sdkVersion,
+                        "-tool",
+                        "ld",
+                        "0.0",
+                        "-replace",
+                        "-output",
+                        binary.absolutePath,
+                        binary.absolutePath,
+                    ),
+            )
+            // No need to re-sign here — the existing signing code runs right after
         }
 
         override fun initState() {

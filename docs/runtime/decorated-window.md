@@ -44,14 +44,8 @@ Entirely implemented by Nucleus using JNI native libraries on all platforms. Non
 
 This module does not depend on JBR, making it compatible with **any JVM** (OpenJDK, GraalVM Native Image, etc.). It was specifically designed for use cases where JBR is not available, such as GraalVM native-image builds. On Linux, pair it with [`linux-hidpi`](linux-hidpi.md) for correct HiDPI support.
 
-!!! warning "macOS: requires a JDK compiled with Xcode 26"
-    The macOS native library (`libnucleus_macos_jni.dylib`) must be compiled with **Xcode 26** or later. This means the JDK you use to run your application must also have been built with Xcode 26. JDKs built with older Xcode versions will still work, but the default 16 pt corner radius (or 26 pt with the `macOSLargeCornerRadius()` modifier) will not be available, and the large traffic light highlight will be missing — only the small highlights will be shown.
-
-    **Recommended JDK options:**
-
-    - [**kdroidFilter/JetBrainsRuntime**](https://github.com/kdroidFilter/JetBrainsRuntime) — a fork of JBR that auto-syncs with upstream and includes an RTL fix. Built with Xcode 26.
-    - **Homebrew JDKs** — also compiled with Xcode 26.
-    - **GraalVM native-image** — the host machine must have Xcode 26 installed. The CI is already preconfigured for this.
+!!! info "macOS: Liquid Glass and Xcode 26 appearance"
+    Nucleus automatically patches the application launcher's `LC_BUILD_VERSION` to macOS SDK 26.0 via `vtool`, enabling Liquid Glass window decorations (larger traffic lights, rounded corners). This works with **any JDK** — a JDK compiled with Xcode 26 is no longer required. See [macOS 26 Window Appearance](../targets/macos.md#macos-26-window-appearance-liquid-glass) for details and configuration options.
 
 !!! note "Windows: no white background flash during resize"
     On Windows, Skiko's rendering pipeline clears the DirectX canvas to white before each frame. When the window is resized larger, the newly exposed pixels remain white for one frame — producing a visible white flash. The JNI module eliminates this by adjusting Skiko's clear color to transparent for dark themes (rendered as opaque black on the DirectX surface), so the flash is invisible against a dark background. It also synchronizes the DWM caption and border colors (`DWMWA_CAPTION_COLOR`, `DWMWA_BORDER_COLOR`, `DWMWA_USE_IMMERSIVE_DARK_MODE`) with the title bar color for consistent Windows 11 window chrome styling.
