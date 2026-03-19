@@ -52,7 +52,7 @@ dependencies {
     implementation(libs.jewel.markdown.extensions.gfm.strikethrough, jewelExclusions)
     implementation(libs.jewel.markdown.extensions.images, jewelExclusions)
     implementation(libs.coil.compose)
-    implementation(libs.icons)
+    implementation(libs.intellij.icons)
 
     // Jewel's StandalonePlatformCursorController uses JNA at runtime
     implementation(libs.jna.jpms)

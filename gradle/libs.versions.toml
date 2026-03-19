@@ -36,7 +36,7 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 
 [libraries]
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilVersion" }
-icons = { module = "com.jetbrains.intellij.platform:icons", version.ref = "icons" }
+intellij-icons = { module = "com.jetbrains.intellij.platform:icons", version.ref = "icons" }
 junit = "junit:junit:4.13.2"
 agp = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 agp-api = { module = "com.android.tools.build:gradle-api", version.ref = "agp" }
