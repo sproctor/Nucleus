@@ -229,10 +229,12 @@ class TitleBarMeasurePolicy(
             var leftUsed = leftInset
             var rightUsed = rightInset
 
-            // Start items: leading edge of the content direction
-            placeableGroups[Alignment.Start]?.forEach { (_, placeable) ->
+            // End items (control buttons) first — they claim the extreme edge
+            // before Start items, so they always stay at their designated side
+            // even when content and controls share the same edge.
+            placeableGroups[Alignment.End]?.forEach { (_, placeable) ->
                 val y = Alignment.CenterVertically.align(placeable.height, boxHeight)
-                if (contentIsRtl) {
+                if (controlsOnRight) {
                     placeable.place(boxWidth - rightUsed - placeable.width, y)
                     rightUsed += placeable.width
                 } else {
@@ -241,10 +243,10 @@ class TitleBarMeasurePolicy(
                 }
             }
 
-            // End items (control buttons): trailing edge of the control buttons direction
-            placeableGroups[Alignment.End]?.forEach { (_, placeable) ->
+            // Start items: leading edge of the content direction
+            placeableGroups[Alignment.Start]?.forEach { (_, placeable) ->
                 val y = Alignment.CenterVertically.align(placeable.height, boxHeight)
-                if (controlsOnRight) {
+                if (contentIsRtl) {
                     placeable.place(boxWidth - rightUsed - placeable.width, y)
                     rightUsed += placeable.width
                 } else {
