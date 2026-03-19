@@ -21,6 +21,9 @@ import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.work.DisableCachingByDefault
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.FileOutputStream
@@ -28,6 +31,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+@DisableCachingByDefault(because = "Stripping native libs from JARs is fast and not worth caching")
 internal abstract class CleanNativeLibsTransform : TransformAction<CleanNativeLibsTransform.Parameters> {
     interface Parameters : TransformParameters {
         @get:org.gradle.api.tasks.Input
@@ -38,6 +42,7 @@ internal abstract class CleanNativeLibsTransform : TransformAction<CleanNativeLi
     }
 
     @get:InputArtifact
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
     abstract val inputArtifact: Provider<FileSystemLocation>
 
     override fun transform(outputs: TransformOutputs) {

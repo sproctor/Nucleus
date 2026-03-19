@@ -11,10 +11,12 @@ import io.github.kdroidfilter.nucleus.internal.utils.delete
 import io.github.kdroidfilter.nucleus.internal.utils.ioFile
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -39,8 +41,10 @@ private const val SERVICES_PREFIX = "META-INF/services/"
  * - Windows filesystem is case-insensitive and not every jar can be unzipped without losing files
  * - it's just faster
  */
+@DisableCachingByDefault(because = "Flattens JARs into a single uber JAR; fast and not worth caching")
 abstract class AbstractJarsFlattenTask : AbstractNucleusTask() {
     @get:InputFiles
+    @get:Classpath
     val inputFiles: ConfigurableFileCollection = objects.fileCollection()
 
     @get:OutputFile

@@ -12,8 +12,10 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
+@DisableCachingByDefault(because = "Depends on external macOS native tools")
 abstract class AbstractNativeMacApplicationPackageTask : AbstractNucleusTask() {
     @get:Input
     val packageName: Property<String> = objects.notNullProperty()

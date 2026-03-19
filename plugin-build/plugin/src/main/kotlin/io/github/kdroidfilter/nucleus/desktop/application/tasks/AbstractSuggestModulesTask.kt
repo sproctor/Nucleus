@@ -18,7 +18,9 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
+import org.gradle.work.DisableCachingByDefault
 
+@DisableCachingByDefault(because = "Depends on external jdeps tool")
 abstract class AbstractSuggestModulesTask : AbstractNucleusTask() {
     @get:Input
     val javaHome: Property<String> =
@@ -27,6 +29,7 @@ abstract class AbstractSuggestModulesTask : AbstractNucleusTask() {
         }
 
     @get:InputFiles
+    @get:Classpath
     val files: ConfigurableFileCollection = objects.fileCollection()
 
     @get:InputFile

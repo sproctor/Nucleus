@@ -14,19 +14,24 @@ import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.work.DisableCachingByDefault
 import javax.inject.Inject
 
 // Custom task is used instead of Exec, because Exec does not support
 // lazy configuration yet. Lazy configuration is needed to
 // calculate appImageDir after the evaluation of createApplicationImage
+@DisableCachingByDefault(because = "Runs the application, not a cacheable build step")
 abstract class AbstractRunDistributableTask
     @Inject
     constructor(
         createApplicationImage: TaskProvider<AbstractJPackageTask>,
     ) : AbstractNucleusTask() {
         @get:InputDirectory
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         internal val appImageRootDir: Provider<Directory> = createApplicationImage.flatMap { it.destinationDir }
 
         @get:Input

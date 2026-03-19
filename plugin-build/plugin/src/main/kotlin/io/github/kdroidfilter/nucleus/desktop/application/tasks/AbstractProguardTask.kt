@@ -15,15 +15,19 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import java.io.Writer
 import kotlin.collections.LinkedHashMap
 
+@DisableCachingByDefault(because = "Depends on external ProGuard tool")
 abstract class AbstractProguardTask : AbstractNucleusTask() {
     @get:InputFiles
+    @get:Classpath
     val inputFiles: ConfigurableFileCollection = objects.fileCollection()
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
     val mainJar: RegularFileProperty = objects.fileProperty()
 
     @get:Internal
@@ -34,6 +38,7 @@ abstract class AbstractProguardTask : AbstractNucleusTask() {
         get() = destinationDir.file(mainJarBaseName)
 
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
     val configurationFiles: ConfigurableFileCollection = objects.fileCollection()
 
     @get:Optional
@@ -53,12 +58,14 @@ abstract class AbstractProguardTask : AbstractNucleusTask() {
     // https://github.com/Kotlin/kotlinx.coroutines/blob/master/kotlinx-coroutines-core/jvm/resources/META-INF/proguard/coroutines.pro
     @get:Optional
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
     val defaultComposeRulesFile: RegularFileProperty = objects.fileProperty()
 
     @get:Input
     val proguardVersion: Property<String> = objects.notNullProperty()
 
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
     val proguardFiles: ConfigurableFileCollection = objects.fileCollection()
 
     @get:Input

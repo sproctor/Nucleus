@@ -163,35 +163,43 @@ Create one using **Xcode 26+** or **Apple Icon Composer**:
 - Only effective on macOS build hosts
 - If `actool` is missing, a warning is logged and the build continues without layered icons
 
-## macOS 26 Window Appearance
+## macOS 26 Window Appearance (Liquid Glass)
 
-macOS 26 introduces a refreshed window chrome: **larger traffic light buttons** and **more rounded window corners**. These visual changes are applied automatically by AppKit — but only if the application binary is linked against the macOS 26 SDK, which requires **Xcode 26**.
+macOS 26 introduces a refreshed window chrome with **Liquid Glass**: larger traffic light buttons and more rounded window corners. These visual changes are applied automatically by AppKit — but only if the application binary's `LC_BUILD_VERSION` Mach-O header declares macOS SDK 26.0.
 
-Without Xcode 26, your app will run fine on macOS 26 but will retain the older, smaller traffic lights and sharper corners.
+### Automatic SDK patching
 
-### JVM-based applications
+Nucleus **automatically patches** the app launcher's `LC_BUILD_VERSION` via `vtool` so that AppKit enables Liquid Glass. This works with **any JDK** — a JDK compiled with Xcode 26 is no longer required.
 
-When running on a JVM, the window chrome is determined by the JDK's native libraries. You need a JDK that was **compiled with Xcode 26** to get the new appearance.
+The patching is controlled by the `macOsSdkVersion` DSL property (defaults to `"26.0"`):
 
-**JetBrains Runtime (JBR)** is the recommended JDK for Compose Desktop. However, as of now, no official JBR release has been compiled with Xcode 26. The Nucleus project maintains a [custom JBR fork](https://github.com/kdroidFilter/JetBrainsRuntime) (`v25.0.2b329.66-rtl`) that is built with Xcode 26 and includes an additional RTL layout fix.
-
-Use it in CI by overriding the JBR download URL in the `setup-nucleus` action:
-
-```yaml
-- uses: ./.github/actions/setup-nucleus
-  with:
-    jbr-download-url: 'https://github.com/kdroidFilter/JetBrainsRuntime/releases/download/v25.0.2b329.66-rtl/jdk-macos-aarch64.tar.gz'
+```kotlin
+nucleus {
+    nativeDistributions {
+        macOS {
+            macOsSdkVersion = "26.0"  // default — enables Liquid Glass
+            // macOsSdkVersion = null // disable SDK version patching
+        }
+    }
+}
 ```
 
-Available architectures:
+**What gets patched:**
 
-| Architecture | URL |
-|---|---|
-| ARM64 (Apple Silicon) | `.../jdk-macos-aarch64.tar.gz` |
-| x64 (Intel) | `.../jdk-macos-x64.tar.gz` |
+| Task | How |
+|------|-----|
+| `createDistributable` / `createSandboxedDistributable` | Launcher patched in the app bundle before signing |
+| `packageDmg` / `packagePkg` | Derived from the patched distributable |
+| `runDistributable` | Runs the patched app bundle |
+| `run` | Uses a cached patched copy of the JVM binary |
 
-!!! note
-    Once an official JBR release compiled with Xcode 26 becomes available, you should switch to it. This fork is a temporary solution.
+**Requirements:**
+
+- **Xcode Command Line Tools** must be installed (`vtool` and `codesign` must be available at `/usr/bin/`). If missing, a warning is logged and patching is skipped.
+- Only effective on macOS; ignored on other platforms.
+
+!!! note "How it works"
+    `vtool` modifies the `LC_BUILD_VERSION` load command in the Mach-O binary, setting the SDK version to 26.0. This is the same header that the linker writes when you compile with `-sdk_version 26.0`. The modification only affects metadata — no code is changed. For distributable builds, the launcher is patched before signing, so the code signature covers the patched binary. For the `run` task, a patched copy of the JVM is cached at `~/Library/Caches/nucleus/patched-jvm/` and invalidated when the source JDK changes.
 
 ### GraalVM Native Image
 
@@ -206,10 +214,7 @@ For applications compiled with GraalVM Native Image, the native binary is linked
   run: ./gradlew :myapp:packageGraalvmNative --no-daemon
 ```
 
-No custom JDK is needed at runtime since the output is a standalone native binary. Xcode 26 at **build time** is sufficient.
-
-!!! tip "See it in action"
-    The [example app CI](./../ci-cd.md) demonstrates both approaches: custom JBR for JVM builds and Xcode 26 selection for GraalVM native image builds. Check `.github/workflows/release-desktop.yaml` and `.github/workflows/test-graalvm.yaml`.
+No custom JDK is needed at runtime since the output is a standalone native binary. Xcode 26 at **build time** is sufficient. The `macOsSdkVersion` patching does not apply to GraalVM native images — they get the SDK version from the linker directly.
 
 ## Universal Binaries
 

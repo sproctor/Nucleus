@@ -57,6 +57,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.SetProperty
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
@@ -69,6 +70,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.process.ExecResult
 import org.gradle.work.ChangeType
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.InputChanges
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
@@ -92,6 +94,7 @@ import kotlin.io.path.isRegularFile
  * All final packaging into installer formats (DMG, DEB, RPM, NSIS, etc.) is handled
  * by electron-builder via [AbstractElectronBuilderPackageTask].
  */
+@DisableCachingByDefault(because = "Depends on external jpackage tool")
 @Suppress("UnnecessaryAbstractClass")
 abstract class AbstractJPackageTask
     @Inject
@@ -100,6 +103,7 @@ abstract class AbstractJPackageTask
         val targetFormat: TargetFormat,
     ) : AbstractJvmToolOperationTask("jpackage") {
         @get:InputFiles
+        @get:Classpath
         val files: ConfigurableFileCollection = objects.fileCollection()
 
         /**
@@ -223,6 +227,7 @@ abstract class AbstractJPackageTask
 
         @get:InputDirectory
         @get:Optional
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         val runtimeImage: DirectoryProperty = objects.directoryProperty()
 
         @get:Input
@@ -235,6 +240,7 @@ abstract class AbstractJPackageTask
 
         @get:InputFile
         @get:Optional
+        @get:PathSensitive(PathSensitivity.NONE)
         val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
         @get:Input
@@ -245,7 +251,12 @@ abstract class AbstractJPackageTask
 
         @get:InputDirectory
         @get:Optional
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
+
+        @get:Input
+        @get:Optional
+        val macOsSdkVersion: Property<String> = objects.nullableProperty()
 
         @get:Input
         val sandboxingEnabled: Property<Boolean> = objects.notNullProperty(false)
@@ -581,6 +592,15 @@ abstract class AbstractJPackageTask
                 target = runtimeDir.resolve("Contents/embedded.provisionprofile"),
                 overwrite = true,
             )
+            // Patch the jpackage launcher's LC_BUILD_VERSION to claim the configured
+            // macOS SDK version, enabling SDK-gated AppKit features (e.g. Liquid Glass).
+            macOsSdkVersion.orNull?.let { sdkVersion ->
+                val launcher = appDir.resolve("Contents/MacOS/${packageName.get()}")
+                if (launcher.exists()) {
+                    patchMachOSdkVersion(launcher, sdkVersion)
+                }
+            }
+
             val appEntitlementsFile = macEntitlementsFile.ioFileOrNull
             val runtimeEntitlementsFile = macRuntimeEntitlementsFile.ioFileOrNull
 
@@ -649,6 +669,46 @@ abstract class AbstractJPackageTask
                     }
                 }
             }
+        }
+
+        private fun patchMachOSdkVersion(
+            binary: File,
+            sdkVersion: String,
+        ) {
+            val vtool = File("/usr/bin/vtool")
+            if (!vtool.exists()) {
+                logger.warn(
+                    "vtool not found at /usr/bin/vtool — skipping macOS SDK version patch. " +
+                        "Install Xcode Command Line Tools to enable this feature.",
+                )
+                return
+            }
+            logger.lifecycle("Patching ${binary.name} LC_BUILD_VERSION to macOS SDK $sdkVersion")
+            // Remove existing code signature (vtool cannot modify signed binaries)
+            runExternalTool(
+                tool = File("/usr/bin/codesign"),
+                args = listOf("--remove-signature", binary.absolutePath),
+                checkExitCodeIsNormal = false,
+            )
+            // Set build version: min deployment 11.0, SDK sdkVersion
+            runExternalTool(
+                tool = vtool,
+                args =
+                    listOf(
+                        "-set-build-version",
+                        "macos",
+                        "11.0",
+                        sdkVersion,
+                        "-tool",
+                        "ld",
+                        "0.0",
+                        "-replace",
+                        "-output",
+                        binary.absolutePath,
+                        binary.absolutePath,
+                    ),
+            )
+            // No need to re-sign here — the existing signing code runs right after
         }
 
         override fun initState() {

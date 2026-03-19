@@ -18,6 +18,7 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.BufferedInputStream
 import java.util.zip.ZipInputStream
 
@@ -28,6 +29,7 @@ import java.util.zip.ZipInputStream
  * This is required for macOS App Sandbox compatibility: sandboxed apps cannot load
  * unsigned native code extracted to temp directories at runtime.
  */
+@DisableCachingByDefault(because = "Extracts native libs from JARs; output depends on JAR content order")
 abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NAME_ONLY)

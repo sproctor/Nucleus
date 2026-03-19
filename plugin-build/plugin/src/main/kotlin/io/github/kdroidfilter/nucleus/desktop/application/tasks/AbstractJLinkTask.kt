@@ -17,10 +17,14 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
 // todo: public DSL
 // todo: deduplicate if multiple runtimes are created
+@DisableCachingByDefault(because = "Depends on external jlink tool")
 @Suppress("UnnecessaryAbstractClass")
 abstract class AbstractJLinkTask : AbstractJvmToolOperationTask("jlink") {
     @get:Input
@@ -30,6 +34,7 @@ abstract class AbstractJLinkTask : AbstractJvmToolOperationTask("jlink") {
     val includeAllModules: Property<Boolean> = objects.notNullProperty()
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
     val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
     @get:Input

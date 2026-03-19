@@ -822,6 +822,7 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                 packageTask.nonValidatedMacBundleID.set(mac.bundleID)
                 packageTask.macProvisioningProfile.set(mac.provisioningProfile)
                 packageTask.macRuntimeProvisioningProfile.set(mac.runtimeProvisioningProfile)
+                packageTask.macOsSdkVersion.set(mac.macOsSdkVersion)
                 packageTask.macExtraPlistKeysRawXml.set(mac.infoPlistSettings.extraKeysRawXml)
                 packageTask.nonValidatedMacSigningSettings = app.nativeDistributions.macOS.signing
                 packageTask.iconFile.set(mac.iconFile.orElse(defaultResources.get { macIcon }))
@@ -842,6 +843,41 @@ private fun JvmApplicationContext.configureRunTask(
 
     exec.mainClass.set(app.mainClass)
     exec.executable(javaExecutable(app.javaHome))
+    if (currentOS == OS.MacOS) {
+        val sdkVersion = app.nativeDistributions.macOS.macOsSdkVersion
+        if (sdkVersion != null) {
+            val javaHome = app.javaHome
+            // Run via a patched copy of the java binary (like ComposeDarwinUi).
+            // We can't change JavaExec.executable or javaLauncher due to Gradle 9.4
+            // finalization/validation, so we run the process manually in doFirst
+            // and skip the JavaExec action.
+            exec.doFirst {
+                val je = it as JavaExec
+                val patchedJava = getOrCreatePatchedJvm(javaHome, sdkVersion, je.logger)
+                val cmd = mutableListOf(patchedJava)
+                cmd.addAll(je.jvmArgs)
+                cmd.add("-cp")
+                cmd.add(je.classpath.asPath)
+                cmd.add(je.mainClass.get())
+                cmd.addAll(je.args)
+                val exitCode =
+                    ProcessBuilder(cmd)
+                        .inheritIO()
+                        .start()
+                        .waitFor()
+                if (exitCode != 0) {
+                    throw org.gradle.api.GradleException(
+                        "Process finished with non-zero exit value $exitCode",
+                    )
+                }
+                // Skip the JavaExec action — we already ran the process above.
+                // This is necessary because Gradle 9.4 finalizes javaLauncher before
+                // execution, preventing us from changing executable to the patched path.
+                throw org.gradle.api.tasks
+                    .StopExecutionException()
+            }
+        }
+    }
     exec.jvmArgs =
         arrayListOf<String>().apply {
             addAll(defaultJvmArgs)
@@ -961,3 +997,98 @@ private fun sandboxingJvmArgs(resourcesPath: String): List<String> =
         "-Djna.boot.library.path=$resourcesPath",
         "-Djna.library.path=$resourcesPath",
     )
+
+/**
+ * Returns the path to a patched copy of the JVM java binary with
+ * LC_BUILD_VERSION set to the given SDK version. The patched binary is cached
+ * in ~/Library/Caches/nucleus/patched-jvm/ and invalidated by SHA-256 hash.
+ * Mirrors JAVA_HOME/lib via symlink for @loader_path rpath resolution.
+ */
+private fun getOrCreatePatchedJvm(
+    javaHome: String,
+    sdkVersion: String,
+    logger: org.gradle.api.logging.Logger,
+): String {
+    val javaBin = java.io.File(javaHome, "bin/java")
+    if (!javaBin.exists()) return javaBin.absolutePath
+
+    val vtool = java.io.File("/usr/bin/vtool")
+    if (!vtool.exists()) {
+        logger.warn(
+            "vtool not found at /usr/bin/vtool — skipping macOS SDK version patch. " +
+                "Install Xcode Command Line Tools to enable Liquid Glass.",
+        )
+        return javaBin.absolutePath
+    }
+
+    val cacheDir =
+        java.io.File(System.getProperty("user.home"), "Library/Caches/nucleus/patched-jvm")
+    val patched = java.io.File(cacheDir, "bin/java")
+    val stampFile = java.io.File(cacheDir, ".source_hash")
+
+    // Include sdkVersion in the cache key so changing the DSL property invalidates the cache
+    val sourceHash =
+        javaBin.inputStream().use { stream ->
+            java.security.MessageDigest.getInstance("SHA-256").let { md ->
+                md.update(sdkVersion.toByteArray())
+                val buf = ByteArray(8192)
+                var n: Int
+                while (stream.read(buf).also { n = it } != -1) md.update(buf, 0, n)
+                md.digest().joinToString("") { b -> "%02x".format(b) }
+            }
+        }
+    val cachedHash = if (stampFile.exists()) stampFile.readText().trim() else ""
+
+    if (patched.exists() && sourceHash == cachedHash) {
+        return patched.absolutePath
+    }
+
+    logger.lifecycle("Patching JVM binary for macOS SDK $sdkVersion (Liquid Glass)...")
+    cacheDir.resolve("bin").mkdirs()
+
+    // Mirror JAVA_HOME/lib so @loader_path/../lib resolves correctly
+    val libLink = cacheDir.resolve("lib")
+    if (libLink.exists()) libLink.delete()
+    java.nio.file.Files.createSymbolicLink(
+        libLink.toPath(),
+        java.io.File(javaHome, "lib").toPath(),
+    )
+
+    javaBin.copyTo(patched, overwrite = true)
+    patched.setExecutable(true)
+
+    ProcessBuilder("codesign", "--remove-signature", patched.absolutePath)
+        .redirectErrorStream(true)
+        .start()
+        .waitFor()
+    val vtoolExit =
+        ProcessBuilder(
+            "vtool",
+            "-set-build-version",
+            "macos",
+            "11.0",
+            sdkVersion,
+            "-tool",
+            "ld",
+            "0.0",
+            "-replace",
+            "-output",
+            patched.absolutePath,
+            patched.absolutePath,
+        ).redirectErrorStream(true)
+            .start()
+            .waitFor()
+    if (vtoolExit != 0) {
+        logger.warn("vtool exited with code $vtoolExit — Liquid Glass patch may have failed")
+        return javaBin.absolutePath
+    }
+    // Ad-hoc re-sign the patched copy (required for macOS to allow execution)
+    ProcessBuilder("codesign", "-s", "-", "-f", patched.absolutePath)
+        .redirectErrorStream(true)
+        .start()
+        .waitFor()
+
+    stampFile.writeText(sourceHash)
+    logger.lifecycle("Patched binary cached at ${patched.absolutePath}")
+    return patched.absolutePath
+}

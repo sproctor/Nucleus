@@ -22,11 +22,13 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import kotlin.getValue
 
 private const val KOTLIN_NATIVE_MIN_SUPPORTED_MAC_OS = "10.13"
 
+@DisableCachingByDefault(because = "Depends on external macOS native tools")
 @Suppress("UnnecessaryAbstractClass")
 abstract class AbstractNativeMacApplicationPackageAppDirTask : AbstractNativeMacApplicationPackageTask() {
     @get:InputFile
@@ -60,6 +62,7 @@ abstract class AbstractNativeMacApplicationPackageAppDirTask : AbstractNativeMac
 
     @get:InputDirectory
     @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
 
     private val macAssetsTool by lazy { MacAssetsTool(runExternalTool, logger) }

@@ -98,6 +98,16 @@ abstract class JvmMacOSPlatformSettings : AbstractMacOSPlatformSettings() {
     val provisioningProfile: RegularFileProperty = objects.fileProperty()
     val runtimeProvisioningProfile: RegularFileProperty = objects.fileProperty()
 
+    /**
+     * Target macOS SDK version to set in the app launcher's Mach-O headers via vtool.
+     * This allows AppKit to enable features gated behind a specific SDK version
+     * (e.g. Liquid Glass requires SDK 26.0).
+     *
+     * Set to null to disable patching. Defaults to "26.0".
+     * Only effective on macOS; ignored on other platforms.
+     */
+    var macOsSdkVersion: String? = "26.0"
+
     internal val infoPlistSettings = InfoPlistSettings()
 
     fun infoPlist(fn: Action<InfoPlistSettings>) {
