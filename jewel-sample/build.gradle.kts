@@ -41,6 +41,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(project(":core-runtime"))
     implementation(project(":darkmode-detector"))
+    implementation(project(":decorated-window-jewel"))
     implementation(project(":decorated-window-jni"))
     val jewelExclusions =
         Action<ExternalModuleDependency> {

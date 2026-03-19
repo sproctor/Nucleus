@@ -10,6 +10,7 @@ Nucleus provides runtime libraries for use in your application code. All are pub
 | AOT Runtime | `io.github.kdroidfilter:nucleus.aot-runtime` | AOT cache detection (includes core-runtime via `api`) |
 | Updater Runtime | `io.github.kdroidfilter:nucleus.updater-runtime` | Auto-update library (includes core-runtime) |
 | Decorated Window | `io.github.kdroidfilter:nucleus.decorated-window` | Custom window decorations with native title bar |
+| Decorated Window — Jewel | `io.github.kdroidfilter:nucleus.decorated-window-jewel` | Jewel (IntelliJ theme) color mapping for decorated windows |
 | Decorated Window — Material 2 | `io.github.kdroidfilter:nucleus.decorated-window-material2` | Material 2 color mapping for decorated windows |
 | Decorated Window — Material 3 | `io.github.kdroidfilter:nucleus.decorated-window-material3` | Material 3 color mapping for decorated windows |
 | Dark Mode Detector | `io.github.kdroidfilter:nucleus.darkmode-detector` | Reactive OS dark mode detection via JNI |
@@ -29,6 +30,7 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jewel:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")

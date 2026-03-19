@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
-import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
 import io.github.kdroidfilter.nucleus.window.macOSLargeCornerRadius
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
 import jewelsample.IntUiThemes
@@ -35,7 +35,7 @@ import java.net.URI
 internal fun DecoratedWindowScope.TitleBarView() {
     val startPadding = if (hostOs.isMacOS) 0.dp else 8.dp
     val titleBarModifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()
-    TitleBar(titleBarModifier, gradientStartColor = MainViewModel.projectColor) {
+    JewelTitleBar(titleBarModifier, gradientStartColor = MainViewModel.projectColor) {
         Row(Modifier.align(Alignment.Start).padding(start = startPadding)) {
             Dropdown(
                 Modifier.height(30.dp),
