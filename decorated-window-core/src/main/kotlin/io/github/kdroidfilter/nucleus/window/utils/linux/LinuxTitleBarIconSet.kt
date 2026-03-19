@@ -2,9 +2,12 @@ package io.github.kdroidfilter.nucleus.window.utils.linux
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.LocalIsDarkTheme
+import io.github.kdroidfilter.nucleus.window.icons.linux.gnome.*
+import io.github.kdroidfilter.nucleus.window.icons.linux.kde.*
 
 internal data class LinuxTitleBarIconSet(
     val close: Painter,
@@ -27,47 +30,82 @@ internal data class LinuxTitleBarIconSet(
     val restoreInactive: Painter,
 )
 
-@Suppress("DEPRECATION")
 @Composable
 internal fun linuxTitleBarIcons(
     de: LinuxDesktopEnvironment = LinuxDesktopEnvironment.Current,
     isDark: Boolean = LocalIsDarkTheme.current,
 ): LinuxTitleBarIconSet {
-    val prefix =
-        when (de) {
-            LinuxDesktopEnvironment.KDE -> "nucleus/window/icons/linux/kde"
-            else -> "nucleus/window/icons/linux/gnome"
-        }
     val isKde = de == LinuxDesktopEnvironment.KDE
-    val suffix = if (isDark) "_dark" else ""
+    return if (isKde) kdeIcons(isDark) else gnomeIcons(isDark)
+}
 
-    // KDE close hover/pressed icons are the same in light and dark (colored circle + white X)
-    val closeHover = painterResource("$prefix/closeHover${if (isKde) "" else suffix}.svg")
-    val closePressed = painterResource("$prefix/closePressed${if (isKde) "" else suffix}.svg")
+@Composable
+private fun icon(
+    light: ImageVector,
+    dark: ImageVector,
+    isDark: Boolean,
+): Painter = rememberVectorPainter(if (isDark) dark else light)
 
-    val minimize = painterResource("$prefix/minimize$suffix.svg")
-    val maximize = painterResource("$prefix/maximize$suffix.svg")
-    val restore = painterResource("$prefix/restore$suffix.svg")
+@Composable
+private fun gnomeIcons(isDark: Boolean): LinuxTitleBarIconSet {
+    val g = GnomeControlButtonsIcons
+    val closeHover = icon(g.CloseHover, g.CloseHoverDark, isDark)
+    val closePressed = icon(g.ClosePressed, g.ClosePressedDark, isDark)
+    val minimize = icon(g.Minimize, g.MinimizeDark, isDark)
+    val maximize = icon(g.Maximize, g.MaximizeDark, isDark)
+    val restore = icon(g.Restore, g.RestoreDark, isDark)
 
     return LinuxTitleBarIconSet(
-        close = painterResource("$prefix/close$suffix.svg"),
+        close = icon(g.Close, g.CloseDark, isDark),
         closeHover = closeHover,
         closePressed = closePressed,
-        closeHoverFocused = if (isKde) painterResource("$prefix/closeHoverFocused.svg") else closeHover,
-        closePressedFocused = if (isKde) painterResource("$prefix/closePressedFocused.svg") else closePressed,
-        closeInactive = painterResource("$prefix/closeInactive$suffix.svg"),
+        closeHoverFocused = closeHover,
+        closePressedFocused = closePressed,
+        closeInactive = icon(g.CloseInactive, g.CloseInactiveDark, isDark),
         minimize = minimize,
-        minimizeHover = painterResource("$prefix/minimizeHover$suffix.svg"),
-        minimizePressed = painterResource("$prefix/minimizePressed$suffix.svg"),
-        // KDE dark: inactive icons are identical to normal icons
-        minimizeInactive = if (isKde && isDark) minimize else painterResource("$prefix/minimizeInactive$suffix.svg"),
+        minimizeHover = icon(g.MinimizeHover, g.MinimizeHoverDark, isDark),
+        minimizePressed = icon(g.MinimizePressed, g.MinimizePressedDark, isDark),
+        minimizeInactive = icon(g.MinimizeInactive, g.MinimizeInactiveDark, isDark),
         maximize = maximize,
-        maximizeHover = painterResource("$prefix/maximizeHover$suffix.svg"),
-        maximizePressed = painterResource("$prefix/maximizePressed$suffix.svg"),
-        maximizeInactive = if (isKde && isDark) maximize else painterResource("$prefix/maximizeInactive$suffix.svg"),
+        maximizeHover = icon(g.MaximizeHover, g.MaximizeHoverDark, isDark),
+        maximizePressed = icon(g.MaximizePressed, g.MaximizePressedDark, isDark),
+        maximizeInactive = icon(g.MaximizeInactive, g.MaximizeInactiveDark, isDark),
         restore = restore,
-        restoreHover = painterResource("$prefix/restoreHover$suffix.svg"),
-        restorePressed = painterResource("$prefix/restorePressed$suffix.svg"),
-        restoreInactive = if (isKde && isDark) restore else painterResource("$prefix/restoreInactive$suffix.svg"),
+        restoreHover = icon(g.RestoreHover, g.RestoreHoverDark, isDark),
+        restorePressed = icon(g.RestorePressed, g.RestorePressedDark, isDark),
+        restoreInactive = icon(g.RestoreInactive, g.RestoreInactiveDark, isDark),
+    )
+}
+
+@Composable
+private fun kdeIcons(isDark: Boolean): LinuxTitleBarIconSet {
+    val k = KdeControlButtonsIcons
+    // KDE close hover/pressed icons are the same in light and dark
+    val closeHover = rememberVectorPainter(k.CloseHover)
+    val closePressed = rememberVectorPainter(k.ClosePressed)
+    val minimize = icon(k.Minimize, k.MinimizeDark, isDark)
+    val maximize = icon(k.Maximize, k.MaximizeDark, isDark)
+    val restore = icon(k.Restore, k.RestoreDark, isDark)
+
+    return LinuxTitleBarIconSet(
+        close = icon(k.Close, k.CloseDark, isDark),
+        closeHover = closeHover,
+        closePressed = closePressed,
+        closeHoverFocused = rememberVectorPainter(k.CloseHoverFocused),
+        closePressedFocused = rememberVectorPainter(k.ClosePressedFocused),
+        closeInactive = icon(k.CloseInactive, k.CloseInactiveDark, isDark),
+        minimize = minimize,
+        minimizeHover = icon(k.MinimizeHover, k.MinimizeHoverDark, isDark),
+        minimizePressed = icon(k.MinimizePressed, k.MinimizePressedDark, isDark),
+        // KDE dark: inactive icons are identical to normal icons
+        minimizeInactive = if (isDark) minimize else rememberVectorPainter(k.MinimizeInactive),
+        maximize = maximize,
+        maximizeHover = icon(k.MaximizeHover, k.MaximizeHoverDark, isDark),
+        maximizePressed = icon(k.MaximizePressed, k.MaximizePressedDark, isDark),
+        maximizeInactive = if (isDark) maximize else rememberVectorPainter(k.MaximizeInactive),
+        restore = restore,
+        restoreHover = icon(k.RestoreHover, k.RestoreHoverDark, isDark),
+        restorePressed = icon(k.RestorePressed, k.RestorePressedDark, isDark),
+        restoreInactive = if (isDark) restore else rememberVectorPainter(k.RestoreInactive),
     )
 }

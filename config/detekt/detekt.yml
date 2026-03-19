@@ -670,7 +670,7 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts', '**/example/**', '**/jewel-sample/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts', '**/example/**', '**/jewel-sample/**', '**/icons/**']
     ignoreNumbers:
       - '-1'
       - '0'
@@ -856,3 +856,6 @@ style:
     active: true
     excludeImports:
       - 'java.util.*'
+      - 'io.github.kdroidfilter.nucleus.window.icons.linux.gnome.*'
+      - 'io.github.kdroidfilter.nucleus.window.icons.linux.kde.*'
+      - 'io.github.kdroidfilter.nucleus.window.icons.windows.*'

@@ -2,8 +2,30 @@ package io.github.kdroidfilter.nucleus.window.utils.windows
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import io.github.kdroidfilter.nucleus.window.LocalIsDarkTheme
+import io.github.kdroidfilter.nucleus.window.icons.windows.Close
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseFullscreen
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseFullscreenDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseFullscreenInactive
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseFullscreenInactiveDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseHover
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseInactive
+import io.github.kdroidfilter.nucleus.window.icons.windows.CloseInactiveDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.Maximize
+import io.github.kdroidfilter.nucleus.window.icons.windows.MaximizeDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.MaximizeInactive
+import io.github.kdroidfilter.nucleus.window.icons.windows.MaximizeInactiveDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.Minimize
+import io.github.kdroidfilter.nucleus.window.icons.windows.MinimizeDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.MinimizeInactive
+import io.github.kdroidfilter.nucleus.window.icons.windows.MinimizeInactiveDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.Restore
+import io.github.kdroidfilter.nucleus.window.icons.windows.RestoreDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.RestoreInactive
+import io.github.kdroidfilter.nucleus.window.icons.windows.RestoreInactiveDark
+import io.github.kdroidfilter.nucleus.window.icons.windows.WindowsControlButtonIcons
 
 internal data class WindowsTitleBarIconSet(
     val close: Painter,
@@ -20,21 +42,33 @@ internal data class WindowsTitleBarIconSet(
 )
 
 @Composable
-internal fun windowsTitleBarIcons(isDark: Boolean = LocalIsDarkTheme.current): WindowsTitleBarIconSet {
-    val prefix = "nucleus/window/icons/windows"
-    val suffix = if (isDark) "_dark" else ""
-
-    return WindowsTitleBarIconSet(
-        close = painterResource("$prefix/close$suffix.svg"),
-        closeHover = painterResource("$prefix/closeHover.svg"),
-        closeInactive = painterResource("$prefix/closeInactive$suffix.svg"),
-        minimize = painterResource("$prefix/minimize$suffix.svg"),
-        minimizeInactive = painterResource("$prefix/minimizeInactive$suffix.svg"),
-        maximize = painterResource("$prefix/maximize$suffix.svg"),
-        maximizeInactive = painterResource("$prefix/maximizeInactive$suffix.svg"),
-        restore = painterResource("$prefix/restore$suffix.svg"),
-        restoreInactive = painterResource("$prefix/restoreInactive$suffix.svg"),
-        exitFullscreen = painterResource("$prefix/close_fullscreen$suffix.svg"),
-        exitFullscreenInactive = painterResource("$prefix/close_fullscreenInactive$suffix.svg"),
-    )
-}
+internal fun windowsTitleBarIcons(isDark: Boolean = LocalIsDarkTheme.current): WindowsTitleBarIconSet =
+    if (isDark) {
+        WindowsTitleBarIconSet(
+            close = rememberVectorPainter(WindowsControlButtonIcons.CloseDark),
+            closeHover = rememberVectorPainter(WindowsControlButtonIcons.CloseHover),
+            closeInactive = rememberVectorPainter(WindowsControlButtonIcons.CloseInactiveDark),
+            minimize = rememberVectorPainter(WindowsControlButtonIcons.MinimizeDark),
+            minimizeInactive = rememberVectorPainter(WindowsControlButtonIcons.MinimizeInactiveDark),
+            maximize = rememberVectorPainter(WindowsControlButtonIcons.MaximizeDark),
+            maximizeInactive = rememberVectorPainter(WindowsControlButtonIcons.MaximizeInactiveDark),
+            restore = rememberVectorPainter(WindowsControlButtonIcons.RestoreDark),
+            restoreInactive = rememberVectorPainter(WindowsControlButtonIcons.RestoreInactiveDark),
+            exitFullscreen = rememberVectorPainter(WindowsControlButtonIcons.CloseFullscreenDark),
+            exitFullscreenInactive = rememberVectorPainter(WindowsControlButtonIcons.CloseFullscreenInactiveDark),
+        )
+    } else {
+        WindowsTitleBarIconSet(
+            close = rememberVectorPainter(WindowsControlButtonIcons.Close),
+            closeHover = rememberVectorPainter(WindowsControlButtonIcons.CloseHover),
+            closeInactive = rememberVectorPainter(WindowsControlButtonIcons.CloseInactive),
+            minimize = rememberVectorPainter(WindowsControlButtonIcons.Minimize),
+            minimizeInactive = rememberVectorPainter(WindowsControlButtonIcons.MinimizeInactive),
+            maximize = rememberVectorPainter(WindowsControlButtonIcons.Maximize),
+            maximizeInactive = rememberVectorPainter(WindowsControlButtonIcons.MaximizeInactive),
+            restore = rememberVectorPainter(WindowsControlButtonIcons.Restore),
+            restoreInactive = rememberVectorPainter(WindowsControlButtonIcons.RestoreInactive),
+            exitFullscreen = rememberVectorPainter(WindowsControlButtonIcons.CloseFullscreen),
+            exitFullscreenInactive = rememberVectorPainter(WindowsControlButtonIcons.CloseFullscreenInactive),
+        )
+    }
