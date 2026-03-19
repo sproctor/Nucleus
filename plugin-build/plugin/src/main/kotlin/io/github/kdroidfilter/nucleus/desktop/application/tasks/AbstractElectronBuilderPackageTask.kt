@@ -44,6 +44,7 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.awt.AlphaComposite
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -73,6 +74,7 @@ import kotlin.math.min
  *   4. Invoke electron-builder via npx with `--prepackaged`.
  *   5. Output the final installer/package to [destinationDir].
  */
+@DisableCachingByDefault(because = "Depends on external electron-builder tool")
 @Suppress("LargeClass", "TooManyFunctions")
 abstract class AbstractElectronBuilderPackageTask
     @Inject

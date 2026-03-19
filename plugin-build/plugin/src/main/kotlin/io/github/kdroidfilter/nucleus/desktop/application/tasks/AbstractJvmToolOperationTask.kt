@@ -15,9 +15,11 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.process.ExecResult
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.InputChanges
 import java.io.File
 
+@DisableCachingByDefault(because = "Depends on external JVM tools")
 abstract class AbstractJvmToolOperationTask(
     private val toolName: String,
 ) : AbstractNucleusTask() {

@@ -19,8 +19,10 @@ import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.LocalState
 import org.gradle.process.ExecOperations
+import org.gradle.work.DisableCachingByDefault
 import javax.inject.Inject
 
+@DisableCachingByDefault(because = "Abstract base task, subclasses opt in to caching individually")
 abstract class AbstractNucleusTask : DefaultTask() {
     @get:Inject
     protected abstract val objects: ObjectFactory

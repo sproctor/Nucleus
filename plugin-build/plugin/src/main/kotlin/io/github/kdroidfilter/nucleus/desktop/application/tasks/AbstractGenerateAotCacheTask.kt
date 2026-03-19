@@ -17,6 +17,8 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
@@ -41,6 +43,7 @@ private const val DEFAULT_SAFETY_TIMEOUT_SECONDS = 300L
 @DisableCachingByDefault(because = "AOT cache generation depends on runtime behavior")
 abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
     @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val distributableDir: DirectoryProperty
 
     @get:Internal
@@ -50,11 +53,13 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         }
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
     @get:Optional
     val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
     /** Runtime entitlements file for macOS. Used to re-sign jspawnhelper after AOT training. */
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
     @get:Optional
     val macRuntimeEntitlementsFile: RegularFileProperty = objects.fileProperty()
 

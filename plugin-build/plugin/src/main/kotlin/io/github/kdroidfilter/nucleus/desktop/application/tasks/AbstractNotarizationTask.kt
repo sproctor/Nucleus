@@ -21,12 +21,16 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import java.security.MessageDigest
 import java.util.Base64
 import javax.inject.Inject
 
+@DisableCachingByDefault(because = "Depends on external Apple notarization service")
 abstract class AbstractNotarizationTask
     @Inject
     constructor(
@@ -38,6 +42,7 @@ abstract class AbstractNotarizationTask
         internal var nonValidatedNotarizationSettings: MacOSNotarizationSettings? = null
 
         @get:InputDirectory
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         val inputDir: DirectoryProperty = objects.directoryProperty()
 
         init {

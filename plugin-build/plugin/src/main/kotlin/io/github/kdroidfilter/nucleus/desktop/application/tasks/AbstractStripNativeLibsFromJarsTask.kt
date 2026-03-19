@@ -20,6 +20,7 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.FileOutputStream
@@ -37,6 +38,7 @@ import java.util.zip.ZipOutputStream
  * Output JARs use content-hash-mangled filenames to avoid collisions when multiple
  * input JARs share the same simple name (common in multi-module projects).
  */
+@DisableCachingByDefault(because = "Rewrites JARs to strip native libs; fast and not worth caching")
 abstract class AbstractStripNativeLibsFromJarsTask : AbstractNucleusTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NAME_ONLY)

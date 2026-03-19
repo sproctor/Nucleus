@@ -15,6 +15,8 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
@@ -36,10 +38,12 @@ private const val ALIAS_HASH_LENGTH = 8
 abstract class AbstractPatchCaCertificatesTask : AbstractNucleusTask() {
     /** Source JLink runtime image directory (output of `createRuntimeImage`). */
     @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val runtimeImageDir: DirectoryProperty
 
     /** CA certificate files (PEM or DER format) to import into `cacerts`. */
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
     abstract val certificates: ConfigurableFileCollection
 
     /** Destination directory for the patched runtime image copy. */

@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 internal fun Project.ideaIsInSyncProvider(): Provider<Boolean> =
     provider {
@@ -14,6 +15,7 @@ internal fun Project.ideaIsInSyncProvider(): Provider<Boolean> =
 /**
  * This task should be FAST and SAFE! Because it is being run during IDE import.
  */
+@DisableCachingByDefault(because = "IDE import task, not a cacheable build step")
 internal abstract class IdeaImportTask : DefaultTask() {
     @get:Input
     val ideaIsInSync: Provider<Boolean> = project.ideaIsInSyncProvider()

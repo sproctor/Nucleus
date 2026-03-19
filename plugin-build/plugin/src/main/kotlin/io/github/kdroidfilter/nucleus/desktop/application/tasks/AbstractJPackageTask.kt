@@ -57,6 +57,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.SetProperty
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
@@ -69,6 +70,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.process.ExecResult
 import org.gradle.work.ChangeType
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.InputChanges
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
@@ -92,6 +94,7 @@ import kotlin.io.path.isRegularFile
  * All final packaging into installer formats (DMG, DEB, RPM, NSIS, etc.) is handled
  * by electron-builder via [AbstractElectronBuilderPackageTask].
  */
+@DisableCachingByDefault(because = "Depends on external jpackage tool")
 @Suppress("UnnecessaryAbstractClass")
 abstract class AbstractJPackageTask
     @Inject
@@ -100,6 +103,7 @@ abstract class AbstractJPackageTask
         val targetFormat: TargetFormat,
     ) : AbstractJvmToolOperationTask("jpackage") {
         @get:InputFiles
+        @get:Classpath
         val files: ConfigurableFileCollection = objects.fileCollection()
 
         /**
@@ -223,6 +227,7 @@ abstract class AbstractJPackageTask
 
         @get:InputDirectory
         @get:Optional
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         val runtimeImage: DirectoryProperty = objects.directoryProperty()
 
         @get:Input
@@ -235,6 +240,7 @@ abstract class AbstractJPackageTask
 
         @get:InputFile
         @get:Optional
+        @get:PathSensitive(PathSensitivity.NONE)
         val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
         @get:Input
@@ -245,6 +251,7 @@ abstract class AbstractJPackageTask
 
         @get:InputDirectory
         @get:Optional
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
 
         @get:Input
