@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.3
+
+**Released: 2026-03-19**
+
+### Bug Fixes
+
+- **Fix control buttons global position when content and controls share the same edge** — End-aligned items (control buttons) are now placed before Start-aligned items in the title bar layout. Previously, in RTL apps with LTR control buttons (or vice versa), the content would claim the edge first, pushing buttons inward. Affects all platforms.
+
+---
+
 ## v1.5.2
 
 **Released: 2026-03-19**
