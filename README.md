@@ -89,6 +89,7 @@ Use them independently or together — each module is published to Maven Central
 | **Updater** | `nucleus.updater-runtime` | Auto-update engine with GitHub/S3 providers, progress tracking, SHA-512 verification |
 | **Dark Mode Detector** | `nucleus.darkmode-detector` | Reactive OS dark mode via JNI — macOS, Windows, Linux (D-Bus) |
 | **Decorated Window** | `nucleus.decorated-window` | Custom title bar with native controls — design-system agnostic |
+| **Decorated Window Jewel** | `nucleus.decorated-window-jewel` | Jewel (IntelliJ theme) integration for decorated windows and dialogs |
 | **Decorated Window Material 2** | `nucleus.decorated-window-material2` | Material 2 integration for decorated windows and dialogs |
 | **Decorated Window Material 3** | `nucleus.decorated-window-material3` | Material 3 integration for decorated windows and dialogs |
 | **Linux HiDPI** | `nucleus.linux-hidpi` | Native HiDPI scale factor detection on Linux (JNI) |

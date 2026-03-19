@@ -67,6 +67,7 @@ nav:
           - Single Instance: runtime/single-instance.md
           - Deep Links: runtime/deep-links.md
           - Decorated Window: runtime/decorated-window.md
+          - Decorated Window — Jewel: runtime/decorated-window-jewel.md
           - Decorated Window — Material 2: runtime/decorated-window-material2.md
           - Decorated Window — Material 3: runtime/decorated-window-material3.md
           - Dark Mode Detector: runtime/darkmode-detector.md

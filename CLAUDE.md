@@ -13,7 +13,7 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 - `native-ssl` / `native-http` / `native-http-okhttp` / `native-http-ktor` - OS trust store integration
 - `linux-hidpi` - Native HiDPI scale detection on Linux
 - `graalvm-runtime` - GraalVM native-image bootstrap
-- `decorated-window-core` / `-jbr` / `-jni` / `-material2` / `-material3` - Custom window decorations
+- `decorated-window-core` / `-jbr` / `-jni` / `-jewel` / `-material2` / `-material3` - Custom window decorations
 - `plugin-build/plugin` - Gradle plugin for packaging & distribution
 - `example` / `jewel-sample` / `sample-cmp` - Sample applications
 

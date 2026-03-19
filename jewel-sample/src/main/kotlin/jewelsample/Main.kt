@@ -12,8 +12,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.application
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
-import io.github.kdroidfilter.nucleus.window.DecoratedWindow
-import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
 import jewelsample.view.TitleBarView
 import jewelsample.viewmodel.MainViewModel
 import jewelsample.viewmodel.MainViewModel.currentView
@@ -58,31 +57,29 @@ fun main() {
             styling = ComponentStyling.default(),
             swingCompatMode = MainViewModel.swingCompat,
         ) {
-            NucleusDecoratedWindowTheme(isDark = isTitleBarDark) {
-                DecoratedWindow(
-                    onCloseRequest = { exitApplication() },
-                    title = "Jewel standalone sample",
-                    icon = icon,
-                    onKeyEvent = { keyEvent ->
-                        processKeyShortcuts(keyEvent = keyEvent, onNavigateTo = MainViewModel::onNavigateTo)
-                    },
-                    content = {
-                        if (isTitleBarDark != isDark) {
-                            IntUiTheme(
-                                theme = titleBarTheme,
-                                styling = ComponentStyling.default(),
-                                swingCompatMode = MainViewModel.swingCompat,
-                            ) {
-                                TitleBarView()
-                            }
-                        } else {
+            JewelDecoratedWindow(
+                onCloseRequest = { exitApplication() },
+                title = "Jewel standalone sample",
+                icon = icon,
+                onKeyEvent = { keyEvent ->
+                    processKeyShortcuts(keyEvent = keyEvent, onNavigateTo = MainViewModel::onNavigateTo)
+                },
+                content = {
+                    if (isTitleBarDark != isDark) {
+                        IntUiTheme(
+                            theme = titleBarTheme,
+                            styling = ComponentStyling.default(),
+                            swingCompatMode = MainViewModel.swingCompat,
+                        ) {
                             TitleBarView()
                         }
-                        @OptIn(ExperimentalJewelApi::class)
-                        ProvideMarkdownStyling { currentView.content() }
-                    },
-                )
-            }
+                    } else {
+                        TitleBarView()
+                    }
+                    @OptIn(ExperimentalJewelApi::class)
+                    ProvideMarkdownStyling { currentView.content() }
+                },
+            )
         }
     }
 }

@@ -10,9 +10,6 @@ plugins {
     id("io.github.kdroidfilter.nucleus")
 }
 
-val jewelVersion = "0.34.0-253.31033.149"
-val coilVersion = "3.2.0"
-
 val isMac =
     org.gradle.internal.os.OperatingSystem
         .current()
@@ -41,20 +38,21 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(project(":core-runtime"))
     implementation(project(":darkmode-detector"))
+    implementation(project(":decorated-window-jewel"))
     implementation(project(":decorated-window-jni"))
     val jewelExclusions =
         Action<ExternalModuleDependency> {
             exclude(group = "org.jetbrains.skiko", module = "skiko-awt-runtime-all")
         }
-    implementation("org.jetbrains.jewel:jewel-int-ui-standalone:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-int-ui-standalone-styling:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-extensions-autolink:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-extensions-gfm-alerts:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-extensions-gfm-tables:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-extensions-gfm-strikethrough:$jewelVersion", jewelExclusions)
-    implementation("org.jetbrains.jewel:jewel-markdown-extensions-images:$jewelVersion", jewelExclusions)
-    implementation("io.coil-kt.coil3:coil-compose:$coilVersion")
-    implementation("com.jetbrains.intellij.platform:icons:252.26830.102")
+    implementation(libs.jewel.int.ui.standalone, jewelExclusions)
+    implementation(libs.jewel.markdown.int.ui.standalone.styling, jewelExclusions)
+    implementation(libs.jewel.markdown.extensions.autolink, jewelExclusions)
+    implementation(libs.jewel.markdown.extensions.gfm.alerts, jewelExclusions)
+    implementation(libs.jewel.markdown.extensions.gfm.tables, jewelExclusions)
+    implementation(libs.jewel.markdown.extensions.gfm.strikethrough, jewelExclusions)
+    implementation(libs.jewel.markdown.extensions.images, jewelExclusions)
+    implementation(libs.coil.compose)
+    implementation(libs.intellij.icons)
 
     // Jewel's StandalonePlatformCursorController uses JNA at runtime
     implementation(libs.jna.jpms)

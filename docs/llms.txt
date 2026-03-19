@@ -74,6 +74,7 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window-jewel:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material2:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material3:<version>")
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
@@ -90,6 +91,7 @@ dependencies {
 | `nucleus.aot-runtime` | AOT cache mode detection (includes core-runtime) |
 | `nucleus.updater-runtime` | Auto-update engine with download progress, SHA-512 verification, and custom HTTP client support |
 | `nucleus.decorated-window` | Custom title bar with native window controls (requires JBR) |
+| `nucleus.decorated-window-jewel` | Jewel (IntelliJ theme) integration for decorated windows |
 | `nucleus.decorated-window-material2` | Material 2 integration for decorated windows |
 | `nucleus.decorated-window-material3` | Material 3 integration for decorated windows |
 | `nucleus.darkmode-detector` | Reactive OS dark mode detection via JNI |
