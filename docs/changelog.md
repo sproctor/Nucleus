@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.4
+
+**Released: 2026-03-19**
+
+### New Features
+
+- **Add `controlButtonsDirection` to `DialogTitleBar`** — Propagate `controlButtonsDirection` through the entire `DialogTitleBar` chain: `DialogTitleBarImpl` (core), platform-specific implementations (JNI + JBR for Linux/Windows/macOS), and themed wrappers (`JewelDialogTitleBar`, Material 2 and Material 3 `MaterialDialogTitleBar`). Aligns dialog title bars with the existing `TitleBar` API.
+
+---
+
 ## v1.5.3
 
 **Released: 2026-03-19**
