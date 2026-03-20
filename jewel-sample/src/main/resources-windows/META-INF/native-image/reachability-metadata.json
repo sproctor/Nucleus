@@ -1,23 +1,6 @@
 {
     "reflection": [
         {
-            "type": "com.intellij.openapi.diagnostic.Logger"
-        },
-        {
-            "type": "com.sun.swing.internal.plaf.metal.resources.metal"
-        },
-        {
-            "type": "javax.swing.plaf.metal.MetalRootPaneUI",
-            "methods": [
-                {
-                    "name": "createUI",
-                    "parameterTypes": [
-                        "javax.swing.JComponent"
-                    ]
-                }
-            ]
-        },
-        {
             "type": "jewelsample.MainKt",
             "jniAccessible": true,
             "methods": [
@@ -28,54 +11,6 @@
                     ]
                 }
             ]
-        },
-        {
-            "type": "org.slf4j.Logger",
-            "methods": [
-                {
-                    "name": "info",
-                    "parameterTypes": [
-                        "java.lang.String",
-                        "java.lang.Throwable"
-                    ]
-                },
-                {
-                    "name": "trace",
-                    "parameterTypes": [
-                        "java.lang.String",
-                        "java.lang.Throwable"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "org.slf4j.LoggerFactory",
-            "methods": [
-                {
-                    "name": "getLogger",
-                    "parameterTypes": [
-                        "java.lang.String"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "sun.font.CompositeFont"
-        },
-        {
-            "type": "sun.font.Font2DHandle"
-        },
-        {
-            "type": "sun.font.FontManager"
-        },
-        {
-            "type": "sun.font.FontManagerFactory"
-        },
-        {
-            "type": "sun.font.PhysicalFont"
-        },
-        {
-            "type": "sun.font.SunFontManager"
         }
     ],
     "resources": [

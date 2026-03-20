@@ -8,63 +8,6 @@
         },
         {
             "type": "coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget"
-        },
-        {
-            "type": "com.intellij.openapi.diagnostic.Logger"
-        },
-        {
-            "type": "com.sun.swing.internal.plaf.metal.resources.metal"
-        },
-        {
-            "type": "java.nio.file.Files"
-        },
-        {
-            "type": "javax.swing.plaf.metal.MetalRootPaneUI",
-            "methods": [
-                {
-                    "name": "createUI",
-                    "parameterTypes": [
-                        "javax.swing.JComponent"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "org.slf4j.Logger",
-            "methods": [
-                {
-                    "name": "info",
-                    "parameterTypes": [
-                        "java.lang.String",
-                        "java.lang.Throwable"
-                    ]
-                },
-                {
-                    "name": "trace",
-                    "parameterTypes": [
-                        "java.lang.String",
-                        "java.lang.Throwable"
-                    ]
-                },
-                {
-                    "name": "warn",
-                    "parameterTypes": [
-                        "java.lang.String",
-                        "java.lang.Throwable"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "org.slf4j.LoggerFactory",
-            "methods": [
-                {
-                    "name": "getLogger",
-                    "parameterTypes": [
-                        "java.lang.String"
-                    ]
-                }
-            ]
         }
     ],
     "resources": [

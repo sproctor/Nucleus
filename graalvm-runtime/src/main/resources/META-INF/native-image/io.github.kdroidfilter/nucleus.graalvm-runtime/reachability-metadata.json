@@ -36,6 +36,12 @@
             "type": "byte[][]"
         },
         {
+            "type": "char[]"
+        },
+        {
+            "type": "com.intellij.openapi.diagnostic.Logger"
+        },
+        {
             "type": "com.sun.crypto.provider.AESCipher$General",
             "methods": [
                 {
@@ -122,79 +128,126 @@
             "methods": [
                 {
                     "name": "activateAccessibleHyperlink",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "javax.accessibility.AccessibleHyperlink"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "javax.accessibility.AccessibleHyperlink"
+                    ]
                 },
                 {
                     "name": "addAccessibilityEventNotification",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 },
                 {
                     "name": "addAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "addJavaEventNotification",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 },
                 {
                     "name": "clearAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "decrementReference",
-                    "parameterTypes": ["java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Object"
+                    ]
                 },
                 {
                     "name": "doAccessibleActions",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "java.lang.String"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "java.lang.String"
+                    ]
                 },
                 {
                     "name": "getAccessibleActionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleActionName",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleActionsCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleAttributeSetAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleAttributesAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleBoundsOnScreenFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleCaretPositionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleCharCountFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleChildFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleChildrenCountFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleComponentFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleContextAt",
-                    "parameterTypes": ["int", "int", "javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "int",
+                        "int",
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleContextWithFocus",
@@ -202,363 +255,585 @@
                 },
                 {
                     "name": "getAccessibleDescriptionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleHeightFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleHeightTextRectAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlink",
-                    "parameterTypes": ["javax.accessibility.AccessibleHypertext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHypertext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlinkCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlinkEndIndex",
-                    "parameterTypes": ["javax.accessibility.AccessibleHyperlink"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHyperlink"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlinkStartIndex",
-                    "parameterTypes": ["javax.accessibility.AccessibleHyperlink"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHyperlink"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlinkText",
-                    "parameterTypes": ["javax.accessibility.AccessibleHyperlink"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHyperlink"
+                    ]
                 },
                 {
                     "name": "getAccessibleHyperlinkURL",
-                    "parameterTypes": ["javax.accessibility.AccessibleHyperlink"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHyperlink"
+                    ]
                 },
                 {
                     "name": "getAccessibleHypertext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleHypertextLinkIndex",
-                    "parameterTypes": ["javax.accessibility.AccessibleHypertext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleHypertext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleIconDescription",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleIconHeight",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleIconWidth",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleIconsCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleIndexAtPointFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleIndexInParentFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleKeyBindingChar",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleKeyBindingModifiers",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleKeyBindingsCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleLetterAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleNameFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleParentFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleRelationCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleRelationKey",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleRelationTarget",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleRelationTargetCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleRoleStringFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleRoleStringFromContext_en_US",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleSelectionCountFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleSentenceAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleStatesStringFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleStatesStringFromContext_en_US",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableCellAccessibleContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableCellColumnExtent",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableCellIndex",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableCellRowExtent",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumn",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnDescription",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnHeader",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnHeaderColumnCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnHeaderRowCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnSelectionCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableColumnSelections",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableIndex",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRow",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowDescription",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowHeader",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowHeaderColumnCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowHeaderRowCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowSelectionCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable"
+                    ]
                 },
                 {
                     "name": "getAccessibleTableRowSelections",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextLineLeftBoundsFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextLineRightBoundsFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextRangeFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextRectAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextSelectedTextFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextSelectionEndFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleTextSelectionStartFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleValueFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleWidthFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleWidthTextRectAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleWordAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleXcoordFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleXcoordTextRectAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getAccessibleYcoordFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAccessibleYcoordTextRectAtIndexFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getActiveDescendent",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getAlignmentFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getBackgroundColorFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getBidiLevelFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getBoldFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getCaretLocationHeight",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getCaretLocationWidth",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getCaretLocationX",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getCaretLocationY",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getContextFromAccessibleTable",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable"
+                    ]
                 },
                 {
                     "name": "getContextFromNativeWindowHandle",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 },
                 {
                     "name": "getCurrentAccessibleValueFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getFirstLineIndentFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getFontFamilyFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getFontSizeFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getForegroundColorFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getItalicFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getJavaVersionProperty",
@@ -566,131 +841,208 @@
                 },
                 {
                     "name": "getLeftIndentFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getLineSpacingFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getMaximumAccessibleValueFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getMinimumAccessibleValueFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getNativeWindowHandleFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getObjectDepth",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getParentWithRole",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "java.lang.String"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "java.lang.String"
+                    ]
                 },
                 {
                     "name": "getParentWithRoleElseRoot",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "java.lang.String"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "java.lang.String"
+                    ]
                 },
                 {
                     "name": "getRightIndentFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getSpaceAboveFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getSpaceBelowFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getStrikethroughFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getSubscriptFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getSuperscriptFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getTopLevelObject",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getUnderlineFromAttributeSet",
-                    "parameterTypes": ["javax.swing.text.AttributeSet"]
+                    "parameterTypes": [
+                        "javax.swing.text.AttributeSet"
+                    ]
                 },
                 {
                     "name": "getVirtualAccessibleNameFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "getVisibleChild",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getVisibleChildrenCount",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "isAccessibleChildSelectedFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "isAccessibleTableCellSelected",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "isAccessibleTableColumnSelected",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "isAccessibleTableRowSelected",
-                    "parameterTypes": ["javax.accessibility.AccessibleTable", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleTable",
+                        "int"
+                    ]
                 },
                 {
                     "name": "isJavaWindow",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 },
                 {
                     "name": "removeAccessibilityEventNotification",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 },
                 {
                     "name": "removeAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "removeJavaEventNotification",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 },
                 {
                     "name": "requestFocus",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "selectAllAccessibleSelectionFromContext",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext"
+                    ]
                 },
                 {
                     "name": "selectTextRange",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "setCaretPosition",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "int"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "int"
+                    ]
                 },
                 {
                     "name": "setTextContents",
-                    "parameterTypes": ["javax.accessibility.AccessibleContext", "java.lang.String"]
+                    "parameterTypes": [
+                        "javax.accessibility.AccessibleContext",
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -699,7 +1051,9 @@
             "methods": [
                 {
                     "name": "getVMOption",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -780,6 +1134,9 @@
             "type": "com.sun.swing.internal.plaf.basic.resources.basic"
         },
         {
+            "type": "com.sun.swing.internal.plaf.metal.resources.metal"
+        },
+        {
             "type": "java.awt.AWTEvent",
             "jniAccessible": true,
             "fields": [
@@ -843,7 +1200,24 @@
             "methods": [
                 {
                     "name": "setPData",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.awt.Desktop$Action",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "BROWSE"
+                },
+                {
+                    "name": "MAIL"
+                },
+                {
+                    "name": "OPEN"
                 }
             ]
         },
@@ -873,7 +1247,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -912,7 +1289,9 @@
             "methods": [
                 {
                     "name": "getFont",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 },
                 {
                     "name": "getFontPeer",
@@ -1004,7 +1383,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -1101,7 +1483,9 @@
                 },
                 {
                     "name": "getFontMetrics",
-                    "parameterTypes": ["java.awt.Font"]
+                    "parameterTypes": [
+                        "java.awt.Font"
+                    ]
                 }
             ]
         },
@@ -1145,7 +1529,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.awt.Component", "int"]
+                    "parameterTypes": [
+                        "java.awt.Component",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -1311,7 +1698,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["float", "float"]
+                    "parameterTypes": [
+                        "float",
+                        "float"
+                    ]
                 }
             ]
         },
@@ -1549,7 +1939,11 @@
                 },
                 {
                     "name": "write",
-                    "parameterTypes": ["byte[]", "int", "int"]
+                    "parameterTypes": [
+                        "byte[]",
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -1559,9 +1953,14 @@
             "methods": [
                 {
                     "name": "println",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
+        },
+        {
+            "type": "java.io.Reader"
         },
         {
             "type": "java.lang.Boolean",
@@ -1569,7 +1968,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["boolean"]
+                    "parameterTypes": [
+                        "boolean"
+                    ]
                 },
                 {
                     "name": "booleanValue",
@@ -1577,7 +1978,9 @@
                 },
                 {
                     "name": "getBoolean",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -1595,7 +1998,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["byte"]
+                    "parameterTypes": [
+                        "byte"
+                    ]
                 }
             ]
         },
@@ -1613,7 +2018,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["char"]
+                    "parameterTypes": [
+                        "char"
+                    ]
                 }
             ]
         },
@@ -1641,7 +2048,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["double"]
+                    "parameterTypes": [
+                        "double"
+                    ]
                 }
             ]
         },
@@ -1661,7 +2070,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["float"]
+                    "parameterTypes": [
+                        "float"
+                    ]
                 }
             ]
         },
@@ -1679,7 +2090,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 }
             ]
         },
@@ -1697,7 +2110,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 }
             ]
         },
@@ -1732,7 +2147,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["short"]
+                    "parameterTypes": [
+                        "short"
+                    ]
                 }
             ]
         },
@@ -1742,7 +2159,9 @@
             "methods": [
                 {
                     "name": "toLowerCase",
-                    "parameterTypes": ["java.util.Locale"]
+                    "parameterTypes": [
+                        "java.util.Locale"
+                    ]
                 }
             ]
         },
@@ -1792,7 +2211,9 @@
             "methods": [
                 {
                     "name": "getPlatformMXBean",
-                    "parameterTypes": ["java.lang.Class"]
+                    "parameterTypes": [
+                        "java.lang.Class"
+                    ]
                 }
             ]
         },
@@ -1816,6 +2237,9 @@
         },
         {
             "type": "java.net.StandardSocketOptions"
+        },
+        {
+            "type": "java.net.URL"
         },
         {
             "type": "java.nio.Buffer",
@@ -1926,6 +2350,15 @@
             ]
         },
         {
+            "type": "java.nio.file.Files"
+        },
+        {
+            "type": "java.rmi.MarshalledObject"
+        },
+        {
+            "type": "java.rmi.Remote"
+        },
+        {
             "type": "java.security.AlgorithmParametersSpi"
         },
         {
@@ -1949,11 +2382,15 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 },
                 {
                     "name": "add",
-                    "parameterTypes": ["java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -1963,11 +2400,16 @@
             "methods": [
                 {
                     "name": "containsKey",
-                    "parameterTypes": ["java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Object"
+                    ]
                 },
                 {
                     "name": "put",
-                    "parameterTypes": ["java.lang.Object", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Object",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -1994,7 +2436,9 @@
             "methods": [
                 {
                     "name": "forLanguageTag",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -2203,7 +2647,20 @@
             "methods": [
                 {
                     "name": "createUI",
-                    "parameterTypes": ["javax.swing.JComponent"]
+                    "parameterTypes": [
+                        "javax.swing.JComponent"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "javax.swing.plaf.metal.MetalRootPaneUI",
+            "methods": [
+                {
+                    "name": "createUI",
+                    "parameterTypes": [
+                        "javax.swing.JComponent"
+                    ]
                 }
             ]
         },
@@ -2212,7 +2669,9 @@
             "methods": [
                 {
                     "name": "createUI",
-                    "parameterTypes": ["javax.swing.JComponent"]
+                    "parameterTypes": [
+                        "javax.swing.JComponent"
+                    ]
                 }
             ]
         },
@@ -2380,7 +2839,9 @@
             "methods": [
                 {
                     "name": "_onDraw",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 },
                 {
                     "name": "onGetBounds",
@@ -2394,7 +2855,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.String", "java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -2418,7 +2882,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.String", "int"]
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -2462,7 +2929,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int", "float"]
+                    "parameterTypes": [
+                        "int",
+                        "float"
+                    ]
                 }
             ]
         },
@@ -2488,7 +2958,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -2543,7 +3016,9 @@
             "methods": [
                 {
                     "name": "onFilter",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 }
             ]
         },
@@ -2553,7 +3028,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 }
             ]
         },
@@ -2640,7 +3117,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["float", "float"]
+                    "parameterTypes": [
+                        "float",
+                        "float"
+                    ]
                 }
             ]
         },
@@ -2922,11 +3402,15 @@
                 },
                 {
                     "name": "runInfo",
-                    "parameterTypes": ["org.jetbrains.skia.shaper.RunInfo"]
+                    "parameterTypes": [
+                        "org.jetbrains.skia.shaper.RunInfo"
+                    ]
                 },
                 {
                     "name": "runOffset",
-                    "parameterTypes": ["org.jetbrains.skia.shaper.RunInfo"]
+                    "parameterTypes": [
+                        "org.jetbrains.skia.shaper.RunInfo"
+                    ]
                 }
             ]
         },
@@ -3008,7 +3492,11 @@
             "methods": [
                 {
                     "name": "log",
-                    "parameterTypes": ["org.jetbrains.skia.skottie.LogLevel", "java.lang.String", "java.lang.String"]
+                    "parameterTypes": [
+                        "org.jetbrains.skia.skottie.LogLevel",
+                        "java.lang.String",
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -3018,7 +3506,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["float", "int"]
+                    "parameterTypes": [
+                        "float",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3028,7 +3519,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3044,7 +3538,46 @@
             "methods": [
                 {
                     "name": "isAdapterSupported",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "org.slf4j.Logger",
+            "methods": [
+                {
+                    "name": "info",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "java.lang.Throwable"
+                    ]
+                },
+                {
+                    "name": "trace",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "java.lang.Throwable"
+                    ]
+                },
+                {
+                    "name": "warn",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "java.lang.Throwable"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "org.slf4j.LoggerFactory",
+            "methods": [
+                {
+                    "name": "getLogger",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -3064,7 +3597,9 @@
             "methods": [
                 {
                     "name": "getPeer",
-                    "parameterTypes": ["java.awt.Component"]
+                    "parameterTypes": [
+                        "java.awt.Component"
+                    ]
                 }
             ]
         },
@@ -3092,7 +3627,9 @@
             "methods": [
                 {
                     "name": "getExtendedKeyCodeForChar",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3126,7 +3663,9 @@
             "methods": [
                 {
                     "name": "makeConvertedMultiFontString",
-                    "parameterTypes": ["java.lang.String"]
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -3180,7 +3719,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["long"]
+                    "parameterTypes": [
+                        "long"
+                    ]
                 }
             ]
         },
@@ -3229,9 +3770,14 @@
             "methods": [
                 {
                     "name": "charToGlyph",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 }
             ]
+        },
+        {
+            "type": "sun.font.CompositeFont"
         },
         {
             "type": "sun.font.Font2D",
@@ -3239,15 +3785,22 @@
             "methods": [
                 {
                     "name": "canDisplay",
-                    "parameterTypes": ["char"]
+                    "parameterTypes": [
+                        "char"
+                    ]
                 },
                 {
                     "name": "charToGlyphRaw",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 },
                 {
                     "name": "charToVariationGlyphRaw",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "getMapper",
@@ -3255,9 +3808,20 @@
                 },
                 {
                     "name": "getTableBytes",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 }
             ]
+        },
+        {
+            "type": "sun.font.Font2DHandle"
+        },
+        {
+            "type": "sun.font.FontManager"
+        },
+        {
+            "type": "sun.font.FontManagerFactory"
         },
         {
             "type": "sun.font.FontStrike",
@@ -3265,7 +3829,9 @@
             "methods": [
                 {
                     "name": "getGlyphMetrics",
-                    "parameterTypes": ["int"]
+                    "parameterTypes": [
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3320,6 +3886,9 @@
             ]
         },
         {
+            "type": "sun.font.PhysicalFont"
+        },
+        {
             "type": "sun.font.PhysicalStrike",
             "jniAccessible": true,
             "fields": [
@@ -3330,11 +3899,16 @@
             "methods": [
                 {
                     "name": "adjustPoint",
-                    "parameterTypes": ["java.awt.geom.Point2D$Float"]
+                    "parameterTypes": [
+                        "java.awt.geom.Point2D$Float"
+                    ]
                 },
                 {
                     "name": "getGlyphPoint",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3360,16 +3934,26 @@
             ]
         },
         {
+            "type": "sun.font.SunFontManager"
+        },
+        {
             "type": "sun.font.TrueTypeFont",
             "jniAccessible": true,
             "methods": [
                 {
                     "name": "readBlock",
-                    "parameterTypes": ["java.nio.ByteBuffer", "int", "int"]
+                    "parameterTypes": [
+                        "java.nio.ByteBuffer",
+                        "int",
+                        "int"
+                    ]
                 },
                 {
                     "name": "readBytes",
-                    "parameterTypes": ["int", "int"]
+                    "parameterTypes": [
+                        "int",
+                        "int"
+                    ]
                 }
             ]
         },
@@ -3379,7 +3963,9 @@
             "methods": [
                 {
                     "name": "readFile",
-                    "parameterTypes": ["java.nio.ByteBuffer"]
+                    "parameterTypes": [
+                        "java.nio.ByteBuffer"
+                    ]
                 }
             ]
         },
@@ -3389,7 +3975,11 @@
             "methods": [
                 {
                     "name": "addRecord",
-                    "parameterTypes": ["java.lang.Object", "long", "long"]
+                    "parameterTypes": [
+                        "java.lang.Object",
+                        "long",
+                        "long"
+                    ]
                 }
             ]
         },
@@ -3696,7 +4286,9 @@
             "methods": [
                 {
                     "name": "register",
-                    "parameterTypes": ["sun.java2d.loops.GraphicsPrimitive[]"]
+                    "parameterTypes": [
+                        "sun.java2d.loops.GraphicsPrimitive[]"
+                    ]
                 }
             ]
         },
@@ -3993,7 +4585,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.security.SecureRandomParameters"]
+                    "parameterTypes": [
+                        "java.security.SecureRandomParameters"
+                    ]
                 }
             ]
         },
@@ -4074,7 +4668,9 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.security.cert.CertStoreParameters"]
+                    "parameterTypes": [
+                        "java.security.cert.CertStoreParameters"
+                    ]
                 }
             ]
         },
@@ -4173,7 +4769,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4182,7 +4781,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4191,7 +4793,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4200,7 +4805,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4209,7 +4817,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4218,7 +4829,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4227,7 +4841,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4236,7 +4853,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4245,7 +4865,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4254,7 +4877,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },
@@ -4263,7 +4889,10 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+                    "parameterTypes": [
+                        "java.lang.Boolean",
+                        "java.lang.Object"
+                    ]
                 }
             ]
         },

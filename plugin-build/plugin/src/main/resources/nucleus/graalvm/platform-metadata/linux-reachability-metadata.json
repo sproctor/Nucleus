@@ -294,6 +294,15 @@
             "type": "sun.awt.X11.XContentWindow"
         },
         {
+            "type": "sun.awt.X11.XDesktopPeer",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "supportedActions"
+                }
+            ]
+        },
+        {
             "type": "sun.awt.X11.XDialogPeer"
         },
         {
