@@ -142,11 +142,14 @@ During the tracing run, make sure to:
 - **Trigger all lazy-loaded content** (expand lists, scroll to bottom, etc.)
 - **Exercise all features** that load resources dynamically
 
-!!! warning "Compose resources are loaded by reflection"
-    Compose's `painterResource()`, `imageResource()`, and similar functions resolve resources reflectively. If an icon is only shown on a specific screen or only in dark mode, you **must** visit that screen and switch to that mode during the agent run — otherwise the resource will be missing in the native binary.
+!!! success "SVG icons and fonts are included automatically"
+    If you depend on `nucleus.graalvm-runtime`, all `.svg`, `.ttf`, and `.otf` resources on the classpath are included in the native binary automatically. You do **not** need the tracing agent to discover icon resources — they just work. See [Automatic Resource Inclusion](#automatic-resource-inclusion) for details.
+
+!!! warning "Reflection and resource bundles still require the agent"
+    While icons and fonts are covered automatically, **reflection metadata** and **resource bundles** (locale-specific `.properties` files) still require the tracing agent. During the tracing run, make sure to navigate to every screen, toggle dark/light theme, and exercise all features that use reflection or i18n.
 
 !!! tip "Prefer Kotlin-generated icons over resource files"
-    To avoid resource-loading headaches entirely, convert your icons to Kotlin `ImageVector` definitions (using tools like [Composables](https://composables.com/svgtocompose) or the Material Icons library). Kotlin-generated icons are compiled directly into the binary and require no reflection or resource resolution. This is strongly recommended for native-image builds.
+    For maximum control over binary size, convert your icons to Kotlin `ImageVector` definitions (using tools like [Composables](https://composables.com/svgtocompose) or the Material Icons library). Kotlin-generated icons are compiled directly into the binary and require no reflection or resource resolution.
 
 The agent output is automatically merged into your `nativeImageConfigBaseDir`.
 
@@ -232,6 +235,35 @@ The module also ships GraalVM `@TargetClass` substitutions (Java source files) t
 - **`FcFontManagerSubstitution`** — Fixes `FcFontManager.getFontPath()` on Linux native image.
 
 These substitutions are automatically picked up by the native-image compiler — no configuration needed.
+
+### Automatic Resource Inclusion
+
+One of the most common pitfalls with GraalVM native-image is **missing resources at runtime**. Icons, fonts, and service descriptors must be explicitly registered — otherwise `Class.getResource()` returns `null` and your UI renders blank icons.
+
+The `graalvm-runtime` module solves this automatically. It ships a `native-image.properties` file that registers broad resource patterns at compile time:
+
+| Pattern | What it covers |
+|---------|----------------|
+| `.*\.(svg\|ttf\|otf)` | All SVG icons and font files on the classpath — Jewel, IntelliJ Platform icons, Compose resources, your own icons |
+| `nucleus/native/.*` | All Nucleus JNI native libraries (`.dll`, `.dylib`, `.so`) |
+| `META-INF/services/.*` | All `ServiceLoader` descriptors (ktor, coil, SLF4J, etc.) |
+
+This means:
+
+- **All SVG icons work out of the box** — no need to run the tracing agent just to discover icons. Jewel's `PathIconKey`, `AllIconsKeys`, dark/light variants, `@2x` retina variants — everything is included automatically.
+- **All fonts are embedded** — Inter, JetBrains Mono, or any custom `.ttf`/`.otf` in your dependencies.
+- **Service loaders resolve correctly** — ktor engines, coil fetchers, SLF4J providers, etc.
+
+!!! note "Binary size trade-off"
+    The glob pattern `.*\.(svg|ttf|otf)` includes **all** SVGs and fonts from **all** JARs on the classpath. If you depend on the IntelliJ Platform icons library, this may add several megabytes of icons you don't actually use. For most applications, the convenience far outweighs the size increase. If binary size is critical, you can override with more targeted patterns in your own `resource-config.json`.
+
+!!! tip "What still needs the tracing agent?"
+    The automatic resource patterns cover icons, fonts, native libraries, and service loaders. You **still** need the tracing agent (`runWithNativeAgent`) for:
+
+    - **Reflection metadata** — classes accessed via `Class.forName()`, `getDeclaredField()`, etc.
+    - **JNI metadata** — native methods accessed from C/C++ code
+    - **Resource bundles** — locale-specific `.properties` files (AWT, Swing, Jewel i18n bundles)
+    - **Non-standard resources** — `.sha256` checksums, `.class` files, `.properties` files, ICU data
 
 ### Decorated Window
 

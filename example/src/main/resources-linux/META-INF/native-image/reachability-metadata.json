@@ -26,9 +26,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -37,9 +35,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -48,9 +44,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -59,9 +53,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -70,9 +62,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -81,9 +71,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -92,9 +80,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -103,9 +89,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -114,9 +98,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -147,9 +129,7 @@
             "methods": [
                 {
                     "name": "getRGB",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -194,15 +174,11 @@
             "methods": [
                 {
                     "name": "getLocationOnScreen_NoTreeLock",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "getParent_NoClientCode",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -227,15 +203,11 @@
             "methods": [
                 {
                     "name": "getLocalGraphicsEnvironment",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "isHeadless",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -302,9 +274,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "<init>",
@@ -383,9 +353,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "<init>",
@@ -430,9 +398,7 @@
             "methods": [
                 {
                     "name": "getRGBdefault",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -476,9 +442,7 @@
             "methods": [
                 {
                     "name": "flush",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "write",
@@ -502,9 +466,7 @@
                 },
                 {
                     "name": "booleanValue",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "getBoolean",
@@ -570,9 +532,7 @@
             "methods": [
                 {
                     "name": "yield",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -582,9 +542,7 @@
             "methods": [
                 {
                     "name": "printStackTrace",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -606,9 +564,7 @@
                 },
                 {
                     "name": "clear",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -618,15 +574,11 @@
             "methods": [
                 {
                     "name": "hasNext",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "next",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -653,9 +605,7 @@
             "methods": [
                 {
                     "name": "invoke",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -774,9 +724,7 @@
                 },
                 {
                     "name": "onGetBounds",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -971,9 +919,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "<init>",
@@ -1281,9 +1227,7 @@
             "methods": [
                 {
                     "name": "_getFontPtr",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1313,15 +1257,11 @@
             "methods": [
                 {
                     "name": "beginLine",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "commitLine",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "commitRun",
@@ -1334,9 +1274,7 @@
                 },
                 {
                     "name": "commitRunInfo",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "runInfo",
@@ -1479,9 +1417,7 @@
             "methods": [
                 {
                     "name": "getComponentAccessor",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1512,21 +1448,15 @@
             "methods": [
                 {
                     "name": "awtLock",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "awtLockNotify",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "awtLockNotifyAll",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "awtLockWait",
@@ -1536,9 +1466,7 @@
                 },
                 {
                     "name": "awtUnlock",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1553,9 +1481,7 @@
             "methods": [
                 {
                     "name": "getWindow",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1613,9 +1539,7 @@
             "methods": [
                 {
                     "name": "getDisplay",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1718,9 +1642,7 @@
                 },
                 {
                     "name": "getMapper",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "getTableBytes",
@@ -1902,9 +1824,7 @@
             "methods": [
                 {
                     "name": "isDisplayLocal",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2354,9 +2274,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2440,9 +2358,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2451,9 +2367,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2462,9 +2376,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2473,9 +2385,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2495,9 +2405,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2506,9 +2414,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2517,9 +2423,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2528,9 +2432,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2539,9 +2441,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2550,9 +2450,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2561,9 +2459,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2572,9 +2468,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2583,9 +2477,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2594,9 +2486,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2605,9 +2495,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2616,9 +2504,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2627,9 +2513,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2782,127 +2666,7 @@
     ],
     "resources": [
         {
-            "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
-        },
-        {
-            "glob": "META-INF/services/java.net.spi.InetAddressResolverProvider"
-        },
-        {
-            "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
-        },
-        {
-            "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
-        },
-        {
-            "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
-        },
-        {
             "glob": "libskiko-linux-x64.so.sha256"
-        },
-        {
-            "glob": "nucleus/native/linux-x64/libnucleus_linux_hidpi_jni.so"
-        },
-        {
-            "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
-        },
-        {
-            "glob": "nucleus/native/linux-x64/libnucleus_linux_theme.so"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/close.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closeHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closeInactive_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/closePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/close_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximize.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizeHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizeInactive_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximizePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/maximize_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimize.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizeHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizeInactive_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimizePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/minimize_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restore.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restoreHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restoreHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restoreInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restoreInactive_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restorePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restorePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/gnome/restore_dark.svg"
         },
         {
             "module": "java.desktop",
@@ -2931,99 +2695,6 @@
         },
         {
             "bundle": "sun.awt.resources.awt"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/close.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closeHoverFocused.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closeInactive_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/closePressedFocused.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/close_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximize.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximizeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximizeHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximizeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximizePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximizePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/maximize_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimize.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimizeHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimizeHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimizeInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimizePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimizePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/minimize_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restore.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restoreHover.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restoreHover_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restoreInactive.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restorePressed.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restorePressed_dark.svg"
-        },
-        {
-            "glob": "nucleus/window/icons/linux/kde/restore_dark.svg"
-        },
-        {
-            "glob": "nucleus/native/linux-x64/libnucleus_energy_manager.so"
-        },
-        {
-            "glob": "nucleus/native/linux-x64/libnucleus_systemcolor.so"
         }
     ]
 }

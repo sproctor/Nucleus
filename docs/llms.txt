@@ -113,7 +113,7 @@ dependencies {
 | `nucleus.native-http-okhttp` | OkHttp client pre-configured with native OS trust |
 | `nucleus.native-http-ktor` | Ktor `HttpClient` extension for native OS trust (CIO, Java, OkHttp, Apache5) |
 | `nucleus.linux-hidpi` | Native HiDPI scale factor detection on Linux |
-| `nucleus.graalvm-runtime` | GraalVM native-image bootstrap + font substitutions (includes linux-hidpi) |
+| `nucleus.graalvm-runtime` | GraalVM native-image bootstrap + font substitutions + automatic resource inclusion for SVG/fonts/services (includes linux-hidpi) |
 
 ## Migration from org.jetbrains.compose
 

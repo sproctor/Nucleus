@@ -23,9 +23,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -74,9 +72,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -85,9 +81,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -96,9 +90,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "createUI",
@@ -113,9 +105,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "createUI",
@@ -133,9 +123,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -144,9 +132,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -155,9 +141,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -166,9 +150,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -177,9 +159,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -188,9 +168,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -199,9 +177,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -210,9 +186,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -237,9 +211,7 @@
             "methods": [
                 {
                     "name": "getRGB",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -394,9 +366,7 @@
             "methods": [
                 {
                     "name": "getButtonDownMasks",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -519,9 +489,7 @@
             "methods": [
                 {
                     "name": "getRGBdefault",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -549,9 +517,7 @@
             "methods": [
                 {
                     "name": "flush",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "write",
@@ -569,9 +535,7 @@
             "methods": [
                 {
                     "name": "booleanValue",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "getBoolean",
@@ -625,9 +589,7 @@
             "methods": [
                 {
                     "name": "printStackTrace",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -643,9 +605,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "add",
@@ -667,15 +627,11 @@
             "methods": [
                 {
                     "name": "hasNext",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "next",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -705,9 +661,7 @@
             "methods": [
                 {
                     "name": "invoke",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -826,9 +780,7 @@
                 },
                 {
                     "name": "onGetBounds",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1023,9 +975,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "<init>",
@@ -1333,9 +1283,7 @@
             "methods": [
                 {
                     "name": "_getFontPtr",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1365,15 +1313,11 @@
             "methods": [
                 {
                     "name": "beginLine",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "commitLine",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "commitRun",
@@ -1386,9 +1330,7 @@
                 },
                 {
                     "name": "commitRunInfo",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "runInfo",
@@ -1543,9 +1485,7 @@
             "methods": [
                 {
                     "name": "getComponentAccessor",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -1567,15 +1507,11 @@
             "methods": [
                 {
                     "name": "notifyToolkitThreadBusy",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "notifyToolkitThreadFree",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2080,9 +2016,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2092,9 +2026,7 @@
             "methods": [
                 {
                     "name": "drawInMTLContext",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2179,9 +2111,7 @@
             "methods": [
                 {
                     "name": "getPlatformWindow",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2200,9 +2130,7 @@
             "methods": [
                 {
                     "name": "getPointer",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2248,9 +2176,7 @@
                 },
                 {
                     "name": "deliverWindowClosingEvent",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "deliverWindowFocusEvent",
@@ -2261,51 +2187,35 @@
                 },
                 {
                     "name": "isBlocked",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "isVisible",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "windowDidBecomeMain",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "windowDidEnterFullScreen",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "windowDidExitFullScreen",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "windowWillEnterFullScreen",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "windowWillExitFullScreen",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "deliverNCMouseDown",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2315,15 +2225,11 @@
             "methods": [
                 {
                     "name": "installToolkitThreadInJava",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 },
                 {
                     "name": "systemColorsChanged",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2354,9 +2260,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2365,9 +2269,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2376,9 +2278,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2387,9 +2287,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2409,9 +2307,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2420,9 +2316,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2431,9 +2325,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2442,9 +2334,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2453,9 +2343,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2464,9 +2352,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2475,9 +2361,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2486,9 +2370,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2497,9 +2379,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2508,9 +2388,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2519,9 +2397,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2530,9 +2406,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2541,9 +2415,7 @@
             "methods": [
                 {
                     "name": "<init>",
-                    "parameterTypes": [
-                        
-                    ]
+                    "parameterTypes": []
                 }
             ]
         },
@@ -2709,25 +2581,7 @@
     ],
     "resources": [
         {
-            "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
-        },
-        {
-            "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
-        },
-        {
-            "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
-        },
-        {
-            "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
-        },
-        {
             "glob": "libskiko-macos-arm64.dylib.sha256"
-        },
-        {
-            "glob": "nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"
-        },
-        {
-            "glob": "nucleus/native/darwin-aarch64/libnucleus_macos_jni.dylib"
         },
         {
             "module": "java.base",
@@ -2764,15 +2618,6 @@
         },
         {
             "bundle": "sun.awt.resources.awtosx"
-        },
-        {
-            "glob": "nucleus/native/darwin-aarch64/libnucleus_energy_manager.dylib"
-        },
-        {
-            "glob": "nucleus/native/darwin-aarch64/libnucleus_systemcolor.dylib"
-        },
-        {
-            "glob": "nucleus/native/darwin-aarch64/libnucleus_ssl.dylib"
         }
     ]
 }

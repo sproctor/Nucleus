@@ -1734,6 +1734,22 @@ fun main() {
 
 Requires BellSoft Liberica NIK 25 (full). Use `decorated-window-jni` for decorated windows in native-image builds.
 
+### Automatic Resource Inclusion
+
+The module ships a `native-image.properties` that registers broad resource patterns at compile time via `-H:IncludeResources`. Any project depending on `nucleus.graalvm-runtime` automatically gets:
+
+| Pattern | Covers |
+|---------|--------|
+| `.*\.(svg\|ttf\|otf)` | All SVG icons and fonts — Jewel, IntelliJ Platform icons, Compose resources, app icons, dark/light variants, @2x retina |
+| `nucleus/native/.*` | All Nucleus JNI native libraries (.dll, .dylib, .so) |
+| `META-INF/services/.*` | All ServiceLoader descriptors (ktor, coil, SLF4J, etc.) |
+
+This eliminates the need to run the tracing agent (`runWithNativeAgent`) just to discover icon and font resources. All SVGs and fonts on the classpath are included in the native binary automatically.
+
+The tracing agent is still required for: reflection metadata, JNI metadata, resource bundles (locale `.properties`), and non-standard resources (`.sha256`, `.class`, ICU data).
+
+Trade-off: `.*\.(svg|ttf|otf)` includes all SVGs/fonts from all classpath JARs. If binary size is critical, override with targeted patterns in your own `resource-config.json`.
+
 ### GraalVM DSL Reference
 
 | Property | Type | Default | Description |

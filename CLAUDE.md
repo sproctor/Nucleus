@@ -49,3 +49,12 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 - Version catalog is the source of truth for all dependency versions
 - `decorated-window-jni` is the recommended backend for new projects (fixes resize artifacts, true Windows fullscreen, GraalVM compatible)
 - macOS Liquid Glass enabled by default via `macOsSdkVersion = "26.0"` (vtool SDK patching)
+
+## GraalVM Native Image
+
+- `graalvm-runtime` auto-includes all `.svg`, `.ttf`, `.otf` resources, `nucleus/native/*` libs, and `META-INF/services/*` via `native-image.properties` glob patterns — no agent needed for icons/fonts
+- The tracing agent (`runWithNativeAgent`) is still required for reflection, JNI, resource bundles (`.properties`), and non-standard resources (`.sha256`, `.class`, ICU data)
+- Platform-specific `reachability-metadata.json` files live in `src/main/resources-{macos,windows,linux}/META-INF/native-image/` — they only contain reflection/JNI/bundles, NOT SVG/font entries
+- `GraalVmInitializer.initialize()` must be the first call in `main()` for native-image builds
+- Font substitutions (`@TargetClass`) in `graalvm-runtime` fix `InternalError: platform encoding not initialized` on Windows/Linux
+- Only BellSoft Liberica NIK 25 (full) is supported — standard GraalVM CE lacks AWT support
