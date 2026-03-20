@@ -38,6 +38,8 @@ import io.github.kdroidfilter.nucleus.window.utils.linux.JniLinuxWindowBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsDecorationBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsWindowUtil
 import java.awt.Frame
+import java.awt.GraphicsEnvironment
+import java.awt.Toolkit
 
 /**
  * Composition local that indicates whether the window is currently in
@@ -100,6 +102,27 @@ fun DecoratedWindow(
             state
         }
 
+    // ── First-frame maximized fix ──────────────────────────────────────
+    // When starting with WindowPlacement.Maximized, Compose's Window
+    // creates the AWT window at state.size (e.g. 800×600) and renders
+    // the first Skia frame at that size before the WM processes the
+    // maximize. Override state.size with the screen work area so the
+    // first frame matches the maximized dimensions.
+    remember(state) {
+        if (state.placement == WindowPlacement.Maximized) {
+            val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+            val gc = ge.defaultScreenDevice.defaultConfiguration
+            val bounds = gc.bounds
+            val insets = Toolkit.getDefaultToolkit().getScreenInsets(gc)
+            val scale = gc.defaultTransform.scaleX.toFloat()
+            state.size =
+                DpSize(
+                    ((bounds.width - insets.left - insets.right) / scale).dp,
+                    ((bounds.height - insets.top - insets.bottom) / scale).dp,
+                )
+        }
+    }
+
     Window(
         onCloseRequest,
         windowState,
@@ -115,12 +138,6 @@ fun DecoratedWindow(
         onPreviewKeyEvent,
         onKeyEvent,
     ) {
-        // When starting maximized, pre-size the AWT window to the screen work
-        // area so the first Compose/Skia frame renders at the correct dimensions.
-        // Without this, the window briefly flashes at its default size before the
-        // WM processes the maximize.
-        PreSizeIfMaximized(state)
-
         if (useNativeFullscreen) {
             NativeFullscreenEffect(state, windowState)
             if (Platform.Current == Platform.Windows) {
