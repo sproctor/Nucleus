@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.8
+
+**Released: 2026-03-20**
+
+### New Features
+
+- **Automatic resource inclusion for GraalVM native-image** — `graalvm-runtime` now ships a `native-image.properties` that auto-includes all `.svg`, `.ttf`, `.otf` resources, `nucleus/native/*` JNI libraries, and `META-INF/services/*` descriptors via glob patterns. Projects no longer need to run the tracing agent just to discover icon and font resources — they are embedded in the native binary automatically. The tracing agent is still required for reflection, JNI, resource bundles, and non-standard resources. See [Automatic Resource Inclusion](graalvm-native-image.md#automatic-resource-inclusion).
+
+---
+
 ## v1.5.7
 
 **Released: 2026-03-20**
