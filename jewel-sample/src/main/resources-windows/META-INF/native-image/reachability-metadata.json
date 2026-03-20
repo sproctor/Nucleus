@@ -4,92 +4,7 @@
             "type": "com.intellij.openapi.diagnostic.Logger"
         },
         {
-            "type": "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl",
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
             "type": "com.sun.swing.internal.plaf.metal.resources.metal"
-        },
-        {
-            "type": "java.awt.Dimension",
-            "jniAccessible": true,
-            "fields": [
-                {
-                    "name": "height"
-                },
-                {
-                    "name": "width"
-                }
-            ]
-        },
-        {
-            "type": "java.awt.FontMetrics",
-            "jniAccessible": true,
-            "fields": [
-                {
-                    "name": "font"
-                }
-            ],
-            "methods": [
-                {
-                    "name": "getHeight",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
-            "type": "java.lang.String",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "toLowerCase",
-                    "parameterTypes": [
-                        "java.util.Locale"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "java.util.ArrayList",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": [
-                        "int"
-                    ]
-                },
-                {
-                    "name": "add",
-                    "parameterTypes": [
-                        "java.lang.Object"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "java.util.HashMap",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "containsKey",
-                    "parameterTypes": [
-                        "java.lang.Object"
-                    ]
-                },
-                {
-                    "name": "put",
-                    "parameterTypes": [
-                        "java.lang.Object",
-                        "java.lang.Object"
-                    ]
-                }
-            ]
         },
         {
             "type": "javax.swing.plaf.metal.MetalRootPaneUI",
@@ -113,9 +28,6 @@
                     ]
                 }
             ]
-        },
-        {
-            "type": "org.jetbrains.skia.paragraph.TextBox[]"
         },
         {
             "type": "org.slf4j.Logger",
@@ -148,79 +60,6 @@
             ]
         },
         {
-            "type": "sun.awt.windows.WComponentPeer",
-            "jniAccessible": true,
-            "fields": [
-                {
-                    "name": "hwnd"
-                },
-                {
-                    "name": "winGraphicsConfig"
-                }
-            ],
-            "methods": [
-                {
-                    "name": "disposeLater",
-                    "parameterTypes": []
-                },
-                {
-                    "name": "getHWnd",
-                    "parameterTypes": []
-                },
-                {
-                    "name": "handleExpose",
-                    "parameterTypes": [
-                        "int",
-                        "int",
-                        "int",
-                        "int"
-                    ]
-                },
-                {
-                    "name": "postEvent",
-                    "parameterTypes": [
-                        "java.awt.AWTEvent"
-                    ]
-                },
-                {
-                    "name": "replaceSurfaceData",
-                    "parameterTypes": []
-                },
-                {
-                    "name": "replaceSurfaceDataLater",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
-            "type": "sun.awt.windows.WWindowPeer",
-            "jniAccessible": true,
-            "fields": [
-                {
-                    "name": "windowType"
-                }
-            ],
-            "methods": [
-                {
-                    "name": "draggedToNewScreen",
-                    "parameterTypes": []
-                },
-                {
-                    "name": "notifyWindowStateChanged",
-                    "parameterTypes": [
-                        "int",
-                        "int"
-                    ]
-                },
-                {
-                    "name": "setBackground",
-                    "parameterTypes": [
-                        "java.awt.Color"
-                    ]
-                }
-            ]
-        },
-        {
             "type": "sun.font.CompositeFont"
         },
         {
@@ -233,62 +72,10 @@
             "type": "sun.font.FontManagerFactory"
         },
         {
-            "type": "sun.font.FontUtilities",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "debugFonts",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
-            "type": "sun.font.FreetypeFontScaler",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "invalidateScaler",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
             "type": "sun.font.PhysicalFont"
         },
         {
             "type": "sun.font.SunFontManager"
-        },
-        {
-            "type": "java.awt.event.MouseWheelEvent",
-            "jniAccessible": true,
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": [
-                        "java.awt.Component",
-                        "int",
-                        "long",
-                        "int",
-                        "int",
-                        "int",
-                        "int",
-                        "int",
-                        "int",
-                        "boolean",
-                        "int",
-                        "int",
-                        "int",
-                        "double"
-                    ]
-                },
-                {
-                    "name": "getWheelRotation",
-                    "parameterTypes": []
-                }
-            ]
-        },
-        {
-            "type": "sun.text.resources.cldr.FormatData"
         }
     ],
     "resources": [
@@ -297,38 +84,6 @@
         },
         {
             "glob": "skiko-windows-x64.dll.sha256"
-        },
-        {
-            "module": "java.desktop",
-            "glob": "com/sun/accessibility/internal/resources/accessibility_en_US.properties"
-        },
-        {
-            "module": "java.desktop",
-            "glob": "com/sun/swing/internal/plaf/basic/resources/basic_fr_FR.properties"
-        },
-        {
-            "module": "java.desktop",
-            "glob": "com/sun/swing/internal/plaf/metal/resources/metal_fr_FR.properties"
-        },
-        {
-            "module": "java.desktop",
-            "glob": "sun/awt/resources/awt_fr_FR.properties"
-        },
-        {
-            "module": "java.xml",
-            "glob": "com/sun/org/apache/xml/internal/serializer/Encodings.properties"
-        },
-        {
-            "module": "java.xml",
-            "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities.properties"
-        },
-        {
-            "module": "java.xml",
-            "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr.properties"
-        },
-        {
-            "module": "java.xml",
-            "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr_FR.properties"
         },
         {
             "bundle": "com.sun.accessibility.internal.resources.accessibility"
