@@ -428,7 +428,10 @@ fun FrameWindowScope.PreSizeIfMaximized(state: WindowState) {
             val gc = window.graphicsConfiguration
             if (gc != null) {
                 val sb = gc.bounds
-                val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc)
+                val insets =
+                    java.awt.Toolkit
+                        .getDefaultToolkit()
+                        .getScreenInsets(gc)
                 window.setBounds(
                     sb.x + insets.left,
                     sb.y + insets.top,
