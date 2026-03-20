@@ -28,7 +28,7 @@ This applies to all DSL types used in your `build.gradle.kts` (e.g. `TargetForma
 
 ## Step 3: Use the Nucleus DSL
 
-Replace the `compose.desktop.application` block with `nucleus.application`:
+Replace the `compose.desktop.application` block with `nucleus.application` for packaging and distribution:
 
 ```diff
 -compose.desktop.application {
@@ -55,6 +55,21 @@ Replace the `compose.desktop.application` block with `nucleus.application`:
      }
  }
 ```
+
+!!! tip "Using Compose Hot Reload?"
+    Some Compose plugin tasks (like `hotRun`) read `mainClass` from the original `compose.desktop.application` block, not from `nucleus.application`. If you use [Compose Hot Reload](https://kotlinlang.org/docs/multiplatform/compose-hot-reload.html), either keep a minimal Compose block alongside Nucleus:
+
+    ```kotlin
+    compose.desktop.application {
+        mainClass = "com.example.MainKt"
+    }
+    ```
+
+    Or pass the property explicitly when running:
+
+    ```bash
+    ./gradlew hotRun -PmainClass=com.example.MainKt
+    ```
 
 ## Step 4: Add Nucleus Features (Optional)
 
@@ -183,3 +198,4 @@ Everything from the official plugin works unchanged:
 - All existing Gradle tasks (`run`, `packageDmg`, `packageDeb`, etc.)
 - `compose.desktop.currentOs` dependency
 - Source set configuration
+- [Compose Hot Reload](https://kotlinlang.org/docs/multiplatform/compose-hot-reload.html) — works as usual since Nucleus extends the Compose plugin. Note: `hotRun` reads `mainClass` from `compose.desktop.application`, so set it there too or pass `-PmainClass=...` (see [Step 3](#step-3-use-the-nucleus-dsl))

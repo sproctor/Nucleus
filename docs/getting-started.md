@@ -70,6 +70,24 @@ nucleus.application {
 | `run` | Run the application from the IDE/terminal |
 | `runDistributable` | Run the packaged application image |
 
+#### Compose Hot Reload
+
+Nucleus is fully compatible with [Compose Hot Reload](https://kotlinlang.org/docs/multiplatform/compose-hot-reload.html). Since Nucleus extends the Compose plugin (not replaces it), Hot Reload works out of the box.
+
+The `hotRun` task reads `mainClass` from the `compose.desktop.application` block. If you only set it in `nucleus.application`, add a minimal Compose block:
+
+```kotlin
+compose.desktop.application {
+    mainClass = "com.example.MainKt"
+}
+```
+
+Or pass it via the command line:
+
+```bash
+./gradlew hotRun -PmainClass=com.example.MainKt
+```
+
 ### Packaging
 
 | Task | Description |
