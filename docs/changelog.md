@@ -1,12 +1,22 @@
 # Changelog
 
+## v1.5.7
+
+**Released: 2026-03-20**
+
+### Bug Fixes
+
+- **Fix first-frame flash when starting maximized** — Override `state.size` with the screen work area (bounds minus taskbar insets, DPI-scaled) **before** the `Window` composable, so the AWT window is created at the correct maximized dimensions from the start. The previous approach (`PreSizeIfMaximized` via `DisposableEffect` inside `Window`) ran too late — the first Skia frame had already rendered at the default size. Affects the JNI `DecoratedWindow` variant.
+
+---
+
 ## v1.5.6
 
 **Released: 2026-03-20**
 
 ### Bug Fixes
 
-- **Fix first-frame flash when starting maximized** — Pre-size the AWT window to the screen work area (full screen bounds minus taskbar/dock insets) during the first composition when `WindowPlacement.Maximized` is set. This ensures the first Compose/Skia frame renders at the correct maximized dimensions, eliminating the brief flash of a default-sized window before the window manager processes the maximize. Affects the JNI `DecoratedWindow` variant.
+- **Fix first-frame flash when starting maximized** _(superseded by v1.5.7)_ — Initial attempt using `DisposableEffect` inside `Window` to pre-size the AWT window.
 
 ---
 
