@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.6
+
+**Released: 2026-03-20**
+
+### Bug Fixes
+
+- **Fix first-frame flash when starting maximized** — Pre-size the AWT window to the screen work area (full screen bounds minus taskbar/dock insets) during the first composition when `WindowPlacement.Maximized` is set. This ensures the first Compose/Skia frame renders at the correct maximized dimensions, eliminating the brief flash of a default-sized window before the window manager processes the maximize. Affects the JNI `DecoratedWindow` variant.
+
+---
+
 ## v1.5.5
 
 **Released: 2026-03-19**
