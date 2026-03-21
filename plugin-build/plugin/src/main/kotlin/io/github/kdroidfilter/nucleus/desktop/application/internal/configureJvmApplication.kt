@@ -12,6 +12,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractCheckNat
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractElectronBuilderPackageTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractExtractNativeLibsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractGenerateAotCacheTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractGenerateAppPropertiesTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJLinkTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJPackageTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractNotarizationTask
@@ -22,6 +23,10 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractStripNat
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractSuggestModulesTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractUnpackDefaultApplicationResourcesTask
+import io.github.kdroidfilter.nucleus.internal.KOTLIN_JVM_PLUGIN_ID
+import io.github.kdroidfilter.nucleus.internal.KOTLIN_MPP_PLUGIN_ID
+import io.github.kdroidfilter.nucleus.internal.javaSourceSets
+import io.github.kdroidfilter.nucleus.internal.mppExt
 import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
@@ -93,6 +98,37 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             taskNameAction = "unpack",
             taskNameObject = "DefaultComposeDesktopJvmApplicationResources",
         ) {}
+
+    // Generate nucleus/nucleus-app.properties into a resource directory
+    val generateAppProperties =
+        tasks.register<AbstractGenerateAppPropertiesTask>(
+            taskNameAction = "generate",
+            taskNameObject = "appProperties",
+        ) {
+            appId.set(resolvedAppIdProvider())
+            app.nativeDistributions.packageVersion?.let { appVersion.set(it) }
+            app.nativeDistributions.vendor?.let { appVendor.set(it) }
+            app.nativeDistributions.description?.let { appDescription.set(it) }
+            outputDir.set(appTmpDir.dir("app-properties"))
+        }
+
+    // Add the generated properties directory to the resource source set
+    val appPropertiesOutputDir = generateAppProperties.flatMap { it.outputDir }
+    if (project.plugins.hasPlugin(KOTLIN_MPP_PLUGIN_ID)) {
+        project.mppExt.targets.all { target ->
+            if (target is org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget) {
+                target.compilations
+                    .getByName("main")
+                    .defaultSourceSet.resources
+                    .srcDir(appPropertiesOutputDir)
+            }
+        }
+    } else if (project.plugins.hasPlugin(KOTLIN_JVM_PLUGIN_ID)) {
+        project.javaSourceSets
+            .getByName("main")
+            .resources
+            .srcDir(appPropertiesOutputDir)
+    }
 
     val checkRuntime =
         tasks.register<AbstractCheckNativeDistributionRuntime>(
@@ -653,7 +689,8 @@ private fun JvmApplicationContext.configurePackageTask(
     packageTask.launcherJvmArgs.set(
         provider {
             val executableTypeArg = "-D$APP_EXECUTABLE_TYPE=${packageTask.targetFormat.executableTypeValue}"
-            var args = defaultJvmArgs + executableTypeArg + app.jvmArgs
+            val appIdArg = "-D$APP_ID=${resolvedAppIdProvider().get()}"
+            var args = defaultJvmArgs + executableTypeArg + appIdArg + app.jvmArgs
             val splash = app.nativeDistributions.splashImage
             if (splash != null) {
                 args = args + "-splash:\$APPDIR/resources/$splash"
@@ -882,6 +919,7 @@ private fun JvmApplicationContext.configureRunTask(
         arrayListOf<String>().apply {
             addAll(defaultJvmArgs)
             add("-D$APP_EXECUTABLE_TYPE=$EXECUTABLE_TYPE_DEV")
+            add("-D$APP_ID=${resolvedAppIdProvider().get()}")
 
             if (currentOS == OS.MacOS) {
                 val file = app.nativeDistributions.macOS.iconFile.ioFileOrNull

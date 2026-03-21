@@ -66,6 +66,7 @@ import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
+import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
@@ -298,7 +299,7 @@ fun main(args: Array<String>) {
                         if (showInfoDialog) {
                             MaterialDecoratedDialog(
                                 onCloseRequest = { showInfoDialog = false },
-                                state = DialogState(size = DpSize(400.dp, 250.dp)),
+                                state = DialogState(size = DpSize(400.dp, 350.dp)),
                                 title = "System Info",
                             ) {
                                 MaterialDialogTitleBar { _ ->
@@ -314,6 +315,10 @@ fun main(args: Array<String>) {
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center,
                                     ) {
+                                        Text("App ID: ${NucleusApp.appId}")
+                                        NucleusApp.version?.let { Text("App Version: $it") }
+                                        NucleusApp.vendor?.let { Text("Vendor: $it") }
+                                        Spacer(Modifier.height(12.dp))
                                         Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
                                         Text(
                                             "Java: ${System.getProperty("java.version")}" +

@@ -1,0 +1,77 @@
+package io.github.kdroidfilter.nucleus.core.runtime
+
+import io.github.kdroidfilter.nucleus.core.runtime.tools.AppIdProvider
+import java.util.Properties
+
+/**
+ * Provides access to application metadata injected by the Nucleus Gradle plugin.
+ *
+ * Resolution order per property (first non-null wins):
+ * 1. System property (`nucleus.app.*`)
+ * 2. Classpath resource (`nucleus/nucleus-app.properties`)
+ * 3. Legacy fallback (for [appId] only: [AppIdProvider])
+ */
+public object NucleusApp {
+    private const val RESOURCE_PATH = "nucleus/nucleus-app.properties"
+
+    private const val PROP_APP_ID = "nucleus.app.id"
+    private const val PROP_APP_VERSION = "nucleus.app.version"
+    private const val PROP_APP_VENDOR = "nucleus.app.vendor"
+    private const val PROP_APP_DESCRIPTION = "nucleus.app.description"
+
+    private const val RES_APP_ID = "app.id"
+    private const val RES_APP_VERSION = "app.version"
+    private const val RES_APP_VENDOR = "app.vendor"
+    private const val RES_APP_DESCRIPTION = "app.description"
+
+    private val resourceProps: Properties? by lazy { loadResource() }
+
+    /**
+     * The application identifier. Matches the `packageName` configured in the Nucleus DSL.
+     * Falls back to [AppIdProvider.appId] if not injected by the plugin.
+     */
+    @JvmStatic
+    public val appId: String by lazy {
+        resolve(PROP_APP_ID, RES_APP_ID) ?: AppIdProvider.appId()
+    }
+
+    /** The application version, or `null` if not configured. */
+    @JvmStatic
+    public val version: String? by lazy {
+        resolve(PROP_APP_VERSION, RES_APP_VERSION)
+    }
+
+    /** The application vendor, or `null` if not configured. */
+    @JvmStatic
+    public val vendor: String? by lazy {
+        resolve(PROP_APP_VENDOR, RES_APP_VENDOR)
+    }
+
+    /** The application description, or `null` if not configured. */
+    @JvmStatic
+    public val description: String? by lazy {
+        resolve(PROP_APP_DESCRIPTION, RES_APP_DESCRIPTION)
+    }
+
+    /** `true` if the Nucleus plugin injected metadata (via system property or classpath resource). */
+    @JvmStatic
+    public val isConfigured: Boolean by lazy {
+        System.getProperty(PROP_APP_ID) != null || resourceProps != null
+    }
+
+    private fun resolve(
+        systemPropKey: String,
+        resourceKey: String,
+    ): String? =
+        System.getProperty(systemPropKey)?.takeIf { it.isNotBlank() }
+            ?: resourceProps?.getProperty(resourceKey)?.takeIf { it.isNotBlank() }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun loadResource(): Properties? =
+        try {
+            val stream = NucleusApp::class.java.classLoader?.getResourceAsStream(RESOURCE_PATH)
+            stream?.use { Properties().apply { load(it) } }
+        } catch (_: Exception) {
+            null
+        }
+}

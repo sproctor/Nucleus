@@ -163,6 +163,7 @@ abstract class LinuxPlatformSettings : AbstractPlatformSettings() {
 }
 
 abstract class WindowsPlatformSettings : AbstractPlatformSettings() {
+    var packageName: String? = null
     var console: Boolean = false
     var dirChooser: Boolean = true
     var perUserInstall: Boolean = false
