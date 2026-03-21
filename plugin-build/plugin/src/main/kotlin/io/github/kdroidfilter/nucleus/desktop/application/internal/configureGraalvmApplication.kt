@@ -53,6 +53,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
         }
 
     val nativeImageConfigDir = graalvm.nativeImageConfigBaseDir
+    val mainClassName = app.mainClass
 
     // ── Uber JAR (reuse existing task) ──
 
@@ -134,6 +135,17 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         targetFile = File(targetDir, fileName),
                     )
                 }
+
+                // Deduplicate: remove entries already provided by library JARs,
+                // plugin platform metadata (L3), and native-image.properties resource patterns.
+                val runtimeClasspath = classpath?.files ?: emptySet()
+                val platform =
+                    when (currentOS) {
+                        OS.Windows -> "windows"
+                        OS.MacOS -> "macos"
+                        OS.Linux -> "linux"
+                    }
+                deduplicateAgainstLibraryMetadata(runtimeClasspath, targetDir, platform, mainClassName)
 
                 logger.lifecycle("Native-image agent config merged into: $targetDir")
             }
@@ -328,6 +340,81 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             null
         }
 
+    // ── Platform metadata (Level 3) ──
+    // Write AWT/Java2D/font reflection entries for the current OS into a build directory
+    // so native-image picks them up alongside the project's own metadata.
+
+    val platformMetadataDir = appTmpDir.map { it.dir("graalvm/platformMetadata") }
+
+    val generatePlatformMetadata =
+        tasks.register<DefaultTask>(
+            taskNameAction = "generate",
+            taskNameObject = "graalvmPlatformMetadata",
+        ) {
+            description = "Generate platform-specific GraalVM metadata for AWT/Java2D and main class"
+            inputs.property("mainClass", mainClassName ?: "")
+            outputs.dir(platformMetadataDir)
+
+            doLast {
+                val platform =
+                    when (currentOS) {
+                        OS.Windows -> "windows"
+                        OS.MacOS -> "macos"
+                        OS.Linux -> "linux"
+                    }
+                writePlatformMetadata(platform, platformMetadataDir.get().asFile, mainClassName)
+                logger.lifecycle("Platform metadata ($platform) written to: ${platformMetadataDir.get().asFile}")
+            }
+        }
+
+    // ── Oracle GraalVM Reachability Metadata Repository ──
+    // Resolves metadata from the community-maintained repository for runtime dependencies.
+    // Uses a custom task that resolves both the ZIP and the runtime classpath at execution time.
+
+    val metadataRepoDirsFile = appTmpDir.map { it.file("graalvm/metadataRepoDirs.txt") }
+    val metadataRepoOutputDir = appTmpDir.map { it.dir("graalvm/metadataRepository") }
+
+    // Wire the metadata ZIP via a detached configuration (FileCollection is config-cache safe)
+    val metadataZipDep =
+        project.dependencies.create(
+            "org.graalvm.buildtools:graalvm-reachability-metadata:${graalvm.metadataRepository.version.get()}:repository@zip",
+        )
+    val metadataZipConfig =
+        project.configurations
+            .detachedConfiguration(metadataZipDep)
+            .apply { isTransitive = false }
+
+    // Wire runtime classpath (FileCollection is config-cache safe)
+    val runtimeCfg =
+        project.configurations.findByName("jvmRuntimeClasspath")
+            ?: project.configurations.findByName("desktopRuntimeClasspath")
+            ?: project.configurations.findByName("runtimeClasspath")
+
+    val resolveReachabilityMetadata =
+        project.tasks
+            .register(
+                "resolveGraalvmReachabilityMetadata",
+                ResolveReachabilityMetadataTask::class.java,
+            ).apply {
+                configure { task ->
+                    task.description =
+                        "Resolve GraalVM reachability metadata from Oracle repository for runtime dependencies"
+                    task.group = NUCLEUS_TASK_GROUP
+
+                    task.repoEnabled.set(graalvm.metadataRepository.enabled)
+                    task.repoVersion.set(graalvm.metadataRepository.version)
+                    task.excludedModules.set(graalvm.metadataRepository.excludedModules)
+                    task.moduleToConfigVersion.set(graalvm.metadataRepository.moduleToConfigVersion)
+                    task.outputDirsFile.set(metadataRepoDirsFile.map { it.asFile })
+                    task.extractionDir.set(metadataRepoOutputDir.map { it.asFile })
+
+                    task.metadataZipFiles.from(metadataZipConfig)
+                    if (runtimeCfg != null) {
+                        task.runtimeClasspath.from(runtimeCfg)
+                    }
+                }
+            }
+
     // ── nativeImageCompile ──
 
     val nativeImageCompile =
@@ -338,11 +425,14 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             description = "Compile the application into a GraalVM native image"
 
             dependsOn(packageUberJar)
+            dependsOn(generatePlatformMetadata)
+            dependsOn(resolveReachabilityMetadata)
             compileStubs?.let { dependsOn(it) }
             generateWindowsResources?.let { dependsOn(it) }
 
             val uberJarFile = packageUberJar.flatMap { it.archiveFile }
             inputs.file(uberJarFile)
+            inputs.file(metadataRepoDirsFile).optional()
             val outputDir = nativeCompileDir.get().asFile
             outputs.dir(outputDir)
 
@@ -411,6 +501,24 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         }
                     if (configDir.exists()) {
                         add("-H:ConfigurationFileDirectories=$configDir")
+                    }
+
+                    // Include platform-specific AWT/Java2D metadata
+                    // Always add — the directory is created by generateGraalvmPlatformMetadata
+                    // which runs before this task via dependsOn.
+                    add("-H:ConfigurationFileDirectories=${platformMetadataDir.get().asFile}")
+
+                    // Include metadata from Oracle Reachability Metadata Repository
+                    val dirsFile = metadataRepoDirsFile.get().asFile
+                    if (dirsFile.exists()) {
+                        val dirs = dirsFile.readText().trim()
+                        if (dirs.isNotEmpty()) {
+                            for (dir in dirs.lines()) {
+                                if (dir.isNotBlank()) {
+                                    add("-H:ConfigurationFileDirectories=$dir")
+                                }
+                            }
+                        }
                     }
 
                     addAll(graalvm.buildArgs.get())
