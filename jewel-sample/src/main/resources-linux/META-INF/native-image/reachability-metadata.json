@@ -1,27 +1,25 @@
 {
     "reflection": [
         {
-            "type": "coil3.RealImageLoader"
-        },
-        {
-            "type": "coil3.compose.internal.DeferredDispatchCoroutineDispatcher"
-        },
-        {
-            "type": "coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget"
+            "type": "java.util.ArrayList",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "add",
+                    "parameterTypes": [
+                        "java.lang.Object"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         }
     ],
     "resources": [
-        {
-            "glob": "messages/JewelIntUIBundle.properties"
-        },
-        {
-            "glob": "messages/JewelIntUIBundle_fr.properties"
-        },
-        {
-            "glob": "messages/JewelIntUIBundle_fr_FR.properties"
-        },
-        {
-            "bundle": "messages.JewelIntUIBundle"
-        }
+        
     ]
 }
