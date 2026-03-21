@@ -367,41 +367,45 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
     val metadataRepoOutputDir = appTmpDir.map { it.dir("graalvm/metadataRepository") }
 
     // Wire the metadata ZIP via a detached configuration (FileCollection is config-cache safe)
-    val metadataZipDep = project.dependencies.create(
-        "org.graalvm.buildtools:graalvm-reachability-metadata:${graalvm.metadataRepository.version.get()}:repository@zip",
-    )
-    val metadataZipConfig = project.configurations.detachedConfiguration(metadataZipDep).apply {
-        isTransitive = false
-    }
+    val metadataZipDep =
+        project.dependencies.create(
+            "org.graalvm.buildtools:graalvm-reachability-metadata:${graalvm.metadataRepository.version.get()}:repository@zip",
+        )
+    val metadataZipConfig =
+        project.configurations
+            .detachedConfiguration(metadataZipDep)
+            .apply { isTransitive = false }
 
     // Wire runtime classpath (FileCollection is config-cache safe)
-    val runtimeCfg = project.configurations.findByName("jvmRuntimeClasspath")
-        ?: project.configurations.findByName("desktopRuntimeClasspath")
-        ?: project.configurations.findByName("runtimeClasspath")
+    val runtimeCfg =
+        project.configurations.findByName("jvmRuntimeClasspath")
+            ?: project.configurations.findByName("desktopRuntimeClasspath")
+            ?: project.configurations.findByName("runtimeClasspath")
 
     val resolveReachabilityMetadata =
-        project.tasks.register(
-            "resolveGraalvmReachabilityMetadata",
-            ResolveReachabilityMetadataTask::class.java,
-        ).apply {
-            configure { task ->
-                task.description =
-                    "Resolve GraalVM reachability metadata from Oracle repository for runtime dependencies"
-                task.group = NUCLEUS_TASK_GROUP
+        project.tasks
+            .register(
+                "resolveGraalvmReachabilityMetadata",
+                ResolveReachabilityMetadataTask::class.java,
+            ).apply {
+                configure { task ->
+                    task.description =
+                        "Resolve GraalVM reachability metadata from Oracle repository for runtime dependencies"
+                    task.group = NUCLEUS_TASK_GROUP
 
-                task.repoEnabled.set(graalvm.metadataRepository.enabled)
-                task.repoVersion.set(graalvm.metadataRepository.version)
-                task.excludedModules.set(graalvm.metadataRepository.excludedModules)
-                task.moduleToConfigVersion.set(graalvm.metadataRepository.moduleToConfigVersion)
-                task.outputDirsFile.set(metadataRepoDirsFile.map { it.asFile })
-                task.extractionDir.set(metadataRepoOutputDir.map { it.asFile })
+                    task.repoEnabled.set(graalvm.metadataRepository.enabled)
+                    task.repoVersion.set(graalvm.metadataRepository.version)
+                    task.excludedModules.set(graalvm.metadataRepository.excludedModules)
+                    task.moduleToConfigVersion.set(graalvm.metadataRepository.moduleToConfigVersion)
+                    task.outputDirsFile.set(metadataRepoDirsFile.map { it.asFile })
+                    task.extractionDir.set(metadataRepoOutputDir.map { it.asFile })
 
-                task.metadataZipFiles.from(metadataZipConfig)
-                if (runtimeCfg != null) {
-                    task.runtimeClasspath.from(runtimeCfg)
+                    task.metadataZipFiles.from(metadataZipConfig)
+                    if (runtimeCfg != null) {
+                        task.runtimeClasspath.from(runtimeCfg)
+                    }
                 }
             }
-        }
 
     // ── nativeImageCompile ──
 

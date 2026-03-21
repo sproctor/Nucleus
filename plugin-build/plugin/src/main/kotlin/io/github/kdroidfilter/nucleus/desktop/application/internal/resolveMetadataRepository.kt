@@ -25,8 +25,9 @@ internal fun resolveMetadataRepositoryFromArtifacts(
     outputDir: File,
     logger: Logger,
 ): List<File> {
-    val repoDir = extractRepository(zipFile, version, outputDir, logger)
-        ?: return emptyList()
+    val repoDir =
+        extractRepository(zipFile, version, outputDir, logger)
+            ?: return emptyList()
 
     val resolvedDirs = mutableListOf<File>()
 
@@ -38,13 +39,14 @@ internal fun resolveMetadataRepositoryFromArtifacts(
             continue
         }
 
-        val metadataDir = findMetadataForDependency(
-            repoDir = repoDir,
-            group = artifact.group,
-            name = artifact.name,
-            version = moduleToConfigVersion[coordinates] ?: artifact.version,
-            logger = logger,
-        )
+        val metadataDir =
+            findMetadataForDependency(
+                repoDir = repoDir,
+                group = artifact.group,
+                name = artifact.name,
+                version = moduleToConfigVersion[coordinates] ?: artifact.version,
+                logger = logger,
+            )
 
         if (metadataDir != null) {
             resolvedDirs.add(metadataDir)
@@ -124,16 +126,19 @@ private fun findMetadataForDependency(
     if (!indexFile.exists()) return null
 
     val slurper = JsonSlurper()
-    @Suppress("UNCHECKED_CAST")
-    val indexEntries = try {
-        slurper.parseText(indexFile.readText()) as? List<Map<String, Any?>>
-    } catch (e: Exception) {
-        logger.debug("Failed to parse index.json for $group:$name: ${e.message}")
-        return null
-    } ?: return null
 
-    val metadataVersion = findMatchingMetadataVersion(indexEntries, version)
-        ?: return null
+    @Suppress("UNCHECKED_CAST")
+    val indexEntries =
+        try {
+            slurper.parseText(indexFile.readText()) as? List<Map<String, Any?>>
+        } catch (e: Exception) {
+            logger.debug("Failed to parse index.json for $group:$name: ${e.message}")
+            return null
+        } ?: return null
+
+    val metadataVersion =
+        findMatchingMetadataVersion(indexEntries, version)
+            ?: return null
 
     val metadataDir = File(moduleDir, metadataVersion)
     return if (metadataDir.exists() && metadataDir.isDirectory) metadataDir else null

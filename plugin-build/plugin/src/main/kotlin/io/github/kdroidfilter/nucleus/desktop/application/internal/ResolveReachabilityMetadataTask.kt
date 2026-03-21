@@ -7,10 +7,10 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
 /**
@@ -19,6 +19,7 @@ import java.io.File
  * This task is configuration-cache compatible: all inputs are declared as Gradle properties
  * and file collections, so no `Project`/`Configuration` references are serialized.
  */
+@DisableCachingByDefault(because = "Resolves external metadata repository; output depends on extracted ZIP contents")
 abstract class ResolveReachabilityMetadataTask : DefaultTask() {
     @get:Input
     abstract val repoEnabled: Property<Boolean>
@@ -65,11 +66,9 @@ abstract class ResolveReachabilityMetadataTask : DefaultTask() {
             return
         }
 
-        // Build artifact info from classpath file names
-        // FileCollection doesn't carry Maven coordinates, so we need to use the
-        // Gradle-resolved artifact metadata. Since we can't use Configuration directly
-        // (not config-cache safe), we parse artifact coordinates from JAR file names
-        // following the Gradle cache layout: .../group/name/version/hash/name-version.jar
+        // Build artifact info from classpath file names.
+        // FileCollection doesn't carry Maven coordinates, so we parse artifact coordinates
+        // from JAR file paths following the Gradle cache layout.
         val artifacts = parseArtifactsFromClasspath(runtimeClasspath.files)
 
         if (artifacts.isEmpty()) {
@@ -83,15 +82,16 @@ abstract class ResolveReachabilityMetadataTask : DefaultTask() {
         val overrides = moduleToConfigVersion.getOrElse(emptyMap())
         val outputDir = extractionDir.get()
 
-        val dirs = resolveMetadataRepositoryFromArtifacts(
-            zipFile = zipFile,
-            version = version,
-            excludedModules = excluded,
-            moduleToConfigVersion = overrides,
-            artifacts = artifacts,
-            outputDir = outputDir,
-            logger = logger,
-        )
+        val dirs =
+            resolveMetadataRepositoryFromArtifacts(
+                zipFile = zipFile,
+                version = version,
+                excludedModules = excluded,
+                moduleToConfigVersion = overrides,
+                artifacts = artifacts,
+                outputDir = outputDir,
+                logger = logger,
+            )
 
         outFile.writeText(dirs.joinToString("\n") { it.absolutePath })
 
@@ -120,9 +120,10 @@ internal fun parseArtifactsFromClasspath(files: Set<File>): List<ArtifactCoordin
 
     for (file in files) {
         if (!file.name.endsWith(".jar")) continue
-        val coords = parseGradleCacheCoordinates(file)
-            ?: parseMavenLocalCoordinates(file)
-            ?: continue
+        val coords =
+            parseGradleCacheCoordinates(file)
+                ?: parseMavenLocalCoordinates(file)
+                ?: continue
         val key = "${coords.group}:${coords.name}"
         if (key !in seen) {
             artifacts.add(coords)
@@ -154,10 +155,8 @@ private fun parseMavenLocalCoordinates(file: File): ArtifactCoordinates? {
     val parts = file.absolutePath.replace('\\', '/').split('/')
     val repoIdx = parts.indexOfLast { it == "repository" }
     if (repoIdx < 0 || repoIdx + 3 >= parts.size) return null
-    // version is second-to-last dir before the file
     val version = parts[parts.size - 2]
     val name = parts[parts.size - 3]
-    // group is everything between "repository" and name
     val groupParts = parts.subList(repoIdx + 1, parts.size - 3)
     if (groupParts.isEmpty()) return null
     return ArtifactCoordinates(
