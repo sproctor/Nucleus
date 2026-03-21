@@ -277,8 +277,11 @@ internal fun deduplicateAgainstLibraryMetadata(
         }
     }
 
-    val hasBaseline = libraryEntries.isNotEmpty() || libraryResourceJsons.isNotEmpty() ||
-        libraryResourceGlobs.isNotEmpty() || includeResourcePatterns.isNotEmpty()
+    val hasBaseline =
+        libraryEntries.isNotEmpty() ||
+            libraryResourceJsons.isNotEmpty() ||
+            libraryResourceGlobs.isNotEmpty() ||
+            includeResourcePatterns.isNotEmpty()
     if (!hasBaseline) return
 
     @Suppress("UNCHECKED_CAST")
