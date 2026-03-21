@@ -751,10 +751,53 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
     return hwnd;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Lightweight WndProc for dialogs: only handles WM_ERASEBKGND and    */
+/*  WM_WINDOWPOSCHANGING to prevent resize flash.                      */
+/* ------------------------------------------------------------------ */
+static LRESULT CALLBACK dialogDecoWndProc(
+    HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    DecoState *state = getState(hwnd);
+    if (!state) return DefWindowProcW(hwnd, msg, wParam, lParam);
+
+    switch (msg) {
+
+    case WM_ERASEBKGND: {
+        HDC hdc = (HDC)wParam;
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        HBRUSH brush = CreateSolidBrush(state->bgColor);
+        FillRect(hdc, &rc, brush);
+        DeleteObject(brush);
+        return 1;
+    }
+
+    case WM_WINDOWPOSCHANGING: {
+        WINDOWPOS *wp = (WINDOWPOS *)lParam;
+        wp->flags |= SWP_NOCOPYBITS;
+        break;
+    }
+
+    case WM_NCDESTROY: {
+        WNDPROC origProc = state->originalWndProc;
+        RemovePropW(hwnd, PROP_NAME);
+        HeapFree(GetProcessHeap(), 0, state);
+        SetWindowLongPtrW(hwnd, GWLP_WNDPROC, (LONG_PTR)origProc);
+        return CallWindowProcW(origProc, hwnd, msg, wParam, lParam);
+    }
+
+    }
+
+    return CallWindowProcW(state->originalWndProc, hwnd, msg, wParam, lParam);
+}
+
 /* -------------------------------------------------------------- */
 /*  nativeApplyDialogStyle(long hwnd)                              */
 /*  Applies rounded corners + DWM shadow to an undecorated popup   */
 /*  dialog window (WS_POPUP without WS_CAPTION).                   */
+/*  Also subclasses the WndProc to handle WM_ERASEBKGND and        */
+/*  WM_WINDOWPOSCHANGING (SWP_NOCOPYBITS) to prevent resize flash. */
 /*  DWMWA_WINDOW_CORNER_PREFERENCE (33) + DWMWCP_ROUND (2) are    */
 /*  Windows 11 22000+ only; silently ignored on older Windows.     */
 /* -------------------------------------------------------------- */
@@ -764,6 +807,21 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
 {
     HWND hwnd = (HWND)(uintptr_t)hwndLong;
     if (!hwnd || !IsWindow(hwnd)) return;
+
+    /* Idempotent: if already installed, nothing to do */
+    if (getState(hwnd)) return;
+
+    /* Allocate per-HWND state for WM_ERASEBKGND background fill */
+    DecoState *state = (DecoState *)HeapAlloc(
+        GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DecoState));
+    if (!state) return;
+
+    SetPropW(hwnd, PROP_NAME, (HANDLE)state);
+
+    /* Subclass with lightweight dialog WndProc */
+    LONG_PTR prevWndProc = SetWindowLongPtrW(
+        hwnd, GWLP_WNDPROC, (LONG_PTR)dialogDecoWndProc);
+    state->originalWndProc = (WNDPROC)prevWndProc;
 
     /* Request rounded corners (Windows 11+, silently ignored on older) */
     DWORD preference = 2; /* DWMWCP_ROUND */
