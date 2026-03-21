@@ -12,16 +12,5 @@
                 }
             ]
         }
-    ],
-    "resources": [
-        {
-            "glob": "skiko-windows-x64.dll.sha256"
-        },
-        {
-            "bundle": "com.sun.accessibility.internal.resources.accessibility"
-        },
-        {
-            "bundle": "com.sun.java.swing.plaf.windows.resources.windows"
-        }
     ]
 }

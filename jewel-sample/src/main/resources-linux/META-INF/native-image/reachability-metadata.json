@@ -12,9 +12,6 @@
     ],
     "resources": [
         {
-            "glob": "libskiko-linux-x64.so.sha256"
-        },
-        {
             "glob": "messages/JewelIntUIBundle.properties"
         },
         {
@@ -22,15 +19,6 @@
         },
         {
             "glob": "messages/JewelIntUIBundle_fr_FR.properties"
-        },
-        {
-            "glob": "org/slf4j/impl/StaticLoggerBinder.class"
-        },
-        {
-            "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
-        },
-        {
-            "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
         },
         {
             "bundle": "messages.JewelIntUIBundle"

@@ -2,21 +2,6 @@
     "reflection": [],
     "resources": [
         {
-            "glob": "libskiko-macos-arm64.dylib.sha256"
-        },
-        {
-            "glob": "org/slf4j/impl/StaticLoggerBinder.class"
-        },
-        {
-            "bundle": "com.apple.laf.resources.aqua"
-        },
-        {
-            "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
-        },
-        {
-            "bundle": "sun.awt.resources.awtosx"
-        },
-        {
             "glob": "messages/JewelIntUIBundle.properties"
         },
         {

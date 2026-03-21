@@ -630,5 +630,13 @@
                 }
             ]
         }
+    ],
+    "resources": [
+        {
+            "bundle": "com.sun.java.swing.plaf.gtk.resources.gtk"
+        },
+        {
+            "bundle": "com.sun.swing.internal.plaf.synth.resources.synth"
+        }
     ]
 }

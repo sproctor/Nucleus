@@ -15,21 +15,6 @@
     ],
     "resources": [
         {
-            "glob": "org/slf4j/impl/StaticLoggerBinder.class"
-        },
-        {
-            "glob": "skiko-windows-x64.dll.sha256"
-        },
-        {
-            "bundle": "com.sun.accessibility.internal.resources.accessibility"
-        },
-        {
-            "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
-        },
-        {
-            "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
-        },
-        {
             "glob": "messages/JewelIntUIBundle.properties"
         },
         {

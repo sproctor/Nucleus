@@ -4952,6 +4952,18 @@
         {
             "module": "java.xml",
             "glob": "com/sun/org/apache/xml/internal/serializer/*.properties"
+        },
+        {
+            "glob": "org/slf4j/impl/StaticLoggerBinder.class"
+        },
+        {
+            "glob": "*skiko*.sha256"
+        },
+        {
+            "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
+        },
+        {
+            "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
         }
     ]
 }

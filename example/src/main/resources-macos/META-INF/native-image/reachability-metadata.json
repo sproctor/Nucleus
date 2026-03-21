@@ -1,14 +1,3 @@
 {
-    "reflection": [],
-    "resources": [
-        {
-            "glob": "libskiko-macos-arm64.dylib.sha256"
-        },
-        {
-            "bundle": "com.apple.laf.resources.aqua"
-        },
-        {
-            "bundle": "sun.awt.resources.awtosx"
-        }
-    ]
+    "reflection": []
 }

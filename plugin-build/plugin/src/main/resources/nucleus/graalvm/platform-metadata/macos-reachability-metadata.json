@@ -907,5 +907,13 @@
                 }
             ]
         }
+    ],
+    "resources": [
+        {
+            "bundle": "com.apple.laf.resources.aqua"
+        },
+        {
+            "bundle": "sun.awt.resources.awtosx"
+        }
     ]
 }
