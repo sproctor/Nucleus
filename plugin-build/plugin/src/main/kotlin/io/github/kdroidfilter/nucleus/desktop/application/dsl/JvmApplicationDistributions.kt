@@ -15,6 +15,8 @@ internal val DEFAULT_RUNTIME_MODULES =
         "java.base",
         "java.desktop",
         "java.logging",
+        "java.net.http",
+        "jdk.accessibility",
         "jdk.crypto.ec",
     )
 
