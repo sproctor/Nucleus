@@ -170,7 +170,7 @@ fun main(args: Array<String>) {
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
                     ) {
-                        val tabs = listOf("Nucleus", "Gallery")
+                        val tabs = listOf("Nucleus", "Gallery", "Taskbar")
                         var selectedTab by remember { mutableStateOf("Nucleus") }
 
                         MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
@@ -294,6 +294,7 @@ fun main(args: Array<String>) {
                                     GalleryScreen(seedColor = seedColor)
                                 }
                             }
+                            "Taskbar" -> TaskbarProgressScreen(window)
                         }
 
                         if (showInfoDialog) {
