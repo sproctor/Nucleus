@@ -3,6 +3,8 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE.txt file.
  */
 
+@file:Suppress("TooManyFunctions")
+
 package io.github.kdroidfilter.nucleus.desktop.application.internal
 
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.PackagingBackend
@@ -92,6 +94,7 @@ internal class CommonJvmDesktopTasks(
     val patchCaCertificates: TaskProvider<AbstractPatchCaCertificatesTask>?,
 )
 
+@Suppress("LongMethod")
 private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDesktopTasks {
     val unpackDefaultResources =
         tasks.register<AbstractUnpackDefaultApplicationResourcesTask>(
@@ -277,6 +280,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
     )
 }
 
+@Suppress("LongMethod")
 private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvmDesktopTasks) {
     val runProguard =
         if (buildType.proguard.isEnabled.orNull == true) {
@@ -564,7 +568,11 @@ private fun JvmApplicationContext.configureProguardTask(
         proguardVersion.set(settings.version)
         proguardFiles.from(
             proguardVersion.map { proguardVersion ->
-                project.detachedDependency(groupId = "com.guardsquare", artifactId = "proguard-gradle", version = proguardVersion)
+                project.detachedDependency(
+                    groupId = "com.guardsquare",
+                    artifactId = "proguard-gradle",
+                    version = proguardVersion,
+                )
             },
         )
         configurationFiles.from(settings.configurationFiles)
@@ -731,14 +739,16 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     packageTask.executableName.set(
         project.provider {
             val dist = app.nativeDistributions
-            when (currentOS) {
-                OS.Linux -> dist.linux.packageName
-                OS.Windows -> dist.windows.packageName
-                OS.MacOS -> dist.macOS.packageName
-            } ?: dist.packageName
-            ?: error(
+            val platformName =
+                when (currentOS) {
+                    OS.Linux -> dist.linux.packageName
+                    OS.Windows -> dist.windows.packageName
+                    OS.MacOS -> dist.macOS.packageName
+                }
+            platformName ?: dist.packageName ?: error(
                 "No packageName configured for ${currentOS.name}. " +
-                    "Set nativeDistributions { packageName = \"...\" } or the platform-specific packageName.",
+                    "Set nativeDistributions { packageName = \"...\" } " +
+                    "or the platform-specific packageName.",
             )
         },
     )
@@ -1090,6 +1100,7 @@ private fun getOrCreatePatchedJvm(
         javaBin.inputStream().use { stream ->
             java.security.MessageDigest.getInstance("SHA-256").let { md ->
                 md.update(sdkVersion.toByteArray())
+                @Suppress("MagicNumber")
                 val buf = ByteArray(8192)
                 var n: Int
                 while (stream.read(buf).also { n = it } != -1) md.update(buf, 0, n)
