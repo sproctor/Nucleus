@@ -27,7 +27,7 @@ inputs:
     required: false
     default: 'false'
   setup-gradle:
-    description: 'Setup Gradle via gradle/actions/setup-gradle@v4'
+    description: 'Setup Gradle via gradle/actions/setup-gradle@v5'
     required: false
     default: 'true'
   graalvm:
@@ -45,7 +45,7 @@ inputs:
   node-version:
     description: 'Node.js version'
     required: false
-    default: '20'
+    default: '24'
 
 outputs:
   java-home:
@@ -225,8 +225,10 @@ runs:
         set -euo pipefail
         sudo apt-get update
         sudo apt-get install -y flatpak flatpak-builder
-        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        sudo flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+        # Install runtimes for the current user — flatpak-builder (via @malept/flatpak-bundler)
+        # defaults to --user mode and won't find system-only runtimes.
+        flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak --user install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
     # ── Snap (Linux only) ───────────────────────────────────────────────
     - name: Install Snap (Linux)
@@ -246,11 +248,11 @@ runs:
     # ── Gradle ──────────────────────────────────────────────────────────
     - name: Setup Gradle
       if: inputs.setup-gradle == 'true'
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v5
 
     # ── Node.js ─────────────────────────────────────────────────────────
     - name: Setup Node.js
       if: inputs.setup-node == 'true'
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}

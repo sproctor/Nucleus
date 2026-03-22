@@ -73,7 +73,7 @@ jobs:
           merge-multiple: true
 
       - name: Cache Gradle Caches
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Run Gradle tasks
         run: ./gradlew preMerge --continue
