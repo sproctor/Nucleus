@@ -25,7 +25,8 @@ nucleus.application {
         targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb)
 
         // Package metadata
-        packageName = "MyApp"
+        appName = "My App"     // Display name (installer, .desktop, Start Menu)
+        packageName = "MyApp"  // Technical name (executable, package file)
         packageVersion = "1.0.0"
         description = "My awesome desktop app"
         vendor = "My Company"
@@ -95,7 +96,8 @@ targetFormats(*TargetFormat.entries.toTypedArray())
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `packageName` | `String` | Gradle project name | Application display name |
+| `appName` | `String?` | `null` | Human-readable display name (installer title, `.desktop` Name, Start Menu). Falls back to `packageName` if not set. |
+| `packageName` | `String` | Gradle project name | Technical package/executable name. On Linux this should be lowercase (e.g. `zayit`). |
 | `packageVersion` | `String` | Gradle project version | Application version |
 | `description` | `String?` | `null` | Short application description |
 | `vendor` | `String?` | `null` | Publisher / company name |
@@ -284,7 +286,7 @@ nucleus.application {
     }
     nativeDistributions {
         targetFormats(...)
-        packageName, packageVersion, description, vendor, copyright, homepage
+        appName, packageName, packageVersion, description, vendor, copyright, homepage
         licenseFile, appResourcesRootDir, outputBaseDir
         modules(...), includeAllModules
         cleanupNativeLibs, enableAotCache, splashImage
