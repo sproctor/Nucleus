@@ -29,6 +29,9 @@ import io.github.kdroidfilter.nucleus.internal.utils.currentOS
 import io.github.kdroidfilter.nucleus.internal.utils.ioFile
 import io.github.kdroidfilter.nucleus.internal.utils.notNullProperty
 import io.github.kdroidfilter.nucleus.internal.utils.nullableProperty
+import net.coobird.thumbnailator.Thumbnails
+import net.coobird.thumbnailator.filters.Canvas
+import net.coobird.thumbnailator.geometry.Positions
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -45,9 +48,6 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
-import net.coobird.thumbnailator.Thumbnails
-import net.coobird.thumbnailator.filters.Canvas
-import net.coobird.thumbnailator.geometry.Positions
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -1002,7 +1002,8 @@ abstract class AbstractElectronBuilderPackageTask
             width: Int,
             height: Int,
         ): BufferedImage =
-            Thumbnails.of(source)
+            Thumbnails
+                .of(source)
                 .size(width, height)
                 .imageType(BufferedImage.TYPE_INT_ARGB)
                 .asBufferedImage()
@@ -1012,7 +1013,8 @@ abstract class AbstractElectronBuilderPackageTask
             width: Int,
             height: Int,
         ): BufferedImage =
-            Thumbnails.of(source)
+            Thumbnails
+                .of(source)
                 .size(width, height)
                 .keepAspectRatio(true)
                 .addFilter(Canvas(width, height, Positions.CENTER, true, Color(0, 0, 0, 0)))
