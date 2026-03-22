@@ -96,6 +96,24 @@ internal class ElectronBuilderToolManager(
         }
 
         if (result.exitValue != 0) {
+            // Re-run with DEBUG enabled to capture detailed diagnostics
+            val debugStdout = ByteArrayOutputStream()
+            val debugStderr = ByteArrayOutputStream()
+            val debugEnv =
+                buildMap {
+                    putAll(invocation.environment)
+                    put("DEBUG", "electron-builder,electron-builder:*")
+                }
+            execOperations.exec { spec ->
+                spec.executable = invocation.npx.absolutePath
+                spec.args = args
+                spec.environment(debugEnv)
+                spec.workingDir = invocation.outputDir
+                spec.isIgnoreExitValue = true
+                spec.standardOutput = debugStdout
+                spec.errorOutput = debugStderr
+            }
+
             val errMsg =
                 buildString {
                     appendLine("electron-builder failed with exit code ${result.exitValue}")
@@ -107,6 +125,19 @@ internal class ElectronBuilderToolManager(
                     if (stdoutStr.isNotBlank()) {
                         appendLine("Stdout:")
                         appendLine(stdoutStr)
+                    }
+                    val debugOut = debugStdout.toString()
+                    val debugErr = debugStderr.toString()
+                    if (debugOut.isNotBlank() || debugErr.isNotBlank()) {
+                        appendLine("--- Debug retry output ---")
+                        if (debugErr.isNotBlank()) {
+                            appendLine("Debug Stderr:")
+                            appendLine(debugErr)
+                        }
+                        if (debugOut.isNotBlank()) {
+                            appendLine("Debug Stdout:")
+                            appendLine(debugOut)
+                        }
                     }
                 }
             error(errMsg)
