@@ -728,7 +728,16 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     )
 
     packageTask.packageName.set(packageNameProvider)
-    packageTask.executableName.set(packageNameProvider)
+    packageTask.executableName.set(
+        project.provider {
+            val dist = app.nativeDistributions
+            when (currentOS) {
+                OS.Linux -> dist.linux.packageName
+                OS.Windows -> dist.windows.packageName
+                OS.MacOS -> dist.macOS.packageName
+            } ?: dist.packageName ?: project.name
+        },
+    )
     packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
     packageTask.linuxIconFile.set(
         app.nativeDistributions.linux.iconFile

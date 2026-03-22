@@ -1050,7 +1050,7 @@ abstract class AbstractElectronBuilderPackageTask
 
             val relativePath = launcher.relativeTo(appDir).path
 
-            val aliasName = launcherName.toNpmPackageName()
+            val aliasName = executableName.orNull ?: launcherName.toNpmPackageName()
             val aliasFile = appDir.resolve(aliasName)
             if (aliasFile.exists()) return
 
