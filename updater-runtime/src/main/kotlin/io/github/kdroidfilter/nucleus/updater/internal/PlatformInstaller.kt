@@ -129,7 +129,6 @@ internal object PlatformInstaller {
         script.writeText(
             """
             |#!/usr/bin/env bash
-            |set -e
             |
             |# Ignore SIGHUP to survive parent process exit
             |trap '' HUP
@@ -146,6 +145,8 @@ internal object PlatformInstaller {
             |sleep 1
             |
             |# Install the package (shows graphical authentication dialog)
+            |# Do not use set -e: dpkg/rpm may return non-zero on warnings,
+            |# which would prevent the application from relaunching.
             |$installCmd
             |
             |# Clean up the package file

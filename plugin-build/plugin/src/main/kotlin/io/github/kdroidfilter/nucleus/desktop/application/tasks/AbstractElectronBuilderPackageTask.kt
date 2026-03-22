@@ -1285,7 +1285,11 @@ private fun copyAppImage(
  */
 private fun isolatedCacheEnv(outputDir: File): Map<String, String> {
     val cacheDir = File(outputDir, ".npm-cache").apply { mkdirs() }
-    val prefixDir = File(outputDir, ".npm-prefix").apply { mkdirs() }
+    val prefixDir =
+        File(outputDir, ".npm-prefix").apply {
+            mkdirs()
+            File(this, "lib").mkdirs()
+        }
     val ebCacheDir = File(outputDir, ".electron-builder-cache").apply { mkdirs() }
     // Per-task .npmrc files prevent npm from reading/writing shared user/global config.
     // They must be separate files — npm rejects loading the same file as both user and global.
