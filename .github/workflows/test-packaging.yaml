@@ -100,6 +100,13 @@ jobs:
           pattern: 'energy-manager-*'
           merge-multiple: true
 
+      - name: Download taskbar-progress artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: taskbar-progress/src/main/resources/nucleus/native/
+          pattern: 'taskbar-progress-*'
+          merge-multiple: true
+
       - name: Build packages
         shell: bash
         run: ./gradlew :example:packageReleaseDistributionForCurrentOS --stacktrace --no-daemon

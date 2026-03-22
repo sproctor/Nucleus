@@ -109,6 +109,13 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             app.nativeDistributions.packageVersion?.let { appVersion.set(it) }
             app.nativeDistributions.vendor?.let { appVendor.set(it) }
             app.nativeDistributions.description?.let { appDescription.set(it) }
+            // Store the computed StartupWMClass so graalvm-runtime can use it as
+            // WM_CLASS and GNOME can match the window to the .desktop file icon.
+            val wmClass =
+                app.nativeDistributions.linux.startupWMClass
+                    ?.takeIf { it.isNotBlank() }
+                    ?: app.mainClass?.replace('.', '-')
+            wmClass?.let { startupWmClass.set(it) }
             outputDir.set(appTmpDir.dir("app-properties"))
         }
 
