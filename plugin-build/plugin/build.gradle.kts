@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.download.task)
     implementation(libs.kotlin.poet)
     implementation(libs.batik.transcoder)
+    implementation(libs.thumbnailator)
 
     testImplementation(libs.junit)
 }

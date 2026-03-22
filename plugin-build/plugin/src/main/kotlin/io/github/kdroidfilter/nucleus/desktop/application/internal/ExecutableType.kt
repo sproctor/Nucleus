@@ -94,8 +94,11 @@ private fun findNativeBinaryDir(appImageDir: File): File? {
             .firstOrNull { it.isDirectory && it.name == "MacOS" && it.parentFile?.name == "Contents" }
     if (macOsDir != null) return macOsDir
 
-    // Windows/Linux: first subdirectory that contains an executable
-    return appImageDir.listFiles()?.firstOrNull { it.isDirectory }
+    // Linux/Windows GraalVM native image: the binary sits directly in appImageDir.
+    // The runtime reads the marker from the parent of the executable
+    // (ProcessHandle.current().info().command() → parentFile), so the marker
+    // must be written to the same directory as the binary.
+    return appImageDir
 }
 
 private fun updateExecutableTypeInCfg(

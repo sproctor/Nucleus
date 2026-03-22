@@ -45,8 +45,8 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import net.coobird.thumbnailator.Thumbnails
 import java.awt.AlphaComposite
-import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -1000,38 +1000,31 @@ abstract class AbstractElectronBuilderPackageTask
             source: BufferedImage,
             width: Int,
             height: Int,
-        ): BufferedImage {
-            val resized = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-            val graphics = resized.createGraphics()
-            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            graphics.drawImage(source, 0, 0, width, height, null)
-            graphics.dispose()
-            return resized
-        }
+        ): BufferedImage =
+            Thumbnails.of(source)
+                .size(width, height)
+                .imageType(BufferedImage.TYPE_INT_ARGB)
+                .asBufferedImage()
 
         private fun resizeIconToCanvas(
             source: BufferedImage,
             width: Int,
             height: Int,
         ): BufferedImage {
-            val resized = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-            val graphics = resized.createGraphics()
-            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            graphics.composite = AlphaComposite.Src
-            graphics.fillRect(0, 0, width, height)
-
             val scale = min(width.toDouble() / source.width, height.toDouble() / source.height)
             val targetWidth = (source.width * scale).toInt().coerceAtLeast(1)
             val targetHeight = (source.height * scale).toInt().coerceAtLeast(1)
+            val scaled = resizeIcon(source, targetWidth, targetHeight)
+
+            val canvas = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+            val graphics = canvas.createGraphics()
+            graphics.composite = AlphaComposite.Src
+            graphics.fillRect(0, 0, width, height)
             val x = (width - targetWidth) / 2
             val y = (height - targetHeight) / 2
-            graphics.drawImage(source, x, y, targetWidth, targetHeight, null)
+            graphics.drawImage(scaled, x, y, null)
             graphics.dispose()
-            return resized
+            return canvas
         }
 
         private fun ensureLinuxExecutableAlias(appDir: File) {
@@ -1045,11 +1038,12 @@ abstract class AbstractElectronBuilderPackageTask
             // GraalVM native image layout: executable directly in appDir/
             // The binary name may differ from packageName (e.g. imageName), so
             // look for any executable file in appDir root.
-            val graalvmLauncher = if (!jpackageLauncher.isFile) {
-                appDir.listFiles()?.firstOrNull { it.isFile && it.canExecute() }
-            } else {
-                null
-            }
+            val graalvmLauncher =
+                if (!jpackageLauncher.isFile) {
+                    appDir.listFiles()?.firstOrNull { it.isFile && it.canExecute() }
+                } else {
+                    null
+                }
 
             val launcher = jpackageLauncher.takeIf { it.isFile } ?: graalvmLauncher
             if (launcher == null) {
