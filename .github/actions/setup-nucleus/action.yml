@@ -27,7 +27,7 @@ inputs:
     required: false
     default: 'false'
   setup-gradle:
-    description: 'Setup Gradle via gradle/actions/setup-gradle@v4'
+    description: 'Setup Gradle via gradle/actions/setup-gradle@v5'
     required: false
     default: 'true'
   graalvm:
@@ -45,7 +45,7 @@ inputs:
   node-version:
     description: 'Node.js version'
     required: false
-    default: '20'
+    default: '24'
 
 outputs:
   java-home:
@@ -246,11 +246,11 @@ runs:
     # ── Gradle ──────────────────────────────────────────────────────────
     - name: Setup Gradle
       if: inputs.setup-gradle == 'true'
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v5
 
     # ── Node.js ─────────────────────────────────────────────────────────
     - name: Setup Node.js
       if: inputs.setup-node == 'true'
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
