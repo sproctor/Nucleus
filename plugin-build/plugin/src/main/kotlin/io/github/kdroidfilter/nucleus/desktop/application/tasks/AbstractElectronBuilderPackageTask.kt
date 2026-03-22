@@ -1169,7 +1169,8 @@ abstract class AbstractElectronBuilderPackageTask
                     dir.deleteRecursively()
                 }
             }
-            File(outputDir, ".npmrc").delete()
+            File(outputDir, ".npmrc-user").delete()
+            File(outputDir, ".npmrc-global").delete()
         }
 
         /**
@@ -1286,13 +1287,15 @@ private fun isolatedCacheEnv(outputDir: File): Map<String, String> {
     val cacheDir = File(outputDir, ".npm-cache").apply { mkdirs() }
     val prefixDir = File(outputDir, ".npm-prefix").apply { mkdirs() }
     val ebCacheDir = File(outputDir, ".electron-builder-cache").apply { mkdirs() }
-    // Per-task .npmrc prevents npm from reading/writing shared user config
-    val npmrcFile = File(outputDir, ".npmrc").apply { if (!exists()) createNewFile() }
+    // Per-task .npmrc files prevent npm from reading/writing shared user/global config.
+    // They must be separate files — npm rejects loading the same file as both user and global.
+    val userNpmrc = File(outputDir, ".npmrc-user").apply { if (!exists()) createNewFile() }
+    val globalNpmrc = File(outputDir, ".npmrc-global").apply { if (!exists()) createNewFile() }
     return mapOf(
         "NPM_CONFIG_CACHE" to cacheDir.absolutePath,
         "NPM_CONFIG_PREFIX" to prefixDir.absolutePath,
-        "NPM_CONFIG_USERCONFIG" to npmrcFile.absolutePath,
-        "NPM_CONFIG_GLOBALCONFIG" to npmrcFile.absolutePath,
+        "NPM_CONFIG_USERCONFIG" to userNpmrc.absolutePath,
+        "NPM_CONFIG_GLOBALCONFIG" to globalNpmrc.absolutePath,
         "NPM_CONFIG_UPDATE_NOTIFIER" to "false",
         "ELECTRON_BUILDER_CACHE" to ebCacheDir.absolutePath,
     )
