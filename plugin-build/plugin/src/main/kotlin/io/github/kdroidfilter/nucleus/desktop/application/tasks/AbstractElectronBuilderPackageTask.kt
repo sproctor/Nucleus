@@ -1004,7 +1004,7 @@ abstract class AbstractElectronBuilderPackageTask
         ): BufferedImage =
             Thumbnails
                 .of(source)
-                .size(width, height)
+                .forceSize(width, height)
                 .imageType(BufferedImage.TYPE_INT_ARGB)
                 .asBufferedImage()
 
