@@ -75,6 +75,7 @@ import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
 import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
 import io.github.kdroidfilter.nucleus.systemcolor.systemAccentColor
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
+import io.github.kdroidfilter.nucleus.updater.UpdateEvent
 import io.github.kdroidfilter.nucleus.updater.UpdateLevel
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
@@ -349,6 +350,7 @@ fun NucleusContent() {
             }
         }
 
+    var updateEvent by remember { mutableStateOf(updater.consumeUpdateEvent()) }
     var updateStatus by remember { mutableStateOf("Checking for updates...") }
     var downloadProgress by remember { mutableStateOf(-1.0) }
     var downloadedFile by remember { mutableStateOf<File?>(null) }
@@ -407,6 +409,14 @@ fun NucleusContent() {
                 }
             }
 
+            if (updateEvent != null) {
+                UpdateBanner(
+                    event = updateEvent!!,
+                    onDismiss = { updateEvent = null },
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
+
             if (updater.isUpdateSupported()) {
                 Column(
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -435,6 +445,41 @@ fun NucleusContent() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateBanner(
+    event: UpdateEvent,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(0.6f).padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "Updated from v${event.previousVersion} to v${event.newVersion}",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${event.updateLevel.name.lowercase()
+                    .replaceFirstChar { it.uppercase() }} update applied successfully",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = onDismiss) {
+                Text("Dismiss")
             }
         }
     }
