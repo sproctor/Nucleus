@@ -9,8 +9,9 @@ import java.util.Properties;
  * <p>
  * Resolution order:
  * <ol>
- *   <li>{@code nucleus.app.id} system property (injected by the Nucleus Gradle plugin)</li>
- *   <li>{@code nucleus/nucleus-app.properties} classpath resource ({@code app.id} key)</li>
+ *   <li>{@code nucleus/nucleus-app.properties} → {@code startup.wm.class} key (matches .desktop StartupWMClass)</li>
+ *   <li>{@code nucleus/nucleus-app.properties} → {@code app.id} key</li>
+ *   <li>{@code nucleus.app.id} system property (fallback for run task)</li>
  *   <li>Executable name from {@code /proc/self/exe}</li>
  *   <li>Fallback: {@code "NucleusApp"}</li>
  * </ol>
@@ -23,19 +24,16 @@ final class AppNameResolver {
         String name = cached;
         if (name != null) return name;
 
-        name = doResolve();
+        // Match XToolkit.getCorrectXIDString() which replaces '.' with '-'
+        name = doResolve().replace('.', '-');
         cached = name;
         return name;
     }
 
     private static String doResolve() {
-        // 1) System property injected by the Nucleus plugin
-        String appId = System.getProperty("nucleus.app.id");
-        if (appId != null && !appId.isBlank()) {
-            return appId;
-        }
-
-        // 2) Classpath resource written by the plugin at build time
+        // 1) Classpath resource written by the Nucleus plugin at build time.
+        //    Prefer startup.wm.class (matches the .desktop StartupWMClass) over
+        //    app.id (which is the raw packageName, not necessarily WM_CLASS-safe).
         try {
             InputStream stream = AppNameResolver.class
                     .getClassLoader()
@@ -44,6 +42,10 @@ final class AppNameResolver {
                 try (stream) {
                     Properties props = new Properties();
                     props.load(stream);
+                    String wmClass = props.getProperty("startup.wm.class");
+                    if (wmClass != null && !wmClass.isBlank()) {
+                        return wmClass;
+                    }
                     String resId = props.getProperty("app.id");
                     if (resId != null && !resId.isBlank()) {
                         return resId;
@@ -51,6 +53,12 @@ final class AppNameResolver {
                 }
             }
         } catch (Exception ignored) {
+        }
+
+        // 2) System property injected by the Nucleus plugin (fallback for run task)
+        String appId = System.getProperty("nucleus.app.id");
+        if (appId != null && !appId.isBlank()) {
+            return appId;
         }
 
         // 3) Executable name from /proc/self/exe
