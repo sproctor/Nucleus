@@ -1169,6 +1169,7 @@ abstract class AbstractElectronBuilderPackageTask
                     dir.deleteRecursively()
                 }
             }
+            File(outputDir, ".npmrc").delete()
         }
 
         /**
@@ -1277,13 +1278,25 @@ private fun copyAppImage(
  * electron-builder tasks run in parallel and compete for shared caches (npx cache,
  * NSIS downloads, etc.). The prefix is also isolated to avoid npm 11+ ECOMPROMISED
  * errors caused by concurrent npx invocations sharing the global prefix.
+ *
+ * Additional npm config isolation (userconfig, globalconfig) prevents npm from
+ * reading shared config files that could cause lock contention on Windows ARM64.
  */
-private fun isolatedCacheEnv(outputDir: File): Map<String, String> =
-    mapOf(
-        "NPM_CONFIG_CACHE" to File(outputDir, ".npm-cache").absolutePath,
-        "NPM_CONFIG_PREFIX" to File(outputDir, ".npm-prefix").absolutePath,
-        "ELECTRON_BUILDER_CACHE" to File(outputDir, ".electron-builder-cache").absolutePath,
+private fun isolatedCacheEnv(outputDir: File): Map<String, String> {
+    val cacheDir = File(outputDir, ".npm-cache").apply { mkdirs() }
+    val prefixDir = File(outputDir, ".npm-prefix").apply { mkdirs() }
+    val ebCacheDir = File(outputDir, ".electron-builder-cache").apply { mkdirs() }
+    // Per-task .npmrc prevents npm from reading/writing shared user config
+    val npmrcFile = File(outputDir, ".npmrc").apply { if (!exists()) createNewFile() }
+    return mapOf(
+        "NPM_CONFIG_CACHE" to cacheDir.absolutePath,
+        "NPM_CONFIG_PREFIX" to prefixDir.absolutePath,
+        "NPM_CONFIG_USERCONFIG" to npmrcFile.absolutePath,
+        "NPM_CONFIG_GLOBALCONFIG" to npmrcFile.absolutePath,
+        "NPM_CONFIG_UPDATE_NOTIFIER" to "false",
+        "ELECTRON_BUILDER_CACHE" to ebCacheDir.absolutePath,
     )
+}
 
 private fun resolveElectronBuilderEnvironment(
     targetFormat: TargetFormat,
