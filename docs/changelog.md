@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.6.2
+
+**Released: 2026-03-22**
+
+### New Features
+
+- **`appName` property** — New top-level property in `nativeDistributions {}` for the human-readable application display name (installer title, `.desktop` Name, Start Menu entry). Separates the display name from `packageName`, which remains the technical identifier used for executable and package file naming.
+
+```kotlin
+nativeDistributions {
+    appName = "My App"            // Display name (installer, .desktop, Start Menu)
+    linux { packageName = "myapp" }     // Technical: executable, .deb file name
+    windows { packageName = "MyApp" }   // Technical: .exe name, MSI
+}
+```
+
+### Bug Fixes
+
+- **Fix MSI build failing with WiX `LGHT0094: File:mainExecutable not found`** — The JVM packaging path now sets `executableName` on the electron-builder task, matching what the GraalVM path already did. Without it, electron-builder fell back to a mismatched lowercase name from `package.json`, causing WiX to fail.
+- **Fix Linux .deb file and launcher using Gradle project name instead of `linux.packageName`** — `executableName` now resolves to the platform-specific `packageName` (`linux.packageName`, `windows.packageName`, `macOS.packageName`) instead of the Gradle project name.
+- **Fix `productName` missing in electron-builder YAML** — When no top-level `packageName` was set, `productName` was omitted from the generated config. It now falls back to `appName`, then `packageName`, then `executableName`.
+- **Fix `package.json` `name` field ignoring platform-specific package name** — The generated `package.json` now uses `executableName` (platform-specific) for the `name` field, so the `${name}` variable in the artifact name template resolves correctly.
+
 ## v1.6.0
 
 **Released: 2026-03-22**

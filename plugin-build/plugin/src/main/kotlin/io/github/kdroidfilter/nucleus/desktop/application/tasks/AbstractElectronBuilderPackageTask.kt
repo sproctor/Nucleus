@@ -298,7 +298,8 @@ abstract class AbstractElectronBuilderPackageTask
 
         private fun resolvePublishFlag(): String {
             val publish = distributions?.publish
-            val anyProviderEnabled = publish != null && (publish.github.enabled || publish.s3.enabled || publish.generic.enabled)
+            val anyProviderEnabled =
+                publish != null && (publish.github.enabled || publish.s3.enabled || publish.generic.enabled)
             if (!anyProviderEnabled) {
                 logger.info("No publish provider enabled, using publish mode: never")
                 return "never"
@@ -451,7 +452,9 @@ abstract class AbstractElectronBuilderPackageTask
             val metadata =
                 buildString {
                     appendLine("{")
-                    appendLine("  \"productName\": ${jsonStr(distributions.packageName)},")
+                    val resolvedProductName =
+                        distributions.appName ?: distributions.packageName ?: executableName.orNull
+                    appendLine("  \"productName\": ${jsonStr(resolvedProductName)},")
                     appendLine("  \"appId\": ${jsonStr(appId)},")
                     appendLine("  \"copyright\": ${jsonStr(distributions.copyright)},")
                     appendLine("  \"artifactName\": ${jsonStr(distributions.artifactName)},")
@@ -1085,7 +1088,7 @@ abstract class AbstractElectronBuilderPackageTask
             val packageJson = File(outputDir, "package.json")
             if (packageJson.exists()) return
 
-            val normalizedName = packageName.get().toNpmPackageName()
+            val normalizedName = (executableName.orNull ?: packageName.get()).toNpmPackageName()
             val normalizedVersion = packageVersion.orNull?.takeIf { it.isNotBlank() } ?: "1.0.0"
             val normalizedDescription =
                 distributions.description?.takeIf { it.isNotBlank() }

@@ -28,7 +28,7 @@ import java.io.File
  *
  * @see io.github.kdroidfilter.nucleus.desktop.application.internal.padDmgBackgroundForTitleBar
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 internal class ElectronBuilderConfigGenerator {
     /**
      * Generates the electron-builder config YAML content.
@@ -42,7 +42,7 @@ internal class ElectronBuilderConfigGenerator {
     fun generateConfig(
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
-        appImageDir: File,
+        @Suppress("unused") appImageDir: File,
         targetArch: Arch,
         startupWMClass: String? = null,
         linuxIconOverride: File? = null,
@@ -54,7 +54,13 @@ internal class ElectronBuilderConfigGenerator {
         val yaml = StringBuilder()
 
         // --- Common settings ---
-        appendIfNotNull(yaml, "productName", distributions.packageName)
+        val resolvedProductName =
+            distributions.appName ?: distributions.packageName ?: executableName
+                ?: error(
+                    "No appName, packageName, or executableName available for electron-builder config",
+                )
+        yaml.appendLine("productName: \"${resolvedProductName.escapeForYamlDoubleQuotes()}\"")
+
         // On macOS, appId must match the CFBundleIdentifier from the app's Info.plist,
         // otherwise productbuild will fail to find the component package during PKG creation.
         val appId =
@@ -88,8 +94,17 @@ internal class ElectronBuilderConfigGenerator {
 
         // --- Platform-specific config ---
         when (currentOS) {
-            OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat, targetArch, dmgBackgroundOverride)
-            OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat, targetArch, windowsIconOverride, executableName)
+            OS.MacOS ->
+                generateMacConfig(yaml, distributions, targetFormat, targetArch, dmgBackgroundOverride)
+            OS.Windows ->
+                generateWindowsConfig(
+                    yaml,
+                    distributions,
+                    targetFormat,
+                    targetArch,
+                    windowsIconOverride,
+                    executableName,
+                )
             OS.Linux ->
                 generateLinuxConfig(
                     yaml = yaml,
@@ -669,7 +684,7 @@ internal class ElectronBuilderConfigGenerator {
      * `certType = "Developer ID Installer"`, making it impossible to match a
      * "3rd Party Mac Developer Installer" certificate at build time.
      */
-    @Suppress("UnusedParameter")
+    @Suppress("UnusedParameter", "FunctionOnlyReturningConstant")
     private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? = null
 
     private fun appendIfNotNull(

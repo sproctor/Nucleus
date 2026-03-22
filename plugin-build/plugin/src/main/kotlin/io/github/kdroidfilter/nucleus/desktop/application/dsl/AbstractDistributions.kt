@@ -24,6 +24,7 @@ abstract class AbstractDistributions {
             set(layout.buildDirectory.dir("compose/binaries"))
         }
 
+    var appName: String? = null
     var packageName: String? = null
     var packageVersion: String? = null
     var copyright: String? = null
