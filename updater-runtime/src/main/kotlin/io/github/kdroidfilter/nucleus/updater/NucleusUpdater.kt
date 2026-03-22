@@ -11,6 +11,7 @@ import io.github.kdroidfilter.nucleus.updater.internal.ChecksumVerifier
 import io.github.kdroidfilter.nucleus.updater.internal.FileSelector
 import io.github.kdroidfilter.nucleus.updater.internal.PlatformInfo
 import io.github.kdroidfilter.nucleus.updater.internal.PlatformInstaller
+import io.github.kdroidfilter.nucleus.updater.internal.UpdateMarker
 import io.github.kdroidfilter.nucleus.updater.internal.YamlParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,8 @@ class NucleusUpdater(
     private val config: UpdaterConfig,
 ) {
     val currentVersion: String get() = config.currentVersion
+
+    private var pendingUpdateVersion: String? = null
 
     private val httpClient: HttpClient =
         config.httpClient
@@ -61,6 +64,7 @@ class NucleusUpdater(
 
     fun downloadUpdate(info: UpdateInfo): Flow<DownloadProgress> =
         flow {
+            pendingUpdateVersion = info.version
             val targetFile = info.currentFile
             val tempDir = System.getProperty("java.io.tmpdir")
             val tempFile = File(tempDir, "${targetFile.fileName}.download")
@@ -127,13 +131,49 @@ class NucleusUpdater(
         }.flowOn(Dispatchers.IO)
 
     fun installAndRestart(installerFile: File) {
+        writeUpdateMarker()
         val platform = PlatformInfo.currentPlatform()
         PlatformInstaller.install(installerFile, platform, restart = true)
     }
 
     fun installAndQuit(installerFile: File) {
+        writeUpdateMarker()
         val platform = PlatformInfo.currentPlatform()
         PlatformInstaller.install(installerFile, platform, restart = false)
+    }
+
+    /**
+     * Returns the update event if the application was just updated, and consumes it
+     * so that subsequent calls return `null`. Use this on startup to detect a
+     * post-update launch (e.g. to show a "What's new" dialog or run migrations).
+     */
+    fun consumeUpdateEvent(): UpdateEvent? {
+        val event = peekUpdateEvent() ?: return null
+        UpdateMarker.delete()
+        return event
+    }
+
+    /**
+     * Returns `true` if the application was launched after an update.
+     * Does **not** consume the event — call [consumeUpdateEvent] to clear it.
+     */
+    fun wasJustUpdated(): Boolean = UpdateMarker.exists()
+
+    private fun peekUpdateEvent(): UpdateEvent? {
+        val (previousVersion, newVersion) = UpdateMarker.read() ?: return null
+        val level = Version.fromString(newVersion).levelFrom(Version.fromString(previousVersion))
+        return UpdateEvent(previousVersion, newVersion, level)
+    }
+
+    private fun writeUpdateMarker() {
+        val targetVersion = pendingUpdateVersion ?: return
+        try {
+            UpdateMarker.write(config.currentVersion, targetVersion)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") _: Exception,
+        ) {
+            // Best-effort: don't prevent the update if the marker can't be written
+        }
     }
 
     private fun doCheckForUpdates(): UpdateResult {
