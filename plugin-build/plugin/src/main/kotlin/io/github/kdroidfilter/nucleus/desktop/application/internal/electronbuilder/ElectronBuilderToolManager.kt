@@ -74,28 +74,54 @@ internal class ElectronBuilderToolManager(
 
         logger.info("Running electron-builder: ${invocation.npx.absolutePath} ${args.joinToString(" ")}")
 
-        val stdout = ByteArrayOutputStream()
-        val stderr = ByteArrayOutputStream()
+        invokeWithRetry(invocation, args, maxAttempts = 3)
+    }
 
-        val result =
-            execOperations.exec { spec ->
-                spec.executable = invocation.npx.absolutePath
-                spec.args = args
-                spec.environment(invocation.environment)
-                spec.workingDir = invocation.outputDir
-                spec.isIgnoreExitValue = true
-                spec.standardOutput = stdout
-                spec.errorOutput = stderr
+    /**
+     * Executes electron-builder, retrying on npm ECOMPROMISED errors.
+     * npm 11+ on Windows ARM64 intermittently fails with "Lock compromised"
+     * due to internal cache integrity race conditions. Cleaning the npm cache
+     * and retrying resolves the issue.
+     */
+    private fun invokeWithRetry(
+        invocation: ElectronBuilderInvocation,
+        args: List<String>,
+        maxAttempts: Int,
+    ) {
+        for (attempt in 1..maxAttempts) {
+            val stdout = ByteArrayOutputStream()
+            val stderr = ByteArrayOutputStream()
+
+            val result =
+                execOperations.exec { spec ->
+                    spec.executable = invocation.npx.absolutePath
+                    spec.args = args
+                    spec.environment(invocation.environment)
+                    spec.workingDir = invocation.outputDir
+                    spec.isIgnoreExitValue = true
+                    spec.standardOutput = stdout
+                    spec.errorOutput = stderr
+                }
+
+            val stdoutStr = stdout.toString()
+            val stderrStr = stderr.toString()
+
+            if (stdoutStr.isNotBlank()) {
+                logger.info(stdoutStr)
             }
 
-        val stdoutStr = stdout.toString()
-        val stderrStr = stderr.toString()
+            if (result.exitValue == 0) return
 
-        if (stdoutStr.isNotBlank()) {
-            logger.info(stdoutStr)
-        }
+            val isCompromised = stderrStr.contains("ECOMPROMISED")
+            if (isCompromised && attempt < maxAttempts) {
+                logger.lifecycle(
+                    "npm ECOMPROMISED error on attempt $attempt/$maxAttempts, " +
+                        "cleaning npm cache and retrying...",
+                )
+                cleanNpmCache(invocation)
+                continue
+            }
 
-        if (result.exitValue != 0) {
             val errMsg =
                 buildString {
                     appendLine("electron-builder failed with exit code ${result.exitValue}")
@@ -110,6 +136,15 @@ internal class ElectronBuilderToolManager(
                     }
                 }
             error(errMsg)
+        }
+    }
+
+    private fun cleanNpmCache(invocation: ElectronBuilderInvocation) {
+        val cacheDir = invocation.environment["NPM_CONFIG_CACHE"] ?: return
+        val dir = File(cacheDir)
+        if (dir.isDirectory) {
+            dir.deleteRecursively()
+            dir.mkdirs()
         }
     }
 
