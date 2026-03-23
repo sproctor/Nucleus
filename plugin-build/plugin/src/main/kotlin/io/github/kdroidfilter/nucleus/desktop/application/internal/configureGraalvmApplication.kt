@@ -760,36 +760,39 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
         }
 
     // Capture file associations at configuration time for the Info.plist
-    val plistFileAssociations: Set<FileAssociation> = app.nativeDistributions.macOS.fileAssociations.toSet()
+    val plistFileAssociations: Set<FileAssociation> =
+        app.nativeDistributions.macOS.fileAssociations
+            .toSet()
 
     // Build a mapping from icon File -> unique name inside Resources/ (avoids collisions)
-    val fileAssociationIconMapping: Map<File, File> = run {
-        val icons = plistFileAssociations.mapNotNull { it.iconFile }.distinct()
-        if (icons.isEmpty()) return@run emptyMap()
-        val usedNames = mutableSetOf(plistIconFileName)
-        val mapping = mutableMapOf<File, File>()
-        for (icon in icons) {
-            if (!icon.exists()) continue
-            val name =
-                if (usedNames.add(icon.name)) {
-                    icon.name
-                } else {
-                    val nameWithoutExtension = icon.nameWithoutExtension
-                    val extension = icon.extension
-                    var uniqueName = icon.name
-                    for (n in 1UL..ULong.MAX_VALUE) {
-                        val candidate = "$nameWithoutExtension ($n).$extension"
-                        if (usedNames.add(candidate)) {
-                            uniqueName = candidate
-                            break
+    val fileAssociationIconMapping: Map<File, File> =
+        run {
+            val icons = plistFileAssociations.mapNotNull { it.iconFile }.distinct()
+            if (icons.isEmpty()) return@run emptyMap()
+            val usedNames = mutableSetOf(plistIconFileName)
+            val mapping = mutableMapOf<File, File>()
+            for (icon in icons) {
+                if (!icon.exists()) continue
+                val name =
+                    if (usedNames.add(icon.name)) {
+                        icon.name
+                    } else {
+                        val nameWithoutExtension = icon.nameWithoutExtension
+                        val extension = icon.extension
+                        var uniqueName = icon.name
+                        for (n in 1UL..ULong.MAX_VALUE) {
+                            val candidate = "$nameWithoutExtension ($n).$extension"
+                            if (usedNames.add(candidate)) {
+                                uniqueName = candidate
+                                break
+                            }
                         }
+                        uniqueName
                     }
-                    uniqueName
-                }
-            mapping[icon] = File(name)
+                mapping[icon] = File(name)
+            }
+            mapping
         }
-        mapping
-    }
 
     val generateInfoPlist =
         tasks.register<DefaultTask>(
@@ -835,9 +838,10 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
                             .groupBy { it.mimeType to it.description }
                             .map { (key, extensions) ->
                                 val (mimeType, description) = key
-                                val iconPath = extensions
-                                    .firstNotNullOfOrNull { it.iconFile }
-                                    ?.let { fileAssociationIconMapping[it]?.name }
+                                val iconPath =
+                                    extensions
+                                        .firstNotNullOfOrNull { it.iconFile }
+                                        ?.let { fileAssociationIconMapping[it]?.name }
                                 InfoPlistMapValue(
                                     PlistKeys.CFBundleTypeRole to InfoPlistStringValue("Editor"),
                                     PlistKeys.CFBundleTypeExtensions to
