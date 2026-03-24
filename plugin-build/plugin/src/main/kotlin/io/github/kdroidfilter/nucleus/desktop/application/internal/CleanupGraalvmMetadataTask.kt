@@ -19,7 +19,7 @@ import java.io.File
  * Cleans up the project's manual `reachability-metadata.json` by removing entries
  * that are already covered by Nucleus-managed metadata sources:
  *
- * - **L1**: Generic metadata bundled in `graalvm-runtime` JAR
+ * - **L1**: Per-library metadata filtered from plugin JAR + library JARs on classpath
  * - **L2**: Oracle GraalVM Reachability Metadata Repository (per-dependency)
  * - **L3**: Platform-specific metadata (AWT/Java2D) shipped in the plugin JAR
  * - **Static analysis**: Reflection/JNI/resource entries detected from bytecode

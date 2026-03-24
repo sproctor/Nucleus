@@ -132,6 +132,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             val resolvedMainClass: String? = mainClassName
             val resolvedRepoDirsFile: File = appTmpDir.get().file("graalvm/metadataRepoDirs.txt").asFile
             val resolvedStaticDir: File = appTmpDir.get().dir("graalvm/staticAnalysis").asFile
+            val resolvedLibraryMetadataDir: File = appTmpDir.get().dir("graalvm/libraryMetadata").asFile
 
             // After the agent finishes, merge results into the real config
             doLast {
@@ -156,13 +157,16 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 // and native-image.properties resource patterns.
                 val runtimeClasspath = classpath?.files ?: emptySet()
 
-                // Collect extra metadata directories: Oracle repo (L2) + static analysis
+                // Collect extra metadata directories: Oracle repo (L2), static analysis, library metadata (L1)
                 val extraDirs = mutableListOf<File>()
                 if (resolvedRepoDirsFile.exists()) {
                     resolvedRepoDirsFile.readLines().filter { it.isNotBlank() }.forEach { extraDirs.add(File(it)) }
                 }
                 if (resolvedStaticDir.isDirectory) {
                     extraDirs.add(resolvedStaticDir)
+                }
+                if (resolvedLibraryMetadataDir.isDirectory) {
+                    extraDirs.add(resolvedLibraryMetadataDir)
                 }
 
                 deduplicateAgainstLibraryMetadata(runtimeClasspath, resolvedTargetDir, resolvedPlatform, resolvedMainClass, extraDirs)
@@ -478,6 +482,29 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 }
             }
 
+    // ── Per-library metadata filtering (L1) ──
+    // Reads per-library JSON files from the plugin JAR, includes only those whose
+    // matchPackages are found on the runtime classpath, and merges into a single output.
+
+    val libraryMetadataDir = appTmpDir.map { it.dir("graalvm/libraryMetadata") }
+
+    val filterLibraryMetadata =
+        project.tasks
+            .register(
+                "filterGraalvmLibraryMetadata",
+                FilterLibraryMetadataTask::class.java,
+            ).apply {
+                configure { task ->
+                    task.description =
+                        "Filter and merge per-library GraalVM metadata based on runtime classpath"
+                    task.group = NUCLEUS_TASK_GROUP
+                    task.outputDir.set(libraryMetadataDir)
+                    if (runtimeCfg != null) {
+                        task.runtimeClasspath.from(runtimeCfg)
+                    }
+                }
+            }
+
     // ── Cleanup manual metadata ──
     // Removes entries from the project's reachability-metadata.json that are already
     // covered by L1 (library JARs), L2 (Oracle repo), L3 (platform), or static analysis.
@@ -493,12 +520,14 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 task.group = NUCLEUS_TASK_GROUP
                 task.dependsOn(resolveReachabilityMetadata)
                 task.dependsOn(analyzeStaticMetadata)
+                task.dependsOn(filterLibraryMetadata)
 
                 if (runtimeCfg != null) {
                     task.runtimeClasspath.from(runtimeCfg)
                 }
                 task.metadataRepoDirsFile.set(project.layout.file(metadataRepoDirsFile.map { it.asFile }))
                 task.staticAnalysisDir.from(staticMetadataDir)
+                task.staticAnalysisDir.from(libraryMetadataDir)
                 task.platformName.set(
                     when (currentOS) {
                         OS.Windows -> "windows"
@@ -532,6 +561,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             dependsOn(generatePlatformMetadata)
             dependsOn(resolveReachabilityMetadata)
             dependsOn(analyzeStaticMetadata)
+            dependsOn(filterLibraryMetadata)
             compileStubs?.let { dependsOn(it) }
             generateWindowsResources?.let { dependsOn(it) }
 
@@ -613,6 +643,9 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     if (configDir.exists()) {
                         add("-H:ConfigurationFileDirectories=$configDir")
                     }
+
+                    // Include per-library metadata (L1), filtered by runtime classpath
+                    add("-H:ConfigurationFileDirectories=${libraryMetadataDir.get().asFile}")
 
                     // Include platform-specific AWT/Java2D metadata
                     // Always add — the directory is created by generateGraalvmPlatformMetadata
