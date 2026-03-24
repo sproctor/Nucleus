@@ -32,6 +32,7 @@ internal object BytecodeAnalyzer {
         val serviceLoaderEntries = mutableSetOf<ReflectionEntry>()
         val jniReferencedTypes = mutableSetOf<String>()
         val jniFieldTypes = mutableSetOf<String>()
+        val jniSuperclassTypes = mutableSetOf<String>()
         // Index: internal class name (com/foo/Bar) -> class bytes, for second-pass JNI callback resolution
         val classBytesIndex = mutableMapOf<String, ByteArray>()
 
@@ -58,18 +59,19 @@ internal object BytecodeAnalyzer {
                 val internalName = entry.name.removeSuffix(".class")
                 classBytesIndex[internalName] = classBytes
 
-                // Native method detection -> JNI entries + referenced types + field types
+                // Native method detection -> JNI entries + referenced types + field types + superclass
                 val nativeResult = NativeMethodDetector.detectWithReferences(classBytes)
                 jniEntries.addAll(nativeResult.jniEntries)
                 jniReferencedTypes.addAll(nativeResult.referencedTypes)
                 jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
+                nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
 
                 analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
             }
 
-            // Pass 2: resolve JNI callback types — both field types AND parameter/return types
-            // of native methods are potential callback targets called from native code
-            val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes
+            // Pass 2: resolve JNI callback types — field types, parameter/return types,
+            // superclasses of JNI classes, and inner classes of callback types
+            val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes + jniSuperclassTypes
             resolveJniCallbackTypes(allJniCallbackCandidates, classBytesIndex, jniEntries)
         }
 
@@ -100,6 +102,7 @@ internal object BytecodeAnalyzer {
         val serviceLoaderEntries = mutableSetOf<ReflectionEntry>()
         val jniReferencedTypes = mutableSetOf<String>()
         val jniFieldTypes = mutableSetOf<String>()
+        val jniSuperclassTypes = mutableSetOf<String>()
         val classBytesIndex = mutableMapOf<String, ByteArray>()
 
         // Scan META-INF/services/ in class directories
@@ -139,12 +142,13 @@ internal object BytecodeAnalyzer {
                 jniEntries.addAll(nativeResult.jniEntries)
                 jniReferencedTypes.addAll(nativeResult.referencedTypes)
                 jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
+                nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
 
                 analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
             }
 
-        // Pass 2: resolve JNI callback types
-        val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes
+        // Pass 2: resolve JNI callback types (including superclasses and inner classes)
+        val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes + jniSuperclassTypes
         resolveJniCallbackTypes(allJniCallbackCandidates, classBytesIndex, jniEntries)
 
         for (refType in jniReferencedTypes) {
@@ -188,15 +192,29 @@ internal object BytecodeAnalyzer {
     }
 
     /**
-     * Resolves JNI callback types: for each type found as a field in a JNI class,
-     * scan that class to extract all non-private methods/fields as JNI-accessible entries.
+     * Resolves JNI callback types: for each type found as a field, parameter, or superclass
+     * in a JNI class, scan that class to extract all non-private methods/fields as JNI-accessible
+     * entries. Also expands to inner classes (e.g., Function -> Function$Aggregate, Function$Window).
      */
     private fun resolveJniCallbackTypes(
-        jniFieldTypes: Set<String>,
+        callbackCandidates: Set<String>,
         classBytesIndex: Map<String, ByteArray>,
         jniEntries: MutableSet<JniEntry>,
     ) {
-        for (typeName in jniFieldTypes) {
+        // Expand candidates with inner classes found in the classBytesIndex
+        val expandedCandidates = mutableSetOf<String>()
+        expandedCandidates.addAll(callbackCandidates)
+
+        for (typeName in callbackCandidates) {
+            val internalPrefix = typeName.replace('.', '/') + "$"
+            for (key in classBytesIndex.keys) {
+                if (key.startsWith(internalPrefix)) {
+                    expandedCandidates.add(key.replace('/', '.'))
+                }
+            }
+        }
+
+        for (typeName in expandedCandidates) {
             // Skip JDK types and types already fully covered
             if (typeName.startsWith("java.") || typeName.startsWith("javax.")) continue
             if (jniEntries.any { it.type == typeName && it.methods.isNotEmpty() }) continue

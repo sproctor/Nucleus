@@ -22,6 +22,8 @@ internal object NativeMethodDetector {
         val referencedTypes: Set<String>,
         /** Field types of classes that have native methods (potential JNI callback types). */
         val jniClassFieldTypes: Set<String>,
+        /** Superclass of classes that have native methods (native code often calls superclass methods). */
+        val superclassType: String? = null,
     )
 
     fun detect(classBytes: ByteArray): Set<JniEntry> =
@@ -32,6 +34,7 @@ internal object NativeMethodDetector {
         val referencedTypes = mutableSetOf<String>()
         val fieldTypes = mutableSetOf<String>()
         var hasNativeMethods = false
+        var superClassName: String? = null
         val reader = ClassReader(classBytes)
         reader.accept(
             object : ClassVisitor(Opcodes.ASM9) {
@@ -46,6 +49,9 @@ internal object NativeMethodDetector {
                     interfaces: Array<out String>?,
                 ) {
                     className = name.replace('/', '.')
+                    if (superName != null && superName != "java/lang/Object") {
+                        superClassName = superName.replace('/', '.')
+                    }
                 }
 
                 override fun visitField(
@@ -89,11 +95,12 @@ internal object NativeMethodDetector {
             ClassReader.SKIP_CODE or ClassReader.SKIP_DEBUG,
         )
 
-        // Only report field types if this class actually has native methods
+        // Only report field types and superclass if this class actually has native methods
         val jniFieldTypes = if (hasNativeMethods) fieldTypes else emptySet()
+        val superType = if (hasNativeMethods) superClassName else null
 
         val jniEntries = entries.map { (type, methods) -> JniEntry(type = type, methods = methods) }.toSet()
-        return NativeMethodResult(jniEntries, referencedTypes, jniFieldTypes)
+        return NativeMethodResult(jniEntries, referencedTypes, jniFieldTypes, superType)
     }
 
     /**

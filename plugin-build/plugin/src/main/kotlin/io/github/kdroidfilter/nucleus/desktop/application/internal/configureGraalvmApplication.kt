@@ -460,6 +460,47 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 }
             }
 
+    // ── Cleanup manual metadata ──
+    // Removes entries from the project's reachability-metadata.json that are already
+    // covered by L1 (library JARs), L2 (Oracle repo), L3 (platform), or static analysis.
+
+    project.tasks
+        .register(
+            "cleanupGraalvmMetadata",
+            CleanupGraalvmMetadataTask::class.java,
+        ).apply {
+            configure { task ->
+                task.description =
+                    "Remove entries from manual reachability-metadata.json that are already managed by Nucleus"
+                task.group = NUCLEUS_TASK_GROUP
+                task.dependsOn(resolveReachabilityMetadata)
+                task.dependsOn(analyzeStaticMetadata)
+
+                if (runtimeCfg != null) {
+                    task.runtimeClasspath.from(runtimeCfg)
+                }
+                task.metadataRepoDirsFile.set(project.layout.file(metadataRepoDirsFile.map { it.asFile }))
+                task.staticAnalysisDir.from(staticMetadataDir)
+                task.platformName.set(
+                    when (currentOS) {
+                        OS.Windows -> "windows"
+                        OS.MacOS -> "macos"
+                        OS.Linux -> "linux"
+                    },
+                )
+                task.mainClass.set(mainClassName ?: "")
+                task.configDir.set(
+                    if (nativeImageConfigDir.isPresent) {
+                        nativeImageConfigDir.get().asFile
+                    } else {
+                        project.layout.projectDirectory
+                            .dir("src/main/resources/META-INF/native-image")
+                            .asFile
+                    },
+                )
+            }
+        }
+
     // ── nativeImageCompile ──
 
     val nativeImageCompile =
