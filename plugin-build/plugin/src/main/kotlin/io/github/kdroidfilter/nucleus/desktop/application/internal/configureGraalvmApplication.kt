@@ -119,7 +119,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         nativeImageConfigDir.get().asFile
                     } else {
                         project.layout.projectDirectory
-                            .dir("src/main/resources/META-INF/native-image")
+                            .dir("graalvm")
                             .asFile
                     }
                 val agentDir = agentTempDir.get().asFile
@@ -494,7 +494,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         nativeImageConfigDir.get().asFile
                     } else {
                         project.layout.projectDirectory
-                            .dir("src/main/resources/META-INF/native-image")
+                            .dir("graalvm")
                             .asFile
                     },
                 )
@@ -583,12 +583,13 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
                     // Pass the native-image configuration directory so reflection/JNI/resource
                     // metadata is picked up even when it is not bundled inside the uber JAR.
+                    // Default: "graalvm/" at project root (NOT in resources to avoid bundling in app)
                     val configDir =
                         if (nativeImageConfigDir.isPresent) {
                             nativeImageConfigDir.get().asFile
                         } else {
                             project.layout.projectDirectory
-                                .dir("src/main/resources/META-INF/native-image")
+                                .dir("graalvm")
                                 .asFile
                         }
                     if (configDir.exists()) {
