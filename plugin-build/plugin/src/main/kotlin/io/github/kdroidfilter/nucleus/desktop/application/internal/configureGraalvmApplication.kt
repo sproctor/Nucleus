@@ -595,85 +595,102 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 environment("MACOSX_DEPLOYMENT_TARGET", graalvm.macOS.minimumSystemVersion.get())
             }
 
+            // Resolve all project / provider references at configuration time
+            // (config-cache safe) — only the exists() checks and file reads
+            // need to happen at execution time.
+            val resolvedConfigDir =
+                if (nativeImageConfigDir.isPresent) {
+                    nativeImageConfigDir.get().asFile
+                } else {
+                    project.layout.projectDirectory
+                        .dir("graalvm")
+                        .asFile
+                }
+            val resolvedLibraryMetadataDir = libraryMetadataDir.get().asFile
+            val resolvedPlatformMetadataDir = platformMetadataDir.get().asFile
+            val resolvedStaticMetadataDir = staticMetadataDir.get().asFile
+            val resolvedMetadataRepoDirsFile = metadataRepoDirsFile.get().asFile
+            val resolvedBuildArgs = graalvm.buildArgs.get()
+            val resolvedMarch = graalvm.march.get()
+            val resolvedImageName = imageName.get()
+            val resolvedUberJar = uberJarFile.get().asFile.absolutePath
+            val resolvedStubObj =
+                if (currentOS == OS.MacOS && compileStubs != null) {
+                    appTmpDir
+                        .get()
+                        .file("graalvm/cursor_stub.o")
+                        .asFile.absolutePath
+                } else {
+                    null
+                }
+            val resolvedResFile =
+                if (currentOS == OS.Windows && generateWindowsResources != null) {
+                    appTmpDir
+                        .get()
+                        .file("graalvm/icon.res")
+                        .asFile.absolutePath
+                } else {
+                    null
+                }
+
             doFirst {
                 outputDir.mkdirs()
-            }
 
-            args =
-                buildList {
-                    add("-jar")
-                    add(uberJarFile.get().asFile.absolutePath)
-                    add("-o")
-                    add(File(outputDir, imageName.get()).absolutePath)
-                    add("-march=${graalvm.march.get()}")
+                // Build args at execution time so that outputs from dependent tasks
+                // (static analysis dir, metadata repo dirs file, …) exist on disk.
+                args =
+                    buildList {
+                        add("-jar")
+                        add(resolvedUberJar)
+                        add("-o")
+                        add(File(outputDir, resolvedImageName).absolutePath)
+                        add("-march=$resolvedMarch")
 
-                    // macOS: link C stubs
-                    if (currentOS == OS.MacOS && compileStubs != null) {
-                        val stubObj =
-                            appTmpDir
-                                .get()
-                                .file("graalvm/cursor_stub.o")
-                                .asFile.absolutePath
-                        add("-H:NativeLinkerOption=$stubObj")
-                    }
-
-                    // Windows: link .res for icon + version info, configure subsystem
-                    if (currentOS == OS.Windows && generateWindowsResources != null) {
-                        val resFile =
-                            appTmpDir
-                                .get()
-                                .file("graalvm/icon.res")
-                                .asFile.absolutePath
-                        add("-H:NativeLinkerOption=$resFile")
-                        add("-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS")
-                        add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
-                    }
-
-                    // Pass the native-image configuration directory so reflection/JNI/resource
-                    // metadata is picked up even when it is not bundled inside the uber JAR.
-                    // Default: "graalvm/" at project root (NOT in resources to avoid bundling in app)
-                    val configDir =
-                        if (nativeImageConfigDir.isPresent) {
-                            nativeImageConfigDir.get().asFile
-                        } else {
-                            project.layout.projectDirectory
-                                .dir("graalvm")
-                                .asFile
+                        // macOS: link C stubs
+                        if (resolvedStubObj != null) {
+                            add("-H:NativeLinkerOption=$resolvedStubObj")
                         }
-                    if (configDir.exists()) {
-                        add("-H:ConfigurationFileDirectories=$configDir")
-                    }
 
-                    // Include per-library metadata (L1), filtered by runtime classpath
-                    add("-H:ConfigurationFileDirectories=${libraryMetadataDir.get().asFile}")
+                        // Windows: link .res for icon + version info, configure subsystem
+                        if (resolvedResFile != null) {
+                            add("-H:NativeLinkerOption=$resolvedResFile")
+                            add("-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS")
+                            add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
+                        }
 
-                    // Include platform-specific AWT/Java2D metadata
-                    // Always add — the directory is created by generateGraalvmPlatformMetadata
-                    // which runs before this task via dependsOn.
-                    add("-H:ConfigurationFileDirectories=${platformMetadataDir.get().asFile}")
+                        // Pass the native-image configuration directory so reflection/JNI/resource
+                        // metadata is picked up even when it is not bundled inside the uber JAR.
+                        if (resolvedConfigDir.exists()) {
+                            add("-H:ConfigurationFileDirectories=$resolvedConfigDir")
+                        }
 
-                    // Include statically-analyzed metadata (reflection, JNI, resources
-                    // detected from bytecode scanning of runtime classpath JARs)
-                    val staticDir = staticMetadataDir.get().asFile
-                    if (staticDir.exists()) {
-                        add("-H:ConfigurationFileDirectories=$staticDir")
-                    }
+                        // Include per-library metadata (L1), filtered by runtime classpath
+                        add("-H:ConfigurationFileDirectories=$resolvedLibraryMetadataDir")
 
-                    // Include metadata from Oracle Reachability Metadata Repository
-                    val dirsFile = metadataRepoDirsFile.get().asFile
-                    if (dirsFile.exists()) {
-                        val dirs = dirsFile.readText().trim()
-                        if (dirs.isNotEmpty()) {
-                            for (dir in dirs.lines()) {
-                                if (dir.isNotBlank()) {
-                                    add("-H:ConfigurationFileDirectories=$dir")
+                        // Include platform-specific AWT/Java2D metadata
+                        add("-H:ConfigurationFileDirectories=$resolvedPlatformMetadataDir")
+
+                        // Include statically-analyzed metadata (reflection, JNI, resources
+                        // detected from bytecode scanning of runtime classpath JARs)
+                        if (resolvedStaticMetadataDir.exists()) {
+                            add("-H:ConfigurationFileDirectories=$resolvedStaticMetadataDir")
+                        }
+
+                        // Include metadata from Oracle Reachability Metadata Repository
+                        if (resolvedMetadataRepoDirsFile.exists()) {
+                            val dirs = resolvedMetadataRepoDirsFile.readText().trim()
+                            if (dirs.isNotEmpty()) {
+                                for (dir in dirs.lines()) {
+                                    if (dir.isNotBlank()) {
+                                        add("-H:ConfigurationFileDirectories=$dir")
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    addAll(graalvm.buildArgs.get())
-                }
+                        addAll(resolvedBuildArgs)
+                    }
+            }
         }
 
     // ── Platform-specific packaging ──
