@@ -419,6 +419,47 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 }
             }
 
+    // ── Static bytecode analysis ──
+    // Scans all runtime classpath JARs to auto-detect reflection, JNI, and resource
+    // metadata that can be discovered statically (Class.forName, ServiceLoader,
+    // native methods, etc.). Output is passed as an additional config directory.
+
+    val staticMetadataDir = appTmpDir.map { it.dir("graalvm/staticAnalysis") }
+
+    val analyzeStaticMetadata =
+        project.tasks
+            .register(
+                "analyzeGraalvmStaticMetadata",
+                AnalyzeStaticMetadataTask::class.java,
+            ).apply {
+                configure { task ->
+                    task.description =
+                        "Statically analyze bytecode to detect GraalVM reflection/JNI/resource metadata"
+                    task.group = NUCLEUS_TASK_GROUP
+                    task.outputDir.set(staticMetadataDir)
+                    if (runtimeCfg != null) {
+                        task.runtimeClasspath.from(runtimeCfg)
+                    }
+                    // Include the project's own compiled classes (not just dependency JARs)
+                    // KMP projects use jvmMainClasses, standard JVM uses main sourceSet
+                    val jvmMainClasses = project.tasks.findByName("jvmMainClasses")
+                        ?: project.tasks.findByName("compileKotlinJvm")
+                        ?: project.tasks.findByName("compileKotlin")
+                    if (jvmMainClasses != null) {
+                        task.dependsOn(jvmMainClasses)
+                    }
+                    // Add class output directories
+                    for (dirPath in listOf(
+                        "classes/kotlin/jvm/main",
+                        "classes/kotlin/main",
+                        "classes/java/main",
+                    )) {
+                        val classDir = project.layout.buildDirectory.dir(dirPath)
+                        task.runtimeClasspath.from(classDir)
+                    }
+                }
+            }
+
     // ── nativeImageCompile ──
 
     val nativeImageCompile =
@@ -431,6 +472,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             dependsOn(packageUberJar)
             dependsOn(generatePlatformMetadata)
             dependsOn(resolveReachabilityMetadata)
+            dependsOn(analyzeStaticMetadata)
             compileStubs?.let { dependsOn(it) }
             generateWindowsResources?.let { dependsOn(it) }
 
@@ -516,6 +558,13 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     // Always add — the directory is created by generateGraalvmPlatformMetadata
                     // which runs before this task via dependsOn.
                     add("-H:ConfigurationFileDirectories=${platformMetadataDir.get().asFile}")
+
+                    // Include statically-analyzed metadata (reflection, JNI, resources
+                    // detected from bytecode scanning of runtime classpath JARs)
+                    val staticDir = staticMetadataDir.get().asFile
+                    if (staticDir.exists()) {
+                        add("-H:ConfigurationFileDirectories=$staticDir")
+                    }
 
                     // Include metadata from Oracle Reachability Metadata Repository
                     val dirsFile = metadataRepoDirsFile.get().asFile
