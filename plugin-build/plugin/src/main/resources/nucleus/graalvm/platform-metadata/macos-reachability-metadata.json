@@ -31,6 +31,13 @@
                     "parameterTypes": [
                         "int"
                     ]
+                },
+                {
+                    "name": "handleOpenFiles",
+                    "parameterTypes": [
+                        "java.util.List",
+                        "java.lang.String"
+                    ]
                 }
             ]
         },
@@ -892,6 +899,23 @@
                         "double",
                         "double",
                         "int"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.lwawt.macosx.CDropTargetContextPeer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "getDropTargetContextPeer",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "newData",
+                    "parameterTypes": [
+                        "long",
+                        "byte[]"
                     ]
                 }
             ]
