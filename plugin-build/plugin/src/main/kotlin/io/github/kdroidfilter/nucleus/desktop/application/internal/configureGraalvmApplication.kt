@@ -112,19 +112,30 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
             args = app.args
 
+            // Capture all values at configuration time to avoid serializing
+            // JvmApplicationContext into the configuration cache.
+            val resolvedTargetDir: File =
+                if (nativeImageConfigDir.isPresent) {
+                    nativeImageConfigDir.get().asFile
+                } else {
+                    project.layout.projectDirectory
+                        .dir("graalvm")
+                        .asFile
+                }
+            val resolvedAgentDir: File = agentTempDir.get().asFile
+            val resolvedPlatform: String =
+                when (currentOS) {
+                    OS.Windows -> "windows"
+                    OS.MacOS -> "macos"
+                    OS.Linux -> "linux"
+                }
+            val resolvedMainClass: String? = mainClassName
+            val resolvedRepoDirsFile: File = appTmpDir.get().file("graalvm/metadataRepoDirs.txt").asFile
+            val resolvedStaticDir: File = appTmpDir.get().dir("graalvm/staticAnalysis").asFile
+
             // After the agent finishes, merge results into the real config
             doLast {
-                val targetDir =
-                    if (nativeImageConfigDir.isPresent) {
-                        nativeImageConfigDir.get().asFile
-                    } else {
-                        project.layout.projectDirectory
-                            .dir("graalvm")
-                            .asFile
-                    }
-                val agentDir = agentTempDir.get().asFile
-
-                mergeReachabilityMetadata(agentDir, targetDir)
+                mergeReachabilityMetadata(resolvedAgentDir, resolvedTargetDir)
 
                 // Also merge individual config files the agent may produce
                 listOf(
@@ -135,8 +146,8 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     "serialization-config.json",
                 ).forEach { fileName ->
                     mergeJsonArrayConfig(
-                        agentFile = File(agentDir, fileName),
-                        targetFile = File(targetDir, fileName),
+                        agentFile = File(resolvedAgentDir, fileName),
+                        targetFile = File(resolvedTargetDir, fileName),
                     )
                 }
 
@@ -144,27 +155,19 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 // plugin platform metadata (L3), Oracle repo (L2), static analysis,
                 // and native-image.properties resource patterns.
                 val runtimeClasspath = classpath?.files ?: emptySet()
-                val platform =
-                    when (currentOS) {
-                        OS.Windows -> "windows"
-                        OS.MacOS -> "macos"
-                        OS.Linux -> "linux"
-                    }
 
                 // Collect extra metadata directories: Oracle repo (L2) + static analysis
                 val extraDirs = mutableListOf<File>()
-                val repoDirsFile = appTmpDir.get().file("graalvm/metadataRepoDirs.txt").asFile
-                if (repoDirsFile.exists()) {
-                    repoDirsFile.readLines().filter { it.isNotBlank() }.forEach { extraDirs.add(File(it)) }
+                if (resolvedRepoDirsFile.exists()) {
+                    resolvedRepoDirsFile.readLines().filter { it.isNotBlank() }.forEach { extraDirs.add(File(it)) }
                 }
-                val staticAnalysisDir = appTmpDir.get().dir("graalvm/staticAnalysis").asFile
-                if (staticAnalysisDir.isDirectory) {
-                    extraDirs.add(staticAnalysisDir)
+                if (resolvedStaticDir.isDirectory) {
+                    extraDirs.add(resolvedStaticDir)
                 }
 
-                deduplicateAgainstLibraryMetadata(runtimeClasspath, targetDir, platform, mainClassName, extraDirs)
+                deduplicateAgainstLibraryMetadata(runtimeClasspath, resolvedTargetDir, resolvedPlatform, resolvedMainClass, extraDirs)
 
-                logger.lifecycle("Native-image agent config merged into: $targetDir")
+                logger.lifecycle("Native-image agent config merged into: $resolvedTargetDir")
             }
         }
 
