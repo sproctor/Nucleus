@@ -597,83 +597,83 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
             doFirst {
                 outputDir.mkdirs()
-            }
 
-            args =
-                buildList {
-                    add("-jar")
-                    add(uberJarFile.get().asFile.absolutePath)
-                    add("-o")
-                    add(File(outputDir, imageName.get()).absolutePath)
-                    add("-march=${graalvm.march.get()}")
+                // Build args at execution time so that outputs from dependent tasks
+                // (static analysis dir, metadata repo dirs file, …) exist on disk.
+                args =
+                    buildList {
+                        add("-jar")
+                        add(uberJarFile.get().asFile.absolutePath)
+                        add("-o")
+                        add(File(outputDir, imageName.get()).absolutePath)
+                        add("-march=${graalvm.march.get()}")
 
-                    // macOS: link C stubs
-                    if (currentOS == OS.MacOS && compileStubs != null) {
-                        val stubObj =
-                            appTmpDir
-                                .get()
-                                .file("graalvm/cursor_stub.o")
-                                .asFile.absolutePath
-                        add("-H:NativeLinkerOption=$stubObj")
-                    }
-
-                    // Windows: link .res for icon + version info, configure subsystem
-                    if (currentOS == OS.Windows && generateWindowsResources != null) {
-                        val resFile =
-                            appTmpDir
-                                .get()
-                                .file("graalvm/icon.res")
-                                .asFile.absolutePath
-                        add("-H:NativeLinkerOption=$resFile")
-                        add("-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS")
-                        add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
-                    }
-
-                    // Pass the native-image configuration directory so reflection/JNI/resource
-                    // metadata is picked up even when it is not bundled inside the uber JAR.
-                    // Default: "graalvm/" at project root (NOT in resources to avoid bundling in app)
-                    val configDir =
-                        if (nativeImageConfigDir.isPresent) {
-                            nativeImageConfigDir.get().asFile
-                        } else {
-                            project.layout.projectDirectory
-                                .dir("graalvm")
-                                .asFile
+                        // macOS: link C stubs
+                        if (currentOS == OS.MacOS && compileStubs != null) {
+                            val stubObj =
+                                appTmpDir
+                                    .get()
+                                    .file("graalvm/cursor_stub.o")
+                                    .asFile.absolutePath
+                            add("-H:NativeLinkerOption=$stubObj")
                         }
-                    if (configDir.exists()) {
-                        add("-H:ConfigurationFileDirectories=$configDir")
-                    }
 
-                    // Include per-library metadata (L1), filtered by runtime classpath
-                    add("-H:ConfigurationFileDirectories=${libraryMetadataDir.get().asFile}")
+                        // Windows: link .res for icon + version info, configure subsystem
+                        if (currentOS == OS.Windows && generateWindowsResources != null) {
+                            val resFile =
+                                appTmpDir
+                                    .get()
+                                    .file("graalvm/icon.res")
+                                    .asFile.absolutePath
+                            add("-H:NativeLinkerOption=$resFile")
+                            add("-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS")
+                            add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
+                        }
 
-                    // Include platform-specific AWT/Java2D metadata
-                    // Always add — the directory is created by generateGraalvmPlatformMetadata
-                    // which runs before this task via dependsOn.
-                    add("-H:ConfigurationFileDirectories=${platformMetadataDir.get().asFile}")
+                        // Pass the native-image configuration directory so reflection/JNI/resource
+                        // metadata is picked up even when it is not bundled inside the uber JAR.
+                        // Default: "graalvm/" at project root (NOT in resources to avoid bundling in app)
+                        val configDir =
+                            if (nativeImageConfigDir.isPresent) {
+                                nativeImageConfigDir.get().asFile
+                            } else {
+                                project.layout.projectDirectory
+                                    .dir("graalvm")
+                                    .asFile
+                            }
+                        if (configDir.exists()) {
+                            add("-H:ConfigurationFileDirectories=$configDir")
+                        }
 
-                    // Include statically-analyzed metadata (reflection, JNI, resources
-                    // detected from bytecode scanning of runtime classpath JARs)
-                    val staticDir = staticMetadataDir.get().asFile
-                    if (staticDir.exists()) {
-                        add("-H:ConfigurationFileDirectories=$staticDir")
-                    }
+                        // Include per-library metadata (L1), filtered by runtime classpath
+                        add("-H:ConfigurationFileDirectories=${libraryMetadataDir.get().asFile}")
 
-                    // Include metadata from Oracle Reachability Metadata Repository
-                    val dirsFile = metadataRepoDirsFile.get().asFile
-                    if (dirsFile.exists()) {
-                        val dirs = dirsFile.readText().trim()
-                        if (dirs.isNotEmpty()) {
-                            for (dir in dirs.lines()) {
-                                if (dir.isNotBlank()) {
-                                    add("-H:ConfigurationFileDirectories=$dir")
+                        // Include platform-specific AWT/Java2D metadata
+                        add("-H:ConfigurationFileDirectories=${platformMetadataDir.get().asFile}")
+
+                        // Include statically-analyzed metadata (reflection, JNI, resources
+                        // detected from bytecode scanning of runtime classpath JARs)
+                        val staticDir = staticMetadataDir.get().asFile
+                        if (staticDir.exists()) {
+                            add("-H:ConfigurationFileDirectories=$staticDir")
+                        }
+
+                        // Include metadata from Oracle Reachability Metadata Repository
+                        val dirsFile = metadataRepoDirsFile.get().asFile
+                        if (dirsFile.exists()) {
+                            val dirs = dirsFile.readText().trim()
+                            if (dirs.isNotEmpty()) {
+                                for (dir in dirs.lines()) {
+                                    if (dir.isNotBlank()) {
+                                        add("-H:ConfigurationFileDirectories=$dir")
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    addAll(graalvm.buildArgs.get())
-                }
+                        addAll(graalvm.buildArgs.get())
+                    }
+            }
         }
 
     // ── Platform-specific packaging ──
