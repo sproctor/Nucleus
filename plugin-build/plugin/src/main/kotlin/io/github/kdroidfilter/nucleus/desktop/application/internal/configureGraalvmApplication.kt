@@ -616,13 +616,19 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             val resolvedUberJar = uberJarFile.get().asFile.absolutePath
             val resolvedStubObj =
                 if (currentOS == OS.MacOS && compileStubs != null) {
-                    appTmpDir.get().file("graalvm/cursor_stub.o").asFile.absolutePath
+                    appTmpDir
+                        .get()
+                        .file("graalvm/cursor_stub.o")
+                        .asFile.absolutePath
                 } else {
                     null
                 }
             val resolvedResFile =
                 if (currentOS == OS.Windows && generateWindowsResources != null) {
-                    appTmpDir.get().file("graalvm/icon.res").asFile.absolutePath
+                    appTmpDir
+                        .get()
+                        .file("graalvm/icon.res")
+                        .asFile.absolutePath
                 } else {
                     null
                 }
