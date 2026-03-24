@@ -7,13 +7,30 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
 /**
- * Detects `Class.forName("literal")` calls and produces reflection entries.
+ * Detects class loading calls with literal string arguments and produces reflection entries.
+ *
+ * Detected patterns:
+ * - `Class.forName("literal")`
+ * - `MethodHandles.Lookup.findClass("literal")` (used by Lucene)
+ * - Custom class-loading wrappers: any method named `loadClass`, `isClassAvailable`,
+ *   `classForName`, etc. where the argument is a FQCN literal
  *
  * Uses a local variable tracker to follow string constants through ASTORE/ALOAD
  * pairs that typically appear between LDC and INVOKESTATIC in compiled bytecode.
  * Also collects all string constants in the method that look like class names.
  */
 internal object ClassForNameDetector {
+
+    // Method names that indicate class loading (covers common wrappers like Sentry's LoadClass)
+    private val CLASS_LOADING_METHOD_NAMES = setOf(
+        "forName",
+        "loadClass",
+        "findClass",
+        "classForName",
+        "isClassAvailable",
+        "getOrLoadClass",
+        "forNameOrNull",
+    )
 
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
         val entries = mutableSetOf<ReflectionEntry>()
@@ -34,7 +51,7 @@ internal object ClassForNameDetector {
                         private var stackString: String? = null
                         // All string constants seen that look like class names, for forName calls
                         // that use variables loaded from elsewhere
-                        private var hasForNameCall = false
+                        private var hasClassLoadingCall = false
                         private val candidateClassNames = mutableSetOf<String>()
 
                         override fun visitLdcInsn(value: Any?) {
@@ -70,11 +87,8 @@ internal object ClassForNameDetector {
                             descriptor: String,
                             isInterface: Boolean,
                         ) {
-                            if (opcode == Opcodes.INVOKESTATIC &&
-                                owner == "java/lang/Class" &&
-                                name == "forName"
-                            ) {
-                                hasForNameCall = true
+                            if (isClassLoadingCall(opcode, owner, name, descriptor)) {
+                                hasClassLoadingCall = true
                                 val className = stackString
                                 if (className != null && isValidClassName(className)) {
                                     entries.add(ReflectionEntry(type = className))
@@ -112,10 +126,10 @@ internal object ClassForNameDetector {
                         }
 
                         override fun visitEnd() {
-                            // If this method calls Class.forName, add all candidate class name
-                            // literals as reflection entries (covers cases where the string
-                            // is built dynamically but we can still see the literals)
-                            if (hasForNameCall) {
+                            // If this method calls any class loading method, add all candidate
+                            // class name literals as reflection entries (covers cases where
+                            // the string is loaded from elsewhere in the same method)
+                            if (hasClassLoadingCall) {
                                 for (name in candidateClassNames) {
                                     entries.add(ReflectionEntry(type = name))
                                 }
@@ -126,6 +140,42 @@ internal object ClassForNameDetector {
             0,
         )
         return entries
+    }
+
+    /**
+     * Returns true if the method call is a class loading operation.
+     */
+    private fun isClassLoadingCall(
+        opcode: Int,
+        owner: String,
+        name: String,
+        descriptor: String,
+    ): Boolean {
+        // Class.forName(String) / Class.forName(String, boolean, ClassLoader)
+        if (opcode == Opcodes.INVOKESTATIC &&
+            owner == "java/lang/Class" &&
+            name == "forName"
+        ) {
+            return true
+        }
+
+        // MethodHandles.Lookup.findClass(String) — used by Lucene
+        if (opcode == Opcodes.INVOKEVIRTUAL &&
+            owner == "java/lang/invoke/MethodHandles\$Lookup" &&
+            name == "findClass"
+        ) {
+            return true
+        }
+
+        // Generic class-loading wrappers: any method taking a String as first arg
+        // whose name matches known patterns (e.g., Sentry LoadClass.loadClass)
+        if (name in CLASS_LOADING_METHOD_NAMES &&
+            descriptor.startsWith("(Ljava/lang/String;")
+        ) {
+            return true
+        }
+
+        return false
     }
 }
 
