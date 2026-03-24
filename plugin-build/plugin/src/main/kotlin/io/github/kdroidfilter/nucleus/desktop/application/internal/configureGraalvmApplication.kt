@@ -449,6 +449,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     if (jvmMainClasses != null) {
                         task.dependsOn(jvmMainClasses)
                     }
+                    project.tasks.findByName("compileJava")?.let { task.dependsOn(it) }
                     // Add class output directories
                     for (dirPath in listOf(
                         "classes/kotlin/jvm/main",

@@ -59,14 +59,18 @@ internal object BytecodeAnalyzer {
                 val internalName = entry.name.removeSuffix(".class")
                 classBytesIndex[internalName] = classBytes
 
-                // Native method detection -> JNI entries + referenced types + field types + superclass
-                val nativeResult = NativeMethodDetector.detectWithReferences(classBytes)
-                jniEntries.addAll(nativeResult.jniEntries)
-                jniReferencedTypes.addAll(nativeResult.referencedTypes)
-                jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
-                nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
+                try {
+                    // Native method detection -> JNI entries + referenced types + field types + superclass
+                    val nativeResult = NativeMethodDetector.detectWithReferences(classBytes)
+                    jniEntries.addAll(nativeResult.jniEntries)
+                    jniReferencedTypes.addAll(nativeResult.referencedTypes)
+                    jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
+                    nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
 
-                analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
+                    analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
+                } catch (_: IllegalArgumentException) {
+                    // ASM does not support this class file version (e.g. JDK 25+) — skip
+                }
             }
 
             // Pass 2: resolve JNI callback types — field types, parameter/return types,
@@ -146,13 +150,17 @@ internal object BytecodeAnalyzer {
                 val relativePath = classFile.relativeTo(dir).path.removeSuffix(".class")
                 classBytesIndex[relativePath] = classBytes
 
-                val nativeResult = NativeMethodDetector.detectWithReferences(classBytes)
-                jniEntries.addAll(nativeResult.jniEntries)
-                jniReferencedTypes.addAll(nativeResult.referencedTypes)
-                jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
-                nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
+                try {
+                    val nativeResult = NativeMethodDetector.detectWithReferences(classBytes)
+                    jniEntries.addAll(nativeResult.jniEntries)
+                    jniReferencedTypes.addAll(nativeResult.referencedTypes)
+                    jniFieldTypes.addAll(nativeResult.jniClassFieldTypes)
+                    nativeResult.superclassType?.let { jniSuperclassTypes.add(it) }
 
-                analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
+                    analyzeClassBytes(classBytes, jniEntries, reflectionEntries, resourcePatterns, jniReferencedTypes)
+                } catch (_: IllegalArgumentException) {
+                    // ASM does not support this class file version (e.g. JDK 25+) — skip
+                }
             }
 
         // Pass 2: resolve JNI callback types (including superclasses and inner classes)
@@ -235,7 +243,12 @@ internal object BytecodeAnalyzer {
             val internalName = typeName.replace('.', '/')
             val classBytes = classBytesIndex[internalName] ?: continue
 
-            val callbackEntry = NativeMethodDetector.extractJniCallbackEntry(classBytes)
+            val callbackEntry =
+                try {
+                    NativeMethodDetector.extractJniCallbackEntry(classBytes)
+                } catch (_: IllegalArgumentException) {
+                    continue
+                }
             if (callbackEntry != null && (callbackEntry.methods.isNotEmpty() || callbackEntry.fields.isNotEmpty())) {
                 // Remove any existing bare entry and replace with the detailed one
                 jniEntries.removeAll { it.type == typeName }
@@ -264,7 +277,12 @@ internal object BytecodeAnalyzer {
             val internalName = typeName.replace('.', '/')
             val classBytes = classBytesIndex[internalName] ?: continue
 
-            val fullEntry = NativeMethodDetector.extractJniCallbackEntry(classBytes) ?: continue
+            val fullEntry =
+                try {
+                    NativeMethodDetector.extractJniCallbackEntry(classBytes) ?: continue
+                } catch (_: IllegalArgumentException) {
+                    continue
+                }
 
             // Merge: keep native methods from pass 1, add fields + non-native methods from callback scan
             val existingEntry = jniEntries.first { it.type == typeName }
