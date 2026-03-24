@@ -442,9 +442,10 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     }
                     // Include the project's own compiled classes (not just dependency JARs)
                     // KMP projects use jvmMainClasses, standard JVM uses main sourceSet
-                    val jvmMainClasses = project.tasks.findByName("jvmMainClasses")
-                        ?: project.tasks.findByName("compileKotlinJvm")
-                        ?: project.tasks.findByName("compileKotlin")
+                    val jvmMainClasses =
+                        project.tasks.findByName("jvmMainClasses")
+                            ?: project.tasks.findByName("compileKotlinJvm")
+                            ?: project.tasks.findByName("compileKotlin")
                     if (jvmMainClasses != null) {
                         task.dependsOn(jvmMainClasses)
                     }

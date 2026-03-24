@@ -77,7 +77,8 @@ internal data class AnalysisResult(
  * This prevents duplicate type entries in the output JSON.
  */
 internal fun mergeReflectionEntries(entries: Set<ReflectionEntry>): Set<ReflectionEntry> =
-    entries.groupBy { it.type }
+    entries
+        .groupBy { it.type }
         .map { (_, group) ->
             group.reduce { acc, e ->
                 ReflectionEntry(
@@ -93,5 +94,4 @@ internal fun mergeReflectionEntries(entries: Set<ReflectionEntry>): Set<Reflecti
                     fields = acc.fields + e.fields,
                 )
             }
-        }
-        .toSet()
+        }.toSet()

@@ -29,7 +29,6 @@ import java.io.File
  */
 @DisableCachingByDefault(because = "Modifies user source files in-place")
 abstract class CleanupGraalvmMetadataTask : DefaultTask() {
-
     /** Runtime classpath JARs (for L1 library metadata + native-image.properties). */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
@@ -130,8 +129,11 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
                 if (newFormatFile.exists()) {
                     val before = countBaselineTypes(libraryEntries)
                     collectBaseline(
-                        slurper, newFormatFile.readText(),
-                        libraryEntries, libraryResourceJsons, libraryResourceGlobs,
+                        slurper,
+                        newFormatFile.readText(),
+                        libraryEntries,
+                        libraryResourceJsons,
+                        libraryResourceGlobs,
                     )
                     l2Count += countBaselineTypes(libraryEntries) - before
                 }
@@ -140,6 +142,7 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
                     val f = File(dir, oldFile)
                     if (!f.exists()) continue
                     val section = if (oldFile.startsWith("reflect")) "reflection" else "jni"
+
                     @Suppress("UNCHECKED_CAST")
                     val entries = slurper.parseText(f.readText()) as? List<Map<String, Any?>> ?: continue
                     val sectionMap = libraryEntries.getOrPut(section) { mutableMapOf() }
@@ -159,8 +162,10 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
                 if (resFile.exists()) {
                     @Suppress("UNCHECKED_CAST")
                     val resRoot = slurper.parseText(resFile.readText()) as? Map<String, Any?>
+
                     @Suppress("UNCHECKED_CAST")
                     val resources = resRoot?.get("resources") as? Map<String, Any?>
+
                     @Suppress("UNCHECKED_CAST")
                     val includes = resources?.get("includes") as? List<Map<String, Any?>>
                     includes?.forEach { inc ->
@@ -193,8 +198,11 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
             if (staticFile.exists() && staticFile.name.endsWith(".json")) {
                 val before = countBaselineTypes(libraryEntries)
                 collectBaseline(
-                    slurper, staticFile.readText(),
-                    libraryEntries, libraryResourceJsons, libraryResourceGlobs,
+                    slurper,
+                    staticFile.readText(),
+                    libraryEntries,
+                    libraryResourceJsons,
+                    libraryResourceGlobs,
                 )
                 staticCount = countBaselineTypes(libraryEntries) - before
             }
@@ -204,13 +212,15 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         val mc = mainClass.orNull
         if (!mc.isNullOrBlank()) {
             val reflectionMap = libraryEntries.getOrPut("reflection") { mutableMapOf() }
-            val mainClassEntry = mutableMapOf<String, Any?>(
-                "type" to mc,
-                "jniAccessible" to true,
-                "methods" to listOf(
-                    mapOf("name" to "main", "parameterTypes" to listOf("java.lang.String[]")),
-                ),
-            )
+            val mainClassEntry =
+                mutableMapOf<String, Any?>(
+                    "type" to mc,
+                    "jniAccessible" to true,
+                    "methods" to
+                        listOf(
+                            mapOf("name" to "main", "parameterTypes" to listOf("java.lang.String[]")),
+                        ),
+                )
             val existing = reflectionMap[mc]
             if (existing == null) {
                 reflectionMap[mc] = mainClassEntry
@@ -262,9 +272,13 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         if (targetResources != null) {
             val before = targetResources.size
             targetResources.removeAll { entry ->
-                val covered = isResourceEntryCovered(
-                    entry, libraryResourceJsons, libraryResourceGlobs, includeResourcePatterns,
-                )
+                val covered =
+                    isResourceEntryCovered(
+                        entry,
+                        libraryResourceJsons,
+                        libraryResourceGlobs,
+                        includeResourcePatterns,
+                    )
                 if (covered) {
                     val glob = entry["glob"] ?: entry["bundle"] ?: "?"
                     removedEntries.add("  [resource] $glob")
@@ -303,9 +317,7 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         logger.lifecycle("Remaining manual entries: $remaining")
     }
 
-    private fun countBaselineTypes(
-        entries: Map<String, Map<String, MutableMap<String, Any?>>>,
-    ): Int = entries.values.sumOf { it.size }
+    private fun countBaselineTypes(entries: Map<String, Map<String, MutableMap<String, Any?>>>): Int = entries.values.sumOf { it.size }
 
     private fun collectBaseline(
         slurper: JsonSlurper,
@@ -349,11 +361,17 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         source: Map<String, Any?>,
         target: MutableMap<String, Any?>,
     ) {
-        val broadFlags = listOf(
-            "allDeclaredFields", "allDeclaredMethods", "allDeclaredConstructors",
-            "allPublicFields", "allPublicMethods", "allPublicConstructors",
-            "unsafeAllocated", "jniAccessible",
-        )
+        val broadFlags =
+            listOf(
+                "allDeclaredFields",
+                "allDeclaredMethods",
+                "allDeclaredConstructors",
+                "allPublicFields",
+                "allPublicMethods",
+                "allPublicConstructors",
+                "unsafeAllocated",
+                "jniAccessible",
+            )
         for (flag in broadFlags) {
             if (source[flag] == true) target[flag] = true
         }
@@ -363,8 +381,9 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
             val sourceMembers = source[memberKey] as? List<Map<String, Any?>> ?: continue
 
             @Suppress("UNCHECKED_CAST")
-            val targetMembers = (target[memberKey] as? MutableList<Map<String, Any?>>)
-                ?: mutableListOf<Map<String, Any?>>().also { target[memberKey] = it }
+            val targetMembers =
+                (target[memberKey] as? MutableList<Map<String, Any?>>)
+                    ?: mutableListOf<Map<String, Any?>>().also { target[memberKey] = it }
 
             val existingSigs = targetMembers.map { sig(it) }.toMutableSet()
             for (m in sourceMembers) {
@@ -379,6 +398,7 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
 
     private fun sig(obj: Map<String, Any?>): String {
         val name = obj["name"] as? String ?: ""
+
         @Suppress("UNCHECKED_CAST")
         val params = (obj["parameterTypes"] as? List<String>)?.joinToString(",") ?: ""
         return "$name($params)"
@@ -396,11 +416,16 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         // Check broad flags: if project needs a flag, library must have it
         // Exception: jniAccessible — if the type exists in the jni section baseline,
         // the flag is implicitly satisfied
-        val broadFlags = listOf(
-            "allDeclaredFields", "allDeclaredMethods", "allDeclaredConstructors",
-            "allPublicFields", "allPublicMethods", "allPublicConstructors",
-            "unsafeAllocated",
-        )
+        val broadFlags =
+            listOf(
+                "allDeclaredFields",
+                "allDeclaredMethods",
+                "allDeclaredConstructors",
+                "allPublicFields",
+                "allPublicMethods",
+                "allPublicConstructors",
+                "unsafeAllocated",
+            )
         for (flag in broadFlags) {
             if (projectEntry[flag] == true && libEntry[flag] != true) return false
         }
@@ -410,11 +435,12 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
             val projectMembers = projectEntry[memberKey] as? List<Map<String, Any?>>
             if (projectMembers.isNullOrEmpty()) continue
 
-            val allDeclaredKey = when (memberKey) {
-                "fields" -> "allDeclaredFields"
-                "methods", "queriedMethods" -> "allDeclaredMethods"
-                else -> null
-            }
+            val allDeclaredKey =
+                when (memberKey) {
+                    "fields" -> "allDeclaredFields"
+                    "methods", "queriedMethods" -> "allDeclaredMethods"
+                    else -> null
+                }
             if (allDeclaredKey != null && libEntry[allDeclaredKey] == true) continue
 
             @Suppress("UNCHECKED_CAST")
@@ -459,21 +485,26 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
         return false
     }
 
-    private fun globMatches(pattern: String, path: String): Boolean {
-        val regex = buildString {
-            append("^")
-            for (ch in pattern) {
-                when (ch) {
-                    '*' -> append(".*")
-                    '?' -> append(".")
-                    '.', '(', ')', '[', ']', '{', '}', '\\', '^', '$', '|', '+' -> {
-                        append("\\"); append(ch)
+    private fun globMatches(
+        pattern: String,
+        path: String,
+    ): Boolean {
+        val regex =
+            buildString {
+                append("^")
+                for (ch in pattern) {
+                    when (ch) {
+                        '*' -> append(".*")
+                        '?' -> append(".")
+                        '.', '(', ')', '[', ']', '{', '}', '\\', '^', '$', '|', '+' -> {
+                            append("\\")
+                            append(ch)
+                        }
+                        else -> append(ch)
                     }
-                    else -> append(ch)
                 }
+                append("$")
             }
-            append("$")
-        }
         return try {
             Regex(regex).matches(path)
         } catch (_: Exception) {

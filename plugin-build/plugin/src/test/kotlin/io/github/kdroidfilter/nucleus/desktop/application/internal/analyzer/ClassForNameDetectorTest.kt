@@ -10,7 +10,6 @@ import java.io.File
 import java.util.jar.JarFile
 
 class ClassForNameDetectorTest {
-
     private val analysisLibraries: List<File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() }

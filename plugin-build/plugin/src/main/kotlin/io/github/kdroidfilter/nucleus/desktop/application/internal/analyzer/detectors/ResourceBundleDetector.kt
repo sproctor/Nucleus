@@ -13,7 +13,6 @@ import org.objectweb.asm.Opcodes
  * patterns where the bundle name is stored in a variable before the getBundle call.
  */
 internal object ResourceBundleDetector {
-
     fun detect(classBytes: ByteArray): Set<ResourcePattern> {
         val patterns = mutableSetOf<ResourcePattern>()
         val reader = ClassReader(classBytes)
@@ -34,7 +33,10 @@ internal object ResourceBundleDetector {
                             stackString = value as? String
                         }
 
-                        override fun visitVarInsn(opcode: Int, varIndex: Int) {
+                        override fun visitVarInsn(
+                            opcode: Int,
+                            varIndex: Int,
+                        ) {
                             when (opcode) {
                                 Opcodes.ASTORE -> {
                                     val str = stackString
@@ -82,15 +84,24 @@ internal object ResourceBundleDetector {
                             stackString = null
                         }
 
-                        override fun visitIntInsn(opcode: Int, operand: Int) {
+                        override fun visitIntInsn(
+                            opcode: Int,
+                            operand: Int,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitTypeInsn(opcode: Int, type: String) {
+                        override fun visitTypeInsn(
+                            opcode: Int,
+                            type: String,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitJumpInsn(opcode: Int, label: org.objectweb.asm.Label) {
+                        override fun visitJumpInsn(
+                            opcode: Int,
+                            label: org.objectweb.asm.Label,
+                        ) {
                             // Don't clear — conditional getBundle patterns
                         }
                     }

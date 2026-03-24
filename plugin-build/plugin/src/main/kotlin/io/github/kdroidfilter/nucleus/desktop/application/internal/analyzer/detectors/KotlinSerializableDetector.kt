@@ -19,7 +19,6 @@ import org.objectweb.asm.Opcodes
  * each subclass needs reflection access for its `INSTANCE` field and `serializer()` method.
  */
 internal object KotlinSerializableDetector {
-
     private const val SERIALIZABLE_DESC = "Lkotlinx/serialization/Serializable;"
 
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
@@ -50,7 +49,10 @@ internal object KotlinSerializableDetector {
             className = name.replace('/', '.')
         }
 
-        override fun visitAnnotation(descriptor: String, visible: Boolean): AnnotationVisitor? {
+        override fun visitAnnotation(
+            descriptor: String,
+            visible: Boolean,
+        ): AnnotationVisitor? {
             if (descriptor == SERIALIZABLE_DESC) {
                 isSerializable = true
             }
@@ -87,8 +89,10 @@ internal object KotlinSerializableDetector {
                     hasSerializerMethod = true
                     methods.add(MethodSignature("serializer"))
                 } else if (name == "<init>") {
-                    val paramTypes = org.objectweb.asm.Type.getArgumentTypes(descriptor)
-                        .map { asmTypeToJavaName(it) }
+                    val paramTypes =
+                        org.objectweb.asm.Type
+                            .getArgumentTypes(descriptor)
+                            .map { asmTypeToJavaName(it) }
                     methods.add(MethodSignature("<init>", paramTypes))
                 }
             }

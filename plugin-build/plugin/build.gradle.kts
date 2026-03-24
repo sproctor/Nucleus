@@ -208,9 +208,11 @@ tasks.withType<Test> {
     systemProperty("test.oracle.repo.zip", testOracleRepo.singleFile.absolutePath)
     systemProperty("test.zayit.libraries", testZayitLibraries.asPath)
     // Zayit metadata dir: set via local property or env var, falls back to empty (tests use assumeTrue)
-    val zayitMetadataDir = providers.gradleProperty("test.zayit.metadata.dir")
-        .orElse(providers.environmentVariable("ZAYIT_METADATA_DIR"))
-        .orElse("")
+    val zayitMetadataDir =
+        providers
+            .gradleProperty("test.zayit.metadata.dir")
+            .orElse(providers.environmentVariable("ZAYIT_METADATA_DIR"))
+            .orElse("")
     systemProperty("test.zayit.metadata.dir", zayitMetadataDir.get())
 }
 

@@ -17,13 +17,13 @@ import org.objectweb.asm.Opcodes
  * ```
  */
 internal object ResourceAccessDetector {
-
     private val RESOURCE_METHODS = setOf("getResource", "getResourceAsStream")
 
-    private val RESOURCE_OWNERS = setOf(
-        "java/lang/Class",
-        "java/lang/ClassLoader",
-    )
+    private val RESOURCE_OWNERS =
+        setOf(
+            "java/lang/Class",
+            "java/lang/ClassLoader",
+        )
 
     fun detect(classBytes: ByteArray): Set<ResourcePattern> {
         val patterns = mutableSetOf<ResourcePattern>()
@@ -45,7 +45,10 @@ internal object ResourceAccessDetector {
                             stackString = value as? String
                         }
 
-                        override fun visitVarInsn(opcode: Int, varIndex: Int) {
+                        override fun visitVarInsn(
+                            opcode: Int,
+                            varIndex: Int,
+                        ) {
                             when (opcode) {
                                 Opcodes.ASTORE -> {
                                     val str = stackString
@@ -96,15 +99,24 @@ internal object ResourceAccessDetector {
                             stackString = null
                         }
 
-                        override fun visitIntInsn(opcode: Int, operand: Int) {
+                        override fun visitIntInsn(
+                            opcode: Int,
+                            operand: Int,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitTypeInsn(opcode: Int, type: String) {
+                        override fun visitTypeInsn(
+                            opcode: Int,
+                            type: String,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitJumpInsn(opcode: Int, label: org.objectweb.asm.Label) {
+                        override fun visitJumpInsn(
+                            opcode: Int,
+                            label: org.objectweb.asm.Label,
+                        ) {
                             // Don't clear — conditional resource access patterns
                         }
                     }
@@ -117,6 +129,5 @@ internal object ResourceAccessDetector {
     /**
      * Removes leading slash from absolute resource paths.
      */
-    private fun normalizeResourcePath(path: String): String =
-        path.removePrefix("/")
+    private fun normalizeResourcePath(path: String): String = path.removePrefix("/")
 }

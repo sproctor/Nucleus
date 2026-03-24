@@ -15,7 +15,6 @@ import org.objectweb.asm.Type
  * can extract the concrete interface names.
  */
 internal object ProxyDetector {
-
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
         val entries = mutableSetOf<ReflectionEntry>()
         val reader = ClassReader(classBytes)

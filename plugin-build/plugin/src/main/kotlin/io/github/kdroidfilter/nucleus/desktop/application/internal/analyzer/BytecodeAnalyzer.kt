@@ -17,7 +17,6 @@ import java.util.jar.JarFile
  * Main entry point: scans one or more JARs and produces an [AnalysisResult].
  */
 internal object BytecodeAnalyzer {
-
     /**
      * Analyzes a single JAR file.
      */
@@ -49,11 +48,12 @@ internal object BytecodeAnalyzer {
             for (entry in jar.entries()) {
                 if (!entry.name.endsWith(".class") || entry.name.startsWith("META-INF/")) continue
 
-                val classBytes = try {
-                    jar.getInputStream(entry).use { it.readBytes() }
-                } catch (_: Exception) {
-                    continue
-                }
+                val classBytes =
+                    try {
+                        jar.getInputStream(entry).use { it.readBytes() }
+                    } catch (_: Exception) {
+                        continue
+                    }
 
                 // Index by internal class name for second-pass lookup
                 val internalName = entry.name.removeSuffix(".class")
@@ -115,9 +115,11 @@ internal object BytecodeAnalyzer {
             servicesDir.listFiles()?.filter { it.isFile }?.forEach { serviceFile ->
                 val serviceName = serviceFile.name
                 resourcePatterns.add(ResourcePattern(glob = "META-INF/services/$serviceName"))
-                val implementations = serviceFile.readLines()
-                    .map { it.substringBefore('#').trim() }
-                    .filter { it.isNotEmpty() }
+                val implementations =
+                    serviceFile
+                        .readLines()
+                        .map { it.substringBefore('#').trim() }
+                        .filter { it.isNotEmpty() }
                 for (impl in implementations) {
                     serviceLoaderEntries.add(
                         ReflectionEntry(
@@ -130,14 +132,16 @@ internal object BytecodeAnalyzer {
         }
 
         // Pass 1: scan all .class files recursively
-        dir.walkTopDown()
+        dir
+            .walkTopDown()
             .filter { it.isFile && it.extension == "class" }
             .forEach { classFile ->
-                val classBytes = try {
-                    classFile.readBytes()
-                } catch (_: Exception) {
-                    return@forEach
-                }
+                val classBytes =
+                    try {
+                        classFile.readBytes()
+                    } catch (_: Exception) {
+                        return@forEach
+                    }
 
                 val relativePath = classFile.relativeTo(dir).path.removeSuffix(".class")
                 classBytesIndex[relativePath] = classBytes
@@ -178,11 +182,12 @@ internal object BytecodeAnalyzer {
     fun analyzeClasspath(files: Iterable<File>): AnalysisResult {
         var merged = AnalysisResult()
         for (file in files) {
-            merged = merged + when {
-                file.isDirectory -> analyzeClassDir(file)
-                file.isFile && file.name.endsWith(".jar") -> analyzeJar(file)
-                else -> continue
-            }
+            merged = merged +
+                when {
+                    file.isDirectory -> analyzeClassDir(file)
+                    file.isFile && file.name.endsWith(".jar") -> analyzeJar(file)
+                    else -> continue
+                }
         }
         return merged
     }
@@ -249,10 +254,11 @@ internal object BytecodeAnalyzer {
         jniEntries: MutableSet<JniEntry>,
     ) {
         // Collect types that have native methods (they have methods in their JNI entry)
-        val nativeClassTypes = jniEntries
-            .filter { it.methods.isNotEmpty() && !it.jniAccessible }
-            .map { it.type }
-            .toList()
+        val nativeClassTypes =
+            jniEntries
+                .filter { it.methods.isNotEmpty() && !it.jniAccessible }
+                .map { it.type }
+                .toList()
 
         for (typeName in nativeClassTypes) {
             val internalName = typeName.replace('.', '/')

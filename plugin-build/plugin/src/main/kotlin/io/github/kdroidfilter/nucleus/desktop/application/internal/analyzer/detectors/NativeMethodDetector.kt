@@ -16,7 +16,6 @@ import org.objectweb.asm.Type
  * since GraalVM JNI configs need all types accessible from native code.
  */
 internal object NativeMethodDetector {
-
     data class NativeMethodResult(
         val jniEntries: Set<JniEntry>,
         val referencedTypes: Set<String>,
@@ -26,8 +25,7 @@ internal object NativeMethodDetector {
         val superclassType: String? = null,
     )
 
-    fun detect(classBytes: ByteArray): Set<JniEntry> =
-        detectWithReferences(classBytes).jniEntries
+    fun detect(classBytes: ByteArray): Set<JniEntry> = detectWithReferences(classBytes).jniEntries
 
     fun detectWithReferences(classBytes: ByteArray): NativeMethodResult {
         val entries = mutableMapOf<String, MutableSet<MethodSignature>>()
@@ -168,7 +166,10 @@ internal object NativeMethodDetector {
     /**
      * Recursively collects all object types from an ASM Type (handles arrays).
      */
-    private fun collectObjectTypes(type: Type, into: MutableSet<String>) {
+    private fun collectObjectTypes(
+        type: Type,
+        into: MutableSet<String>,
+    ) {
         when (type.sort) {
             Type.OBJECT -> into.add(type.className)
             Type.ARRAY -> collectObjectTypes(type.elementType, into)

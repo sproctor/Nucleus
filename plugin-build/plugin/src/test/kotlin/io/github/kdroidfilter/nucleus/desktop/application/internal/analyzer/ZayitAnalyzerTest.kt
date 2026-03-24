@@ -12,7 +12,6 @@ import java.io.File
  * This validates that the analyzer works on a production Compose Desktop + Lucene + SQLite app.
  */
 class ZayitAnalyzerTest {
-
     private val zayitLibraries: List<File> by lazy {
         val path = System.getProperty("test.zayit.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() && it.name.endsWith(".jar") }
@@ -117,8 +116,12 @@ class ZayitAnalyzerTest {
         println("Only in existing metadata:             ${onlyInExisting.size}")
         println("Only found by analyzer (NEW):          ${onlyInAnalyzer.size}")
 
-        val coveragePct = if (existingReflTypes.isEmpty()) 0
-        else coveredByAnalyzer.size * 100 / existingReflTypes.size
+        val coveragePct =
+            if (existingReflTypes.isEmpty()) {
+                0
+            } else {
+                coveredByAnalyzer.size * 100 / existingReflTypes.size
+            }
         println("Coverage of existing metadata:         $coveragePct%")
 
         // Show what the analyzer found that the existing metadata doesn't have
@@ -228,9 +231,10 @@ class ZayitAnalyzerTest {
     fun `SQLite and JDBC reflection detection`() {
         assumeTrue("Zayit libraries not available", zayitLibraries.isNotEmpty())
 
-        val sqliteJars = zayitLibraries.filter {
-            it.name.contains("sqlite") || it.name.contains("sqldelight") || it.name.contains("jdbc")
-        }
+        val sqliteJars =
+            zayitLibraries.filter {
+                it.name.contains("sqlite") || it.name.contains("sqldelight") || it.name.contains("jdbc")
+            }
         assumeTrue("No SQLite/JDBC JARs found", sqliteJars.isNotEmpty())
 
         val result = BytecodeAnalyzer.analyzeJars(sqliteJars)

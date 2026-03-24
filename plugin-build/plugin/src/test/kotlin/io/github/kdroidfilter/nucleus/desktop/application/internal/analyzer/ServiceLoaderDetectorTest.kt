@@ -9,14 +9,12 @@ import java.io.File
 import java.util.jar.JarFile
 
 class ServiceLoaderDetectorTest {
-
     private val analysisLibraries: List<File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() }
     }
 
-    private fun findJar(nameContains: String): File? =
-        analysisLibraries.find { it.name.contains(nameContains) }
+    private fun findJar(nameContains: String): File? = analysisLibraries.find { it.name.contains(nameContains) }
 
     @Test
     fun `detects service providers in logback classic jar`() {
@@ -35,13 +33,14 @@ class ServiceLoaderDetectorTest {
 
     @Test
     fun `service file parser handles comments and blank lines`() {
-        val input = """
+        val input =
+            """
             # This is a comment
             com.example.ImplA
 
             # Another comment
             com.example.ImplB # inline comment
-        """.trimIndent().byteInputStream()
+            """.trimIndent().byteInputStream()
 
         val implementations = ServiceLoaderDetector.parseServiceFile(input)
         assertTrue(implementations.contains("com.example.ImplA"))

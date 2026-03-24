@@ -9,6 +9,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.internal.analyzer.Reso
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -24,8 +25,8 @@ import java.io.File
  * The output directory contains a `reachability-metadata.json` file in the
  * standard GraalVM format, ready to be passed as `-H:ConfigurationFileDirectories=`.
  */
+@CacheableTask
 abstract class AnalyzeStaticMetadataTask : DefaultTask() {
-
     /** The runtime classpath JARs to analyze. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
@@ -84,21 +85,24 @@ internal fun buildReachabilityMetadataJson(
     val root = mutableMapOf<String, Any>()
 
     if (reflectionEntries.isNotEmpty()) {
-        root["reflection"] = reflectionEntries
-            .sortedBy { it.type }
-            .map { it.toJsonMap() }
+        root["reflection"] =
+            reflectionEntries
+                .sortedBy { it.type }
+                .map { it.toJsonMap() }
     }
 
     if (jniEntries.isNotEmpty()) {
-        root["jni"] = jniEntries
-            .sortedBy { it.type }
-            .map { it.toJsonMap() }
+        root["jni"] =
+            jniEntries
+                .sortedBy { it.type }
+                .map { it.toJsonMap() }
     }
 
     if (resourcePatterns.isNotEmpty()) {
-        root["resources"] = resourcePatterns
-            .sortedBy { it.glob ?: it.bundle ?: "" }
-            .map { it.toJsonMap() }
+        root["resources"] =
+            resourcePatterns
+                .sortedBy { it.glob ?: it.bundle ?: "" }
+                .map { it.toJsonMap() }
     }
 
     return JsonOutput.prettyPrint(JsonOutput.toJson(root)) + "\n"

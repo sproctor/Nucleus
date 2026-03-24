@@ -24,19 +24,20 @@ import org.objectweb.asm.Type
  * constant to resolve the target class and member name.
  */
 internal object MethodHandleDetector {
+    private val FIND_METHOD_NAMES =
+        setOf(
+            "findVirtual",
+            "findStatic",
+            "findSpecial",
+        )
 
-    private val FIND_METHOD_NAMES = setOf(
-        "findVirtual",
-        "findStatic",
-        "findSpecial",
-    )
-
-    private val FIND_FIELD_NAMES = setOf(
-        "findGetter",
-        "findSetter",
-        "findStaticGetter",
-        "findStaticSetter",
-    )
+    private val FIND_FIELD_NAMES =
+        setOf(
+            "findGetter",
+            "findSetter",
+            "findStaticGetter",
+            "findStaticSetter",
+        )
 
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
         val entries = mutableSetOf<ReflectionEntry>()
@@ -53,6 +54,7 @@ internal object MethodHandleDetector {
                     object : MethodVisitor(Opcodes.ASM9) {
                         // Track the most recent class type from LDC (e.g., LDC Type com/example/Foo)
                         private var lastClassType: String? = null
+
                         // Track local variable slots that hold class types
                         private val localClassTypes = mutableMapOf<Int, String>()
                         private var lastStringConstant: String? = null
@@ -82,7 +84,10 @@ internal object MethodHandleDetector {
                             }
                         }
 
-                        override fun visitVarInsn(opcode: Int, varIndex: Int) {
+                        override fun visitVarInsn(
+                            opcode: Int,
+                            varIndex: Int,
+                        ) {
                             when (opcode) {
                                 Opcodes.ASTORE -> {
                                     if (lastClassType != null) {
@@ -165,15 +170,24 @@ internal object MethodHandleDetector {
                             lastStringConstant = null
                         }
 
-                        override fun visitIntInsn(opcode: Int, operand: Int) {
+                        override fun visitIntInsn(
+                            opcode: Int,
+                            operand: Int,
+                        ) {
                             lastStringConstant = null
                         }
 
-                        override fun visitTypeInsn(opcode: Int, type: String) {
+                        override fun visitTypeInsn(
+                            opcode: Int,
+                            type: String,
+                        ) {
                             lastStringConstant = null
                         }
 
-                        override fun visitJumpInsn(opcode: Int, label: org.objectweb.asm.Label) {
+                        override fun visitJumpInsn(
+                            opcode: Int,
+                            label: org.objectweb.asm.Label,
+                        ) {
                             // Don't clear — conditional patterns
                         }
                     }

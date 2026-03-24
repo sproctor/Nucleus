@@ -10,7 +10,6 @@ import java.util.jar.JarFile
  * - Text resources in analysis/NLP resource directories (stopwords, etc.)
  */
 internal object JarResourceDetector {
-
     private val NATIVE_LIB_EXTENSIONS = setOf("so", "dll", "dylib", "jnilib", "a")
 
     private val RESOURCE_EXTENSIONS = setOf("properties", "txt", "xml", "json", "cfg", "conf")

@@ -49,46 +49,53 @@ internal data class AnalysisReport(
     /**
      * Formats the report as a human-readable string.
      */
-    fun format(): String = buildString {
-        appendLine("=== Static Bytecode Analysis Gap Report ===")
-        appendLine()
-        appendLine("Summary:")
-        appendLine("  DETECTED:           ${detected.size}")
-        appendLine("  PARTIALLY_DETECTED: ${partiallyDetected.size}")
-        appendLine("  NOT_DETECTABLE:     ${notDetectable.size}")
-        appendLine("  EXTRA:              ${extra.size}")
-
-        if (notDetectable.isNotEmpty()) {
+    fun format(): String =
+        buildString {
+            appendLine("=== Static Bytecode Analysis Gap Report ===")
             appendLine()
-            appendLine("--- NOT_DETECTABLE (agent required) ---")
-            for (entry in notDetectable) {
-                appendLine("  ${entry.type}")
-                if (entry.reason != null) {
-                    appendLine("    Reason: ${entry.reason}")
+            appendLine("Summary:")
+            appendLine("  DETECTED:           ${detected.size}")
+            appendLine("  PARTIALLY_DETECTED: ${partiallyDetected.size}")
+            appendLine("  NOT_DETECTABLE:     ${notDetectable.size}")
+            appendLine("  EXTRA:              ${extra.size}")
+
+            if (notDetectable.isNotEmpty()) {
+                appendLine()
+                appendLine("--- NOT_DETECTABLE (agent required) ---")
+                for (entry in notDetectable) {
+                    appendLine("  ${entry.type}")
+                    if (entry.reason != null) {
+                        appendLine("    Reason: ${entry.reason}")
+                    }
+                }
+            }
+
+            if (partiallyDetected.isNotEmpty()) {
+                appendLine()
+                appendLine("--- PARTIALLY_DETECTED (agent may refine) ---")
+                for (entry in partiallyDetected) {
+                    appendLine("  ${entry.type}")
+                    if (entry.missingMethods.isNotEmpty()) {
+                        appendLine(
+                            "    Missing methods: ${entry.missingMethods.joinToString {
+                                "${it.name}(${it.parameterTypes.joinToString(
+                                    ",",
+                                )})"
+                            }}",
+                        )
+                    }
+                    if (entry.missingFields.isNotEmpty()) {
+                        appendLine("    Missing fields: ${entry.missingFields.joinToString()}")
+                    }
+                }
+            }
+
+            if (extra.isNotEmpty()) {
+                appendLine()
+                appendLine("--- EXTRA (new discoveries) ---")
+                for (entry in extra) {
+                    appendLine("  ${entry.type}")
                 }
             }
         }
-
-        if (partiallyDetected.isNotEmpty()) {
-            appendLine()
-            appendLine("--- PARTIALLY_DETECTED (agent may refine) ---")
-            for (entry in partiallyDetected) {
-                appendLine("  ${entry.type}")
-                if (entry.missingMethods.isNotEmpty()) {
-                    appendLine("    Missing methods: ${entry.missingMethods.joinToString { "${it.name}(${it.parameterTypes.joinToString(",")})" }}")
-                }
-                if (entry.missingFields.isNotEmpty()) {
-                    appendLine("    Missing fields: ${entry.missingFields.joinToString()}")
-                }
-            }
-        }
-
-        if (extra.isNotEmpty()) {
-            appendLine()
-            appendLine("--- EXTRA (new discoveries) ---")
-            for (entry in extra) {
-                appendLine("  ${entry.type}")
-            }
-        }
-    }
 }

@@ -15,7 +15,6 @@ import java.util.zip.ZipFile
  * the static analyzer can discover compared to the Oracle manually-curated baseline.
  */
 class OracleRepoCoverageTest {
-
     private val analysisLibraries: Map<String, File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         val jars = path.split(File.pathSeparator).map(::File).filter { it.exists() && it.name.endsWith(".jar") }
@@ -28,7 +27,10 @@ class OracleRepoCoverageTest {
 
     private fun extractOracleRepo(): Map<String, OracleLibraryMeta> {
         val zipFile = oracleRepoZip ?: return emptyMap()
-        val tempDir = kotlin.io.path.createTempDirectory("oracle-full-repo-").toFile()
+        val tempDir =
+            kotlin.io.path
+                .createTempDirectory("oracle-full-repo-")
+                .toFile()
 
         ZipFile(zipFile).use { zip ->
             for (entry in zip.entries()) {
@@ -42,7 +44,8 @@ class OracleRepoCoverageTest {
         }
 
         val result = mutableMapOf<String, OracleLibraryMeta>()
-        tempDir.walkTopDown()
+        tempDir
+            .walkTopDown()
             .filter { it.name == "index.json" }
             .forEach { indexFile ->
                 val artifactDir = indexFile.parentFile
@@ -50,13 +53,15 @@ class OracleRepoCoverageTest {
                 val group = artifactDir.parentFile.name
                 val key = "$group:$artifact"
 
-                val versionDirs = artifactDir.listFiles()
-                    ?.filter { it.isDirectory }
-                    ?.filter { dir ->
-                        dir.listFiles()?.any {
-                            it.name.endsWith("-config.json") || it.name == "reachability-metadata.json"
-                        } == true
-                    } ?: emptyList()
+                val versionDirs =
+                    artifactDir
+                        .listFiles()
+                        ?.filter { it.isDirectory }
+                        ?.filter { dir ->
+                            dir.listFiles()?.any {
+                                it.name.endsWith("-config.json") || it.name == "reachability-metadata.json"
+                            } == true
+                        } ?: emptyList()
 
                 if (versionDirs.isNotEmpty()) {
                     result[key] = OracleLibraryMeta(group, artifact, versionDirs)
@@ -225,8 +230,19 @@ class OracleRepoCoverageTest {
         val header = "%-50s | %5s | %5s | %5s | %5s | %5s | %5s | %5s | %5s | %5s | %5s | %5s | %5s"
         println(
             header.format(
-                "Library", "OraRf", "DetRf", "ParRf", "NoRf", "Rf%",
-                "OraJn", "DetJn", "ParJn", "NoJn", "Extra", "Svc", "Res",
+                "Library",
+                "OraRf",
+                "DetRf",
+                "ParRf",
+                "NoRf",
+                "Rf%",
+                "OraJn",
+                "DetJn",
+                "ParJn",
+                "NoJn",
+                "Extra",
+                "Svc",
+                "Res",
             ),
         )
         println("-".repeat(130))
@@ -236,8 +252,19 @@ class OracleRepoCoverageTest {
             val refPct = if (r.oraRef == 0) "N/A" else "${(r.detRef + r.parRef) * 100 / r.oraRef}%"
             println(
                 header.format(
-                    r.key.take(50), r.oraRef, r.detRef, r.parRef, r.noRef, refPct,
-                    r.oraJni, r.detJni, r.parJni, r.noJni, r.extra, r.svcLd, r.resPat,
+                    r.key.take(50),
+                    r.oraRef,
+                    r.detRef,
+                    r.parRef,
+                    r.noRef,
+                    refPct,
+                    r.oraJni,
+                    r.detJni,
+                    r.parJni,
+                    r.noJni,
+                    r.extra,
+                    r.svcLd,
+                    r.resPat,
                 ),
             )
         }
@@ -259,8 +286,19 @@ class OracleRepoCoverageTest {
 
         println(
             header.format(
-                "TOTAL", tOraRef, tDetRef, tParRef, tNoRef, refPctTotal,
-                tOraJni, tDetJni, tParJni, tNoJni, tExtra, tSvc, tRes,
+                "TOTAL",
+                tOraRef,
+                tDetRef,
+                tParRef,
+                tNoRef,
+                refPctTotal,
+                tOraJni,
+                tDetJni,
+                tParJni,
+                tNoJni,
+                tExtra,
+                tSvc,
+                tRes,
             ),
         )
         println(sep)

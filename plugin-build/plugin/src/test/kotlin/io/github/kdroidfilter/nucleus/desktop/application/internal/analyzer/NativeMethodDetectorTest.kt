@@ -8,14 +8,12 @@ import java.io.File
 import java.util.jar.JarFile
 
 class NativeMethodDetectorTest {
-
     private val analysisLibraries: List<File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() }
     }
 
-    private fun findJar(nameContains: String): File? =
-        analysisLibraries.find { it.name.contains(nameContains) }
+    private fun findJar(nameContains: String): File? = analysisLibraries.find { it.name.contains(nameContains) }
 
     @Test
     fun `detects native methods in JNA jar`() {
@@ -96,8 +94,15 @@ class NativeMethodDetectorTest {
     }
 
     companion object {
-        fun extractOracleRepoDir(zipFile: File, group: String, artifact: String): File? {
-            val tempDir = kotlin.io.path.createTempDirectory("oracle-repo-").toFile()
+        fun extractOracleRepoDir(
+            zipFile: File,
+            group: String,
+            artifact: String,
+        ): File? {
+            val tempDir =
+                kotlin.io.path
+                    .createTempDirectory("oracle-repo-")
+                    .toFile()
             tempDir.deleteOnExit()
             java.util.zip.ZipFile(zipFile).use { zip ->
                 for (entry in zip.entries()) {
@@ -115,17 +120,24 @@ class NativeMethodDetectorTest {
             return findModuleDir(tempDir, group, artifact)
         }
 
-        fun findModuleDir(repoRoot: File, group: String, artifact: String): File? {
+        fun findModuleDir(
+            repoRoot: File,
+            group: String,
+            artifact: String,
+        ): File? {
             // Search for the artifact directory recursively
-            val candidates = repoRoot.walkTopDown()
-                .filter { it.isDirectory && it.name == artifact && it.parentFile?.name == group }
-                .toList()
+            val candidates =
+                repoRoot
+                    .walkTopDown()
+                    .filter { it.isDirectory && it.name == artifact && it.parentFile?.name == group }
+                    .toList()
 
             if (candidates.isEmpty()) return null
 
             // Return the first version directory that has config files
             val moduleDir = candidates.first()
-            return moduleDir.listFiles()
+            return moduleDir
+                .listFiles()
                 ?.filter { it.isDirectory }
                 ?.firstOrNull { dir ->
                     dir.listFiles()?.any {

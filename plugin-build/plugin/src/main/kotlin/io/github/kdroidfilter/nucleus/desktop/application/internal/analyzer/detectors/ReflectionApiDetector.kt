@@ -17,12 +17,12 @@ import org.objectweb.asm.Type
  * Tracks both string constants and class constants through local variable stores/loads.
  */
 internal object ReflectionApiDetector {
-
     private val METHOD_LOOKUPS = setOf("getMethod", "getDeclaredMethod")
     private val FIELD_LOOKUPS = setOf("getField", "getDeclaredField")
     private val CONSTRUCTOR_LOOKUPS = setOf("getConstructor", "getDeclaredConstructor")
-    private val ALL_MEMBER_LOOKUPS = METHOD_LOOKUPS + FIELD_LOOKUPS + CONSTRUCTOR_LOOKUPS +
-        setOf("getMethods", "getDeclaredMethods", "getFields", "getDeclaredFields")
+    private val ALL_MEMBER_LOOKUPS =
+        METHOD_LOOKUPS + FIELD_LOOKUPS + CONSTRUCTOR_LOOKUPS +
+            setOf("getMethods", "getDeclaredMethods", "getFields", "getDeclaredFields")
 
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
         val results = mutableSetOf<ReflectionEntry>()
@@ -35,8 +35,7 @@ internal object ReflectionApiDetector {
                     descriptor: String,
                     signature: String?,
                     exceptions: Array<out String>?,
-                ): MethodVisitor =
-                    MethodReflectionVisitor(results)
+                ): MethodVisitor = MethodReflectionVisitor(results)
             },
             0,
         )
@@ -46,9 +45,9 @@ internal object ReflectionApiDetector {
     private class MethodReflectionVisitor(
         private val results: MutableSet<ReflectionEntry>,
     ) : MethodVisitor(Opcodes.ASM9) {
-
         // Track string constants in local variables
         private val localStrings = mutableMapOf<Int, String>()
+
         // Track class references (from .class literals or Class.forName results) in local variables
         private val localClasses = mutableMapOf<Int, String>()
 
@@ -75,7 +74,10 @@ internal object ReflectionApiDetector {
             }
         }
 
-        override fun visitVarInsn(opcode: Int, varIndex: Int) {
+        override fun visitVarInsn(
+            opcode: Int,
+            varIndex: Int,
+        ) {
             when (opcode) {
                 Opcodes.ASTORE -> {
                     stackString?.let { localStrings[varIndex] = it }
@@ -186,22 +188,36 @@ internal object ReflectionApiDetector {
             }
         }
 
-        override fun visitFieldInsn(opcode: Int, owner: String, name: String, descriptor: String) {
+        override fun visitFieldInsn(
+            opcode: Int,
+            owner: String,
+            name: String,
+            descriptor: String,
+        ) {
             stackString = null
             stackClass = null
         }
 
-        override fun visitIntInsn(opcode: Int, operand: Int) {
+        override fun visitIntInsn(
+            opcode: Int,
+            operand: Int,
+        ) {
             stackString = null
             stackClass = null
         }
 
-        override fun visitTypeInsn(opcode: Int, type: String) {
+        override fun visitTypeInsn(
+            opcode: Int,
+            type: String,
+        ) {
             stackString = null
             stackClass = null
         }
 
-        override fun visitJumpInsn(opcode: Int, label: org.objectweb.asm.Label) {
+        override fun visitJumpInsn(
+            opcode: Int,
+            label: org.objectweb.asm.Label,
+        ) {
             // Don't clear on jumps — reflection is often in branched code
         }
     }

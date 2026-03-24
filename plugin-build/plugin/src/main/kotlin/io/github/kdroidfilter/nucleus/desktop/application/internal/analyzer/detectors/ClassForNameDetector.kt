@@ -20,17 +20,17 @@ import org.objectweb.asm.Opcodes
  * Also collects all string constants in the method that look like class names.
  */
 internal object ClassForNameDetector {
-
     // Method names that indicate class loading (covers common wrappers like Sentry's LoadClass)
-    private val CLASS_LOADING_METHOD_NAMES = setOf(
-        "forName",
-        "loadClass",
-        "findClass",
-        "classForName",
-        "isClassAvailable",
-        "getOrLoadClass",
-        "forNameOrNull",
-    )
+    private val CLASS_LOADING_METHOD_NAMES =
+        setOf(
+            "forName",
+            "loadClass",
+            "findClass",
+            "classForName",
+            "isClassAvailable",
+            "getOrLoadClass",
+            "forNameOrNull",
+        )
 
     fun detect(classBytes: ByteArray): Set<ReflectionEntry> {
         val entries = mutableSetOf<ReflectionEntry>()
@@ -47,8 +47,10 @@ internal object ClassForNameDetector {
                     object : MethodVisitor(Opcodes.ASM9) {
                         // Track string constants in local variable slots
                         private val localStrings = mutableMapOf<Int, String>()
+
                         // The most recent string constant on the stack
                         private var stackString: String? = null
+
                         // All string constants seen that look like class names, for forName calls
                         // that use variables loaded from elsewhere
                         private var hasClassLoadingCall = false
@@ -62,7 +64,10 @@ internal object ClassForNameDetector {
                             }
                         }
 
-                        override fun visitVarInsn(opcode: Int, varIndex: Int) {
+                        override fun visitVarInsn(
+                            opcode: Int,
+                            varIndex: Int,
+                        ) {
                             when (opcode) {
                                 Opcodes.ASTORE -> {
                                     // Store the current stack string into the local variable slot
@@ -113,15 +118,24 @@ internal object ClassForNameDetector {
                             stackString = null
                         }
 
-                        override fun visitIntInsn(opcode: Int, operand: Int) {
+                        override fun visitIntInsn(
+                            opcode: Int,
+                            operand: Int,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitTypeInsn(opcode: Int, type: String) {
+                        override fun visitTypeInsn(
+                            opcode: Int,
+                            type: String,
+                        ) {
                             stackString = null
                         }
 
-                        override fun visitJumpInsn(opcode: Int, label: org.objectweb.asm.Label) {
+                        override fun visitJumpInsn(
+                            opcode: Int,
+                            label: org.objectweb.asm.Label,
+                        ) {
                             // Don't clear stack string on jumps — conditional forName patterns
                         }
 

@@ -6,7 +6,6 @@ import org.junit.Test
 import java.io.File
 
 class ResourceDetectorTest {
-
     private val analysisLibraries: List<File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() }
@@ -62,10 +61,11 @@ class ResourceDetectorTest {
     fun `detects resource bundles across test libraries`() {
         assumeTrue("No analysis libraries available", analysisLibraries.isNotEmpty())
 
-        val allResults = analysisLibraries
-            .filter { it.name.endsWith(".jar") }
-            .map { BytecodeAnalyzer.analyzeJar(it) }
-            .fold(AnalysisResult()) { acc, r -> acc + r }
+        val allResults =
+            analysisLibraries
+                .filter { it.name.endsWith(".jar") }
+                .map { BytecodeAnalyzer.analyzeJar(it) }
+                .fold(AnalysisResult()) { acc, r -> acc + r }
 
         // At least some of our test libraries should use resources or bundles
         assertTrue(

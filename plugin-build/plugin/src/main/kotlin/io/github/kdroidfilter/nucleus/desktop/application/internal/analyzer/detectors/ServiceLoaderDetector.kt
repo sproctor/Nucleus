@@ -14,7 +14,6 @@ import java.util.jar.JarFile
  * - A resource pattern for the service file itself
  */
 internal object ServiceLoaderDetector {
-
     data class ServiceResult(
         val reflectionEntries: Set<ReflectionEntry>,
         val resourcePatterns: Set<ResourcePattern>,

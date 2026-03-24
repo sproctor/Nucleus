@@ -8,7 +8,6 @@ import org.junit.Test
 import java.io.File
 
 class BytecodeAnalyzerIntegrationTest {
-
     private val analysisLibraries: List<File> by lazy {
         val path = System.getProperty("test.analysis.libraries") ?: ""
         path.split(File.pathSeparator).map(::File).filter { it.exists() }
@@ -138,14 +137,16 @@ class BytecodeAnalyzerIntegrationTest {
 
     @Test
     fun `AnalysisResult plus operator merges correctly`() {
-        val r1 = AnalysisResult(
-            reflectionEntries = setOf(ReflectionEntry(type = "com.example.A")),
-            jniEntries = setOf(JniEntry(type = "com.example.B")),
-        )
-        val r2 = AnalysisResult(
-            reflectionEntries = setOf(ReflectionEntry(type = "com.example.C")),
-            resourcePatterns = setOf(ResourcePattern(glob = "some/resource.txt")),
-        )
+        val r1 =
+            AnalysisResult(
+                reflectionEntries = setOf(ReflectionEntry(type = "com.example.A")),
+                jniEntries = setOf(JniEntry(type = "com.example.B")),
+            )
+        val r2 =
+            AnalysisResult(
+                reflectionEntries = setOf(ReflectionEntry(type = "com.example.C")),
+                resourcePatterns = setOf(ResourcePattern(glob = "some/resource.txt")),
+            )
 
         val merged = r1 + r2
         assertTrue(merged.reflectionEntries.size == 2)

@@ -11,7 +11,6 @@ import java.io.File
  * which are JSON arrays, unlike the newer reachability-metadata.json format.
  */
 internal object OracleRepoParser {
-
     // Instantiate locally per call — JsonSlurper is not thread-safe
     private fun slurper() = JsonSlurper()
 
@@ -37,14 +36,12 @@ internal object OracleRepoParser {
     /**
      * Parses a reflect-config.json (old format: JSON array of type entries).
      */
-    fun parseReflectConfig(file: File): Set<ReflectionEntry> =
-        parseTypeArray(file).map { it.toReflectionEntry() }.toSet()
+    fun parseReflectConfig(file: File): Set<ReflectionEntry> = parseTypeArray(file).map { it.toReflectionEntry() }.toSet()
 
     /**
      * Parses a jni-config.json (old format: JSON array of type entries).
      */
-    fun parseJniConfig(file: File): Set<JniEntry> =
-        parseTypeArray(file).map { it.toJniEntry() }.toSet()
+    fun parseJniConfig(file: File): Set<JniEntry> = parseTypeArray(file).map { it.toJniEntry() }.toSet()
 
     /**
      * Parses a resource-config.json.
@@ -53,6 +50,7 @@ internal object OracleRepoParser {
      */
     fun parseResourceConfig(file: File): Set<ResourcePattern> {
         val patterns = mutableSetOf<ResourcePattern>()
+
         @Suppress("UNCHECKED_CAST")
         val root = slurper().parseText(file.readText()) as? Map<String, Any?> ?: return emptySet()
 
@@ -105,6 +103,7 @@ internal object OracleRepoParser {
 
         @Suppress("UNCHECKED_CAST")
         val reflectionArray = root["reflection"] as? List<Map<String, Any?>> ?: emptyList()
+
         @Suppress("UNCHECKED_CAST")
         val jniArray = root["jni"] as? List<Map<String, Any?>> ?: emptyList()
 
@@ -112,6 +111,7 @@ internal object OracleRepoParser {
         val jniEntries = jniArray.map { parseTypeMap(it).toJniEntry() }.toSet()
 
         val resourcePatterns = mutableSetOf<ResourcePattern>()
+
         @Suppress("UNCHECKED_CAST")
         val resources = root["resources"] as? List<Map<String, Any?>>
         if (resources != null) {
@@ -145,24 +145,26 @@ internal object OracleRepoParser {
         val methods: Set<MethodSignature> = emptySet(),
         val fields: Set<String> = emptySet(),
     ) {
-        fun toReflectionEntry() = ReflectionEntry(
-            type = name,
-            allDeclaredFields = allDeclaredFields,
-            allDeclaredMethods = allDeclaredMethods,
-            allDeclaredConstructors = allDeclaredConstructors,
-            allPublicFields = allPublicFields,
-            allPublicMethods = allPublicMethods,
-            allPublicConstructors = allPublicConstructors,
-            unsafeAllocated = unsafeAllocated,
-            methods = methods,
-            fields = fields,
-        )
+        fun toReflectionEntry() =
+            ReflectionEntry(
+                type = name,
+                allDeclaredFields = allDeclaredFields,
+                allDeclaredMethods = allDeclaredMethods,
+                allDeclaredConstructors = allDeclaredConstructors,
+                allPublicFields = allPublicFields,
+                allPublicMethods = allPublicMethods,
+                allPublicConstructors = allPublicConstructors,
+                unsafeAllocated = unsafeAllocated,
+                methods = methods,
+                fields = fields,
+            )
 
-        fun toJniEntry() = JniEntry(
-            type = name,
-            methods = methods,
-            fields = fields,
-        )
+        fun toJniEntry() =
+            JniEntry(
+                type = name,
+                methods = methods,
+                fields = fields,
+            )
     }
 
     @Suppress("UNCHECKED_CAST")

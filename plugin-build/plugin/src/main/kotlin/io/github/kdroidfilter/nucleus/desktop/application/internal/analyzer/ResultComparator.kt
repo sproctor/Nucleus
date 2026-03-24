@@ -11,7 +11,6 @@ package io.github.kdroidfilter.nucleus.desktop.application.internal.analyzer
  * For entries found by the analyzer but not in the baseline: EXTRA
  */
 internal object ResultComparator {
-
     /**
      * Compares reflection entries from the analyzer against an Oracle baseline.
      */
@@ -138,7 +137,10 @@ internal object ResultComparator {
         return AnalysisReport(entries = reflectionReport.entries + jniReport.entries)
     }
 
-    private fun hasMissingBroadFlags(oracle: ReflectionEntry, analyzer: ReflectionEntry): Boolean =
+    private fun hasMissingBroadFlags(
+        oracle: ReflectionEntry,
+        analyzer: ReflectionEntry,
+    ): Boolean =
         (oracle.allDeclaredFields && !analyzer.allDeclaredFields) ||
             (oracle.allDeclaredMethods && !analyzer.allDeclaredMethods) ||
             (oracle.allDeclaredConstructors && !analyzer.allDeclaredConstructors) ||
