@@ -140,8 +140,9 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     )
                 }
 
-                // Deduplicate: remove entries already provided by library JARs,
-                // plugin platform metadata (L3), and native-image.properties resource patterns.
+                // Deduplicate: remove entries already provided by library JARs (L1),
+                // plugin platform metadata (L3), Oracle repo (L2), static analysis,
+                // and native-image.properties resource patterns.
                 val runtimeClasspath = classpath?.files ?: emptySet()
                 val platform =
                     when (currentOS) {
@@ -149,7 +150,19 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         OS.MacOS -> "macos"
                         OS.Linux -> "linux"
                     }
-                deduplicateAgainstLibraryMetadata(runtimeClasspath, targetDir, platform, mainClassName)
+
+                // Collect extra metadata directories: Oracle repo (L2) + static analysis
+                val extraDirs = mutableListOf<File>()
+                val repoDirsFile = appTmpDir.get().file("graalvm/metadataRepoDirs.txt").asFile
+                if (repoDirsFile.exists()) {
+                    repoDirsFile.readLines().filter { it.isNotBlank() }.forEach { extraDirs.add(File(it)) }
+                }
+                val staticAnalysisDir = appTmpDir.get().dir("graalvm/staticAnalysis").asFile
+                if (staticAnalysisDir.isDirectory) {
+                    extraDirs.add(staticAnalysisDir)
+                }
+
+                deduplicateAgainstLibraryMetadata(runtimeClasspath, targetDir, platform, mainClassName, extraDirs)
 
                 logger.lifecycle("Native-image agent config merged into: $targetDir")
             }
