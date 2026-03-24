@@ -73,6 +73,10 @@ internal object BytecodeAnalyzer {
             // superclasses of JNI classes, and inner classes of callback types
             val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes + jniSuperclassTypes
             resolveJniCallbackTypes(allJniCallbackCandidates, classBytesIndex, jniEntries)
+
+            // Pass 3: enrich JNI classes themselves with fields + non-native methods
+            // Native code accesses fields and calls non-native methods on JNI classes too
+            enrichJniClassEntries(classBytesIndex, jniEntries)
         }
 
         // Add remaining JNI-referenced types that weren't resolved as callbacks
@@ -150,6 +154,9 @@ internal object BytecodeAnalyzer {
         // Pass 2: resolve JNI callback types (including superclasses and inner classes)
         val allJniCallbackCandidates = jniFieldTypes + jniReferencedTypes + jniSuperclassTypes
         resolveJniCallbackTypes(allJniCallbackCandidates, classBytesIndex, jniEntries)
+
+        // Pass 3: enrich JNI classes themselves with fields + non-native methods
+        enrichJniClassEntries(classBytesIndex, jniEntries)
 
         for (refType in jniReferencedTypes) {
             if (jniEntries.none { it.type == refType }) {
@@ -229,6 +236,44 @@ internal object BytecodeAnalyzer {
                 jniEntries.removeAll { it.type == typeName }
                 jniEntries.add(callbackEntry)
             }
+        }
+    }
+
+    /**
+     * Enriches JNI class entries (classes that declare native methods) with their
+     * non-private fields and non-native methods. Native code typically accesses fields
+     * via GetFieldID and calls non-native methods via CallMethod on these classes.
+     */
+    private fun enrichJniClassEntries(
+        classBytesIndex: Map<String, ByteArray>,
+        jniEntries: MutableSet<JniEntry>,
+    ) {
+        // Collect types that have native methods (they have methods in their JNI entry)
+        val nativeClassTypes = jniEntries
+            .filter { it.methods.isNotEmpty() && !it.jniAccessible }
+            .map { it.type }
+            .toList()
+
+        for (typeName in nativeClassTypes) {
+            val internalName = typeName.replace('.', '/')
+            val classBytes = classBytesIndex[internalName] ?: continue
+
+            val fullEntry = NativeMethodDetector.extractJniCallbackEntry(classBytes) ?: continue
+
+            // Merge: keep native methods from pass 1, add fields + non-native methods from callback scan
+            val existingEntry = jniEntries.first { it.type == typeName }
+            val mergedMethods = existingEntry.methods + fullEntry.methods
+            val mergedFields = fullEntry.fields
+
+            jniEntries.remove(existingEntry)
+            jniEntries.add(
+                JniEntry(
+                    type = typeName,
+                    methods = mergedMethods,
+                    fields = mergedFields,
+                    jniAccessible = true,
+                ),
+            )
         }
     }
 
