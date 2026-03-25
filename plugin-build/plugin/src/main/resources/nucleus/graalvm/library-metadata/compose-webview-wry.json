@@ -270,6 +270,7 @@
     "resources": [
         {"glob": "linux-x86-64/libcomposewebview_wry.so"},
         {"glob": "darwin-x86-64/libcomposewebview_wry.dylib"},
-        {"glob": "darwin-aarch64/libcomposewebview_wry.dylib"}
+        {"glob": "darwin-aarch64/libcomposewebview_wry.dylib"},
+        {"glob": "win32-x86-64/composewebview_wry.dll"}
     ]
 }
