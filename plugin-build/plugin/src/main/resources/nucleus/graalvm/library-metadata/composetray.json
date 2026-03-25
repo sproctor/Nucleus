@@ -18,6 +18,11 @@
             ]
         },
         {
+            "type": "com.kdroid.composetray.lib.windows.WindowsNativeTray",
+            "allDeclaredFields": true,
+            "allDeclaredConstructors": true
+        },
+        {
             "type": "com.kdroid.composetray.lib.windows.WindowsNativeTrayMenuItem",
             "fields": [
                 {"name": "cb"},
@@ -35,7 +40,25 @@
             "type": "com.kdroid.composetray.lib.windows.WindowsNativeTrayMenuItem[]"
         },
         {
+            "type": "com.kdroid.composetray.lib.windows.WindowsNativeTray$TrayCallback",
+            "methods": [
+                {
+                    "name": "invoke",
+                    "parameterTypes": [
+                        "com.kdroid.composetray.lib.windows.WindowsNativeTray"
+                    ]
+                }
+            ]
+        },
+        {
             "type": "com.kdroid.composetray.lib.windows.WindowsTrayManager$initializeNativeMenuItem$1$callback$1"
+        },
+        {
+            "type": "com.kdroid.composetray.lib.windows.WindowsNativeTrayLibrary",
+            "allDeclaredMethods": true,
+            "allDeclaredFields": true,
+            "allDeclaredConstructors": true,
+            "jniAccessible": true
         },
         {
             "type": {

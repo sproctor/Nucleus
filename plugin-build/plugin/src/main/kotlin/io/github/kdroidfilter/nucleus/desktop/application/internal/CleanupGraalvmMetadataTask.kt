@@ -274,6 +274,25 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
                         return@removeAll true
                     }
                 }
+
+                // For Kotlin data objects: tracing agent emits Foo$Companion with serializer(),
+                // but the actual class is Foo (no Companion class exists). If the parent class
+                // is in the baseline with serializer(), consider the Companion entry covered.
+                if (typeName.endsWith("\$Companion")) {
+                    val parentType = typeName.removeSuffix("\$Companion")
+                    for (baselineSection in listOf("reflection", "jni")) {
+                        val sectionMap = libraryEntries[baselineSection] ?: continue
+                        val parentEntry = sectionMap[parentType] ?: continue
+                        @Suppress("UNCHECKED_CAST")
+                        val parentMethods = parentEntry["methods"] as? List<Map<String, Any?>>
+                        val hasSerializer = parentMethods?.any { it["name"] == "serializer" } == true
+                        if (hasSerializer) {
+                            removedEntries.add("  [$projectSection via parent] $typeName")
+                            return@removeAll true
+                        }
+                    }
+                }
+
                 false
             }
             totalRemoved += before - targetArray.size

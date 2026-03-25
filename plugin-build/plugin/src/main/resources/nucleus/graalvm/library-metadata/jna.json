@@ -63,12 +63,34 @@
         },
         {
             "type": "com.sun.jna.Pointer",
+            "jniAccessible": true,
             "allPublicMethods": true,
-            "allPublicConstructors": true
+            "allPublicConstructors": true,
+            "fields": [
+                { "name": "peer" }
+            ],
+            "methods": [
+                { "name": "<init>", "parameterTypes": ["long"] }
+            ]
         },
         {
             "type": "com.sun.jna.Callback",
+            "jniAccessible": true,
             "allPublicMethods": true
+        },
+        {
+            "type": "com.sun.jna.FromNativeConverter",
+            "jniAccessible": true,
+            "methods": [
+                { "name": "nativeType", "parameterTypes": [] }
+            ]
+        },
+        {
+            "type": "com.sun.jna.Native$ffi_callback",
+            "jniAccessible": true,
+            "methods": [
+                { "name": "invoke", "parameterTypes": ["long", "long", "long"] }
+            ]
         },
         {
             "type": "com.sun.jna.CallbackProxy",
