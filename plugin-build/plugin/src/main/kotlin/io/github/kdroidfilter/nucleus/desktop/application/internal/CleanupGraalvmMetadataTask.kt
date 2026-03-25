@@ -283,6 +283,7 @@ abstract class CleanupGraalvmMetadataTask : DefaultTask() {
                     for (baselineSection in listOf("reflection", "jni")) {
                         val sectionMap = libraryEntries[baselineSection] ?: continue
                         val parentEntry = sectionMap[parentType] ?: continue
+
                         @Suppress("UNCHECKED_CAST")
                         val parentMethods = parentEntry["methods"] as? List<Map<String, Any?>>
                         val hasSerializer = parentMethods?.any { it["name"] == "serializer" } == true
