@@ -70,6 +70,7 @@ fun LauncherScreen() {
             LinuxQuicklist("/com/example/NucleusDemo/Menu")
         }
     var quicklistActive by remember { mutableStateOf(false) }
+    var darkMode by remember { mutableStateOf(true) }
 
     // Register Query handler on mount, unregister on dispose
     DisposableEffect(Unit) {
@@ -305,43 +306,52 @@ fun LauncherScreen() {
                 ) {
                     Button(onClick = {
                         log("Setting quicklist...")
-                        quicklist.listener =
-                            LinuxQuicklist.Listener { id ->
-                                log("Quicklist item clicked: id=$id")
-                            }
-                        val ok =
-                            quicklist.setMenu(
-                                listOf(
-                                    DbusmenuItem(id = 1, label = "New Window", iconName = "window-new"),
-                                    DbusmenuItem(id = 2, label = "Open File", iconName = "document-open"),
-                                    DbusmenuItem.separator(id = 3),
-                                    DbusmenuItem(
-                                        id = 4,
-                                        label = "Recent",
-                                        iconName = "document-open-recent",
-                                        children =
-                                            listOf(
-                                                DbusmenuItem(id = 41, label = "project.kt"),
-                                                DbusmenuItem(id = 42, label = "build.gradle.kts"),
-                                                DbusmenuItem(id = 43, label = "README.md"),
-                                            ),
-                                    ),
-                                    DbusmenuItem.separator(id = 5),
-                                    DbusmenuItem(
-                                        id = 6,
-                                        label = "Dark Mode",
-                                        toggleType = DbusmenuItem.ToggleType.CHECKBOX,
-                                        toggleState = 1,
-                                    ),
-                                    DbusmenuItem.separator(id = 7),
-                                    DbusmenuItem(
-                                        id = 8,
-                                        label = "Quit",
-                                        iconName = "application-exit",
-                                        disposition = DbusmenuItem.Disposition.ALERT,
-                                    ),
+
+                        fun buildMenu() =
+                            listOf(
+                                DbusmenuItem(id = 1, label = "New Window", iconName = "window-new"),
+                                DbusmenuItem(id = 2, label = "Open File", iconName = "document-open"),
+                                DbusmenuItem.separator(id = 3),
+                                DbusmenuItem(
+                                    id = 4,
+                                    label = "Recent",
+                                    iconName = "document-open-recent",
+                                    children =
+                                        listOf(
+                                            DbusmenuItem(id = 41, label = "project.kt"),
+                                            DbusmenuItem(id = 42, label = "build.gradle.kts"),
+                                            DbusmenuItem(id = 43, label = "README.md"),
+                                        ),
+                                ),
+                                DbusmenuItem.separator(id = 5),
+                                DbusmenuItem(
+                                    id = 6,
+                                    label = "Dark Mode",
+                                    toggleType = DbusmenuItem.ToggleType.CHECKBOX,
+                                    toggleState = if (darkMode) 1 else 0,
+                                ),
+                                DbusmenuItem.separator(id = 7),
+                                DbusmenuItem(
+                                    id = 8,
+                                    label = "Quit",
+                                    iconName = "application-exit",
+                                    disposition = DbusmenuItem.Disposition.ALERT,
                                 ),
                             )
+
+                        quicklist.listener =
+                            LinuxQuicklist.Listener { id ->
+                                when (id) {
+                                    6 -> {
+                                        darkMode = !darkMode
+                                        log("Dark Mode toggled: $darkMode")
+                                        quicklist.setMenu(buildMenu())
+                                    }
+                                    else -> log("Quicklist item clicked: id=$id")
+                                }
+                            }
+
+                        val ok = quicklist.setMenu(buildMenu())
                         if (ok) {
                             LinuxLauncherEntry.update(
                                 appUri(),
@@ -356,11 +366,7 @@ fun LauncherScreen() {
 
                     OutlinedButton(
                         onClick = {
-                            quicklist.dispose()
-                            LinuxLauncherEntry.update(
-                                appUri(),
-                                LauncherProperties(quicklist = ""),
-                            )
+                            quicklist.setMenu(emptyList())
                             quicklistActive = false
                             log("Quicklist cleared")
                         },
