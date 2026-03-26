@@ -9,6 +9,7 @@ import io.github.kdroidfilter.nucleus.notification.NotificationResponse
 import io.github.kdroidfilter.nucleus.notification.NotificationSetting
 import io.github.kdroidfilter.nucleus.notification.NotificationSettings
 import io.github.kdroidfilter.nucleus.notification.PendingNotificationInfo
+import io.github.kdroidfilter.nucleus.notification.PresentationOption
 import io.github.kdroidfilter.nucleus.notification.RegisteredActionInfo
 import io.github.kdroidfilter.nucleus.notification.RegisteredCategoryInfo
 import io.github.kdroidfilter.nucleus.notification.ShowPreviewsSetting
@@ -301,7 +302,25 @@ internal object NativeMacNotificationBridge {
         consumeCallback<(Int) -> Unit>(callbackId)?.invoke(count)
     }
 
-    // -- Delegate callbacks from native --
+    // -- Delegate callbacks from native (dispatched to EDT for thread safety) --
+
+    private fun buildNotification(
+        identifier: String,
+        title: String,
+        subtitle: String,
+        body: String,
+        date: Long,
+        categoryIdentifier: String,
+        threadIdentifier: String,
+    ) = DeliveredNotification(
+        identifier = identifier,
+        title = title,
+        subtitle = subtitle,
+        body = body,
+        date = date,
+        categoryIdentifier = categoryIdentifier,
+        threadIdentifier = threadIdentifier,
+    )
 
     @JvmStatic
     @Suppress("LongParameterList")
@@ -314,17 +333,22 @@ internal object NativeMacNotificationBridge {
         categoryIdentifier: String,
         threadIdentifier: String,
     ): Int {
+        val d = delegate ?: return emptySet<PresentationOption>().toMask { it.rawValue }
         val notification =
-            DeliveredNotification(
-                identifier = identifier,
-                title = title,
-                subtitle = subtitle,
-                body = body,
-                date = date,
-                categoryIdentifier = categoryIdentifier,
-                threadIdentifier = threadIdentifier,
+            buildNotification(
+                identifier,
+                title,
+                subtitle,
+                body,
+                date,
+                categoryIdentifier,
+                threadIdentifier,
             )
-        val options = delegate?.willPresent(notification) ?: emptySet()
+        // invokeAndWait to run on EDT and return the result synchronously
+        var options: Set<PresentationOption> = emptySet()
+        javax.swing.SwingUtilities.invokeAndWait {
+            options = d.willPresent(notification)
+        }
         return options.toMask { it.rawValue }
     }
 
@@ -341,15 +365,16 @@ internal object NativeMacNotificationBridge {
         threadIdentifier: String,
         userText: String?,
     ) {
+        val d = delegate ?: return
         val notification =
-            DeliveredNotification(
-                identifier = notifIdentifier,
-                title = title,
-                subtitle = subtitle,
-                body = body,
-                date = date,
-                categoryIdentifier = categoryIdentifier,
-                threadIdentifier = threadIdentifier,
+            buildNotification(
+                notifIdentifier,
+                title,
+                subtitle,
+                body,
+                date,
+                categoryIdentifier,
+                threadIdentifier,
             )
         val response =
             NotificationResponse(
@@ -357,7 +382,7 @@ internal object NativeMacNotificationBridge {
                 notification = notification,
                 userText = userText,
             )
-        delegate?.didReceive(response)
+        javax.swing.SwingUtilities.invokeLater { d.didReceive(response) }
     }
 
     @JvmStatic
@@ -371,6 +396,7 @@ internal object NativeMacNotificationBridge {
         categoryIdentifier: String?,
         threadIdentifier: String?,
     ) {
+        val d = delegate ?: return
         val notification =
             if (hasNotification && identifier != null) {
                 DeliveredNotification(
@@ -385,6 +411,6 @@ internal object NativeMacNotificationBridge {
             } else {
                 null
             }
-        delegate?.openSettings(notification)
+        javax.swing.SwingUtilities.invokeLater { d.openSettings(notification) }
     }
 }

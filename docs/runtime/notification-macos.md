@@ -41,8 +41,8 @@ NotificationCenter.requestAuthorization(
 }
 ```
 
-!!! info "All callbacks run on background threads"
-    Every callback (`requestAuthorization`, `add`, `getNotificationSettings`, etc.) is invoked on macOS's internal dispatch thread. Use `SwingUtilities.invokeLater` to marshal results back to the UI thread if you need to update Compose state.
+!!! info "Async callbacks run on background threads"
+    Completion callbacks (`requestAuthorization`, `add`, `getNotificationSettings`, etc.) are invoked on macOS's internal dispatch thread. Use `SwingUtilities.invokeLater` if you need to update Compose state from these callbacks. Delegate methods (`willPresent`, `didReceive`, `openSettings`) are automatically dispatched to the EDT by the library.
 
 ## API Reference
 
@@ -97,19 +97,10 @@ NotificationCenter.requestAuthorization(
 
 Implement this interface to control foreground notification display and handle user interactions.
 
-!!! warning "Thread safety"
-    Delegate methods (`willPresent`, `didReceive`, `openSettings`) are called on macOS's internal notification thread, **not** the AWT Event Dispatch Thread or Compose UI thread. If you need to update Compose state (`mutableStateOf`, `SnapshotStateList`, etc.), dispatch to the UI thread:
+!!! info "Thread safety"
+    All delegate methods are automatically dispatched to the AWT Event Dispatch Thread by the library. You can safely update Compose state (`mutableStateOf`, `SnapshotStateList`, etc.) directly in your delegate implementation without manual thread marshalling.
 
-    ```kotlin
-    override fun didReceive(response: NotificationResponse) {
-        SwingUtilities.invokeLater {
-            // Safe to update Compose state here
-            messages.add(response.userText ?: "")
-        }
-    }
-    ```
-
-    `willPresent` must return synchronously — do not block or suspend in its implementation.
+    `willPresent` runs via `invokeAndWait` (synchronous, must return quickly). `didReceive` and `openSettings` run via `invokeLater` (asynchronous).
 
 ```kotlin
 NotificationCenter.setDelegate(object : NotificationCenterDelegate {
