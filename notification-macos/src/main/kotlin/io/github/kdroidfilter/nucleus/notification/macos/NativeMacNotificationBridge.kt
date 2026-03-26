@@ -21,10 +21,7 @@ private const val LIBRARY_NAME = "nucleus_notification"
 @Suppress("TooManyFunctions", "LongParameterList")
 internal object NativeMacNotificationBridge {
     private val callbackCounter = AtomicLong(0)
-    private val callbacks = ConcurrentHashMap<Long, TimestampedCallback>()
-
-    /** Callbacks older than this are considered leaked and will be evicted. */
-    private const val CALLBACK_TTL_MS = 60_000L
+    private val callbacks = ConcurrentHashMap<Long, Any>()
 
     @Volatile
     var delegate: NotificationCenterDelegate? = null
@@ -35,25 +32,14 @@ internal object NativeMacNotificationBridge {
 
     // -- Callback management --
 
-    private class TimestampedCallback(
-        val value: Any,
-        val createdAt: Long = System.currentTimeMillis(),
-    )
-
     fun <T : Any> registerCallback(callback: T): Long {
-        evictStaleCallbacks()
         val id = callbackCounter.incrementAndGet()
-        callbacks[id] = TimestampedCallback(callback)
+        callbacks[id] = callback
         return id
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> consumeCallback(id: Long): T? = (callbacks.remove(id)?.value) as? T
-
-    private fun evictStaleCallbacks() {
-        val now = System.currentTimeMillis()
-        callbacks.entries.removeIf { now - it.value.createdAt > CALLBACK_TTL_MS }
-    }
+    private fun <T> consumeCallback(id: Long): T? = callbacks.remove(id) as? T
 
     // -- Native method declarations --
 
