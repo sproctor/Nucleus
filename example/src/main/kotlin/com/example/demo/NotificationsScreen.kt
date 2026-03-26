@@ -169,8 +169,7 @@ fun NotificationsScreen() {
             ),
         ) { granted, error ->
             if (!granted) {
-                log("Authorization denied: ${error ?: "user declined"}")
-                return@requestAuthorization
+                log("Authorization denied: ${error ?: "user declined"} — continuing setup anyway")
             }
 
             // Register two categories
