@@ -116,8 +116,12 @@ typedef struct {
     int           item_count;
     guint32       revision;
     GMainLoop    *loop;
+    GMainContext *ctx;
     pthread_t     thread;
     volatile int  running;
+    /* Synchronization for thread-side registration */
+    pthread_cond_t ready_cond;
+    volatile int   ready;       /* 1 = registered OK, -1 = failed */
 } DbusmenuServer;
 
 /* ---- Global state ----------------------------------------------------- */
@@ -311,15 +315,32 @@ static void launcher_handle_method(
 
 static const GDBusInterfaceVTable launcher_vtable = { launcher_handle_method, NULL, NULL, {0} };
 
+static pthread_cond_t g_query_ready_cond = PTHREAD_COND_INITIALIZER;
+static volatile int   g_query_ready = 0;
+
 static void *query_thread_func(void *arg) {
     (void)arg;
     GMainContext *ctx = g_main_context_new();
     g_main_context_push_thread_default(ctx);
-    GMainLoop *loop = g_main_loop_new(ctx, FALSE);
+
+    /* Register the LauncherEntry object on THIS thread's context */
+    GDBusConnection *conn = get_connection();
     pthread_mutex_lock(&g_state_mutex);
+    if (conn && g_launcher_node_info && g_launcher_reg_id == 0) {
+        GError *err = NULL;
+        g_launcher_reg_id = g_dbus_connection_register_object(conn, LAUNCHER_OBJECT,
+            g_launcher_node_info->interfaces[0], &launcher_vtable, NULL, NULL, &err);
+        if (err) { g_error_free(err); g_launcher_reg_id = 0; }
+    }
+
+    GMainLoop *loop = g_main_loop_new(ctx, FALSE);
     g_query_loop = loop;
+    g_query_ready = 1;
+    pthread_cond_broadcast(&g_query_ready_cond);
     pthread_mutex_unlock(&g_state_mutex);
+
     g_main_loop_run(loop);
+
     pthread_mutex_lock(&g_state_mutex);
     g_query_loop = NULL; g_query_running = 0;
     pthread_mutex_unlock(&g_state_mutex);
@@ -347,18 +368,17 @@ Java_io_github_kdroidfilter_nucleus_launcher_linux_NativeLinuxLauncherBridge_nat
         if (err) { g_error_free(err); pthread_mutex_unlock(&g_state_mutex);
             (*env)->ReleaseStringUTFChars(env, j_app_uri, app_uri); return JNI_FALSE; }
     }
-    if (g_launcher_reg_id == 0) {
-        GError *err = NULL;
-        g_launcher_reg_id = g_dbus_connection_register_object(conn, LAUNCHER_OBJECT,
-            g_launcher_node_info->interfaces[0], &launcher_vtable, NULL, NULL, &err);
-        if (err) { g_error_free(err); pthread_mutex_unlock(&g_state_mutex);
-            (*env)->ReleaseStringUTFChars(env, j_app_uri, app_uri); return JNI_FALSE; }
-    }
+    /* Registration happens inside the thread — on its own GMainContext */
     if (!g_query_running) {
         g_query_running = 1;
+        g_query_ready = 0;
         if (pthread_create(&g_query_thread, NULL, query_thread_func, NULL) != 0) {
             g_query_running = 0; pthread_mutex_unlock(&g_state_mutex);
             (*env)->ReleaseStringUTFChars(env, j_app_uri, app_uri); return JNI_FALSE;
+        }
+        /* Wait for thread to register the object and start the loop */
+        while (!g_query_ready && g_query_running) {
+            pthread_cond_wait(&g_query_ready_cond, &g_state_mutex);
         }
     }
     pthread_mutex_unlock(&g_state_mutex);
@@ -615,21 +635,42 @@ static const GDBusInterfaceVTable dbusmenu_vtable = {
     {0}
 };
 
-/* Dbusmenu server thread */
+/* Dbusmenu server thread — registers the D-Bus object on its own context */
 static void *dbusmenu_thread_func(void *arg) {
     DbusmenuServer *srv = (DbusmenuServer *)arg;
     GMainContext *ctx = g_main_context_new();
     g_main_context_push_thread_default(ctx);
-    GMainLoop *loop = g_main_loop_new(ctx, FALSE);
 
+    /* Register the D-Bus object on THIS thread's context */
+    GDBusConnection *conn = get_connection();
     pthread_mutex_lock(&g_state_mutex);
+    if (conn && srv->node_info) {
+        GError *err = NULL;
+        srv->registration_id = g_dbus_connection_register_object(conn,
+            srv->object_path, srv->node_info->interfaces[0], &dbusmenu_vtable,
+            srv, NULL, &err);
+        if (err) {
+            g_error_free(err);
+            srv->ready = -1;
+        } else {
+            srv->ready = 1;
+        }
+    } else {
+        srv->ready = -1;
+    }
+
+    GMainLoop *loop = g_main_loop_new(ctx, FALSE);
     srv->loop = loop;
+    srv->ctx = ctx;
+    pthread_cond_broadcast(&srv->ready_cond);
     pthread_mutex_unlock(&g_state_mutex);
 
     g_main_loop_run(loop);
 
     pthread_mutex_lock(&g_state_mutex);
-    srv->loop = NULL; srv->running = 0;
+    srv->loop = NULL;
+    srv->ctx = NULL;
+    srv->running = 0;
     pthread_mutex_unlock(&g_state_mutex);
     g_main_loop_unref(loop);
     g_main_context_pop_thread_default(ctx);
@@ -743,7 +784,7 @@ Java_io_github_kdroidfilter_nucleus_launcher_linux_NativeLinuxLauncherBridge_nat
 
     srv->revision++;
 
-    /* Register D-Bus object if new */
+    /* Register D-Bus object if new — registration happens inside the server thread */
     if (is_new) {
         GError *err = NULL;
         srv->node_info = g_dbus_node_info_new_for_xml(dbusmenu_introspection_xml, &err);
@@ -755,11 +796,14 @@ Java_io_github_kdroidfilter_nucleus_launcher_linux_NativeLinuxLauncherBridge_nat
             goto release;
         }
 
-        srv->registration_id = g_dbus_connection_register_object(conn,
-            object_path, srv->node_info->interfaces[0], &dbusmenu_vtable,
-            srv, NULL, &err);
-        if (err) {
-            g_error_free(err);
+        /* Prepare synchronization */
+        pthread_cond_init(&srv->ready_cond, NULL);
+        srv->ready = 0;
+        srv->running = 1;
+
+        /* Spawn thread — it will register the D-Bus object on its own GMainContext */
+        if (pthread_create(&srv->thread, NULL, dbusmenu_thread_func, srv) != 0) {
+            srv->running = 0;
             g_dbus_node_info_unref(srv->node_info); srv->node_info = NULL;
             g_free(srv->object_path); srv->object_path = NULL;
             g_server_count--;
@@ -767,10 +811,23 @@ Java_io_github_kdroidfilter_nucleus_launcher_linux_NativeLinuxLauncherBridge_nat
             goto release;
         }
 
-        /* Start GMainLoop for this server */
-        srv->running = 1;
-        if (pthread_create(&srv->thread, NULL, dbusmenu_thread_func, srv) != 0) {
+        /* Wait for the thread to complete registration */
+        while (srv->ready == 0) {
+            pthread_cond_wait(&srv->ready_cond, &g_state_mutex);
+        }
+
+        if (srv->ready < 0) {
+            /* Registration failed in thread */
             srv->running = 0;
+            if (srv->loop) g_main_loop_quit(srv->loop);
+            pthread_mutex_unlock(&g_state_mutex);
+            pthread_join(srv->thread, NULL);
+            pthread_mutex_lock(&g_state_mutex);
+            g_dbus_node_info_unref(srv->node_info); srv->node_info = NULL;
+            g_free(srv->object_path); srv->object_path = NULL;
+            g_server_count--;
+            pthread_mutex_unlock(&g_state_mutex);
+            goto release;
         }
     }
 
