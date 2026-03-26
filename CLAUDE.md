@@ -10,6 +10,7 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 - `freedesktop-icons` - Type-safe freedesktop Icon Naming Specification constants (shared by notification-linux and launcher-linux)
 - `notification-linux` - Freedesktop Desktop Notifications API via JNI (D-Bus org.freedesktop.Notifications)
 - `notification-windows` - Windows Toast Notifications API via JNI (WinRT)
+- `badge-windows` - Windows Badge Notifications API via JNI (WinRT) — numeric counts and status glyphs on taskbar/Start tile
 - `launcher-linux` - Unity Launcher API via JNI (badge, progress, urgency, quicklist via com.canonical.Unity.LauncherEntry + com.canonical.dbusmenu)
 - `taskbar-progress` - Native taskbar/dock progress bar and attention requests (Windows ITaskbarList3, macOS NSDockTile, Linux delegates to launcher-linux)
 - `darkmode-detector` - Reactive OS dark mode detection via JNI

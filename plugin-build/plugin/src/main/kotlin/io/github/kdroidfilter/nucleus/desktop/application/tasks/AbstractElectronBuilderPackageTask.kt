@@ -1239,7 +1239,7 @@ private fun copyAppImage(
     val workingRoot = File(outputDir, ".app-image")
     val destination = File(workingRoot, source.name)
     if (destination.exists()) {
-        destination.deleteRecursively()
+        deleteWithRetry(destination, logger)
     }
 
     logger.info("Copying app image to task-private working directory: ${destination.absolutePath}")
@@ -1267,7 +1267,7 @@ private fun copyAppImage(
                 if (Files.isSymbolicLink(file)) {
                     Files.createSymbolicLink(target, Files.readSymbolicLink(file))
                 } else {
-                    Files.copy(file, target, StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS)
+                    Files.copy(file, target, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS)
                 }
                 return FileVisitResult.CONTINUE
             }
@@ -1347,4 +1347,63 @@ private fun resolveElectronBuilderEnvironment(
     }
 
     return env
+}
+
+private const val DELETE_MAX_RETRIES = 5
+private const val DELETE_RETRY_DELAY_MS = 1000L
+
+/**
+ * Deletes [dir] with retries. On Windows, files may be locked by processes
+ * (e.g. a previously launched AppX app or antivirus). Before each retry,
+ * attempts to kill any process whose executable resides inside [dir].
+ */
+private fun deleteWithRetry(
+    dir: File,
+    logger: Logger,
+) {
+    for (attempt in 1..DELETE_MAX_RETRIES) {
+        // Kill processes that may lock files inside the directory
+        killProcessesIn(dir, logger)
+        if (dir.deleteRecursively()) return
+        logger.warn("Failed to delete ${dir.absolutePath} (attempt $attempt/$DELETE_MAX_RETRIES)")
+        if (attempt < DELETE_MAX_RETRIES) Thread.sleep(DELETE_RETRY_DELAY_MS)
+    }
+    // Last resort: try once more and throw if it still fails
+    if (dir.exists() && !dir.deleteRecursively()) {
+        error("Cannot delete ${dir.absolutePath} after $DELETE_MAX_RETRIES attempts. Is a process locking files?")
+    }
+}
+
+/**
+ * On Windows, kills any running processes whose executable path is inside [dir].
+ */
+private fun killProcessesIn(
+    dir: File,
+    logger: Logger,
+) {
+    if (!System.getProperty("os.name", "").contains("Windows", ignoreCase = true)) return
+    try {
+        val dirPath = dir.absolutePath.lowercase()
+        ProcessHandle.allProcesses().forEach { ph ->
+            val cmd = ph.info().command().orElse(null)?.lowercase() ?: return@forEach
+            if (cmd.startsWith(dirPath)) {
+                logger.info("Killing process ${ph.pid()} ($cmd)")
+                ph.destroyForcibly()
+            }
+        }
+        // Also try taskkill for the app exe name (covers processes launched from installed AppX location)
+        dir.listFiles()
+            ?.filter { it.extension.equals("exe", ignoreCase = true) }
+            ?.forEach { exe ->
+                try {
+                    val rt = Runtime.getRuntime()
+                    rt.exec(arrayOf("taskkill", "/F", "/IM", exe.name)).waitFor()
+                } catch (_: Exception) {
+                    // ignore — process may not be running
+                }
+            }
+        Thread.sleep(DELETE_RETRY_DELAY_MS)
+    } catch (e: Exception) {
+        logger.warn("Failed to kill locked processes: ${e.message}")
+    }
 }

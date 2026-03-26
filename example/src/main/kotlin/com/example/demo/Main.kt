@@ -181,6 +181,9 @@ fun main(args: Array<String>) {
                                 ) {
                                     add("Notifications")
                                 }
+                                if (Platform.Current == Platform.Windows) {
+                                    add("Badge")
+                                }
                                 if (Platform.Current == Platform.Linux || Platform.Current == Platform.MacOS) {
                                     add("Launcher")
                                 }
@@ -317,6 +320,7 @@ fun main(args: Array<String>) {
                                     else -> {}
                                 }
                             }
+                            "Badge" -> WindowsBadgeScreen()
                             "Launcher" -> {
                                 when (Platform.Current) {
                                     Platform.MacOS -> MacOsLauncherScreen()

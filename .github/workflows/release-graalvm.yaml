@@ -118,6 +118,13 @@ jobs:
           pattern: 'notification-windows*'
           merge-multiple: true
 
+      - name: Download badge-windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: badge-windows/src/main/resources/nucleus/native/
+          pattern: 'badge-windows*'
+          merge-multiple: true
+
       - name: Download launcher-linux artifacts
         uses: actions/download-artifact@v4
         with:

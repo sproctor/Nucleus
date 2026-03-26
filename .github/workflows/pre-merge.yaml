@@ -99,6 +99,13 @@ jobs:
           pattern: 'notification-windows*'
           merge-multiple: true
 
+      - name: Download badge-windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: badge-windows/src/main/resources/nucleus/native/
+          pattern: 'badge-windows*'
+          merge-multiple: true
+
       - name: Download launcher-linux artifacts
         uses: actions/download-artifact@v4
         with:
@@ -158,6 +165,8 @@ jobs:
             "notification-linux/src/main/resources/nucleus/native/linux-aarch64/libnucleus_notification_linux.so"
             "notification-windows/src/main/resources/nucleus/native/win32-x64/nucleus_notification_windows.dll"
             "notification-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_notification_windows.dll"
+            "badge-windows/src/main/resources/nucleus/native/win32-x64/nucleus_badge_windows.dll"
+            "badge-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_badge_windows.dll"
             "launcher-linux/src/main/resources/nucleus/native/linux-x64/libnucleus_launcher_linux.so"
             "launcher-linux/src/main/resources/nucleus/native/linux-aarch64/libnucleus_launcher_linux.so"
             "launcher-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_launcher_macos.dylib"
