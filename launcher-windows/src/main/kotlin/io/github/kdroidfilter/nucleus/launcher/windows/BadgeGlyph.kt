@@ -1,4 +1,4 @@
-package io.github.kdroidfilter.nucleus.badge.windows
+package io.github.kdroidfilter.nucleus.launcher.windows
 
 /**
  * Predefined badge glyph icons for Windows badge notifications.

@@ -163,25 +163,25 @@ jobs:
           path: notification-windows/src/main/resources/nucleus/native/win32-*/
           retention-days: 1
 
-      - name: Build badge-windows Windows DLLs
+      - name: Build launcher-windows Windows DLLs
         shell: cmd
-        run: call badge-windows\src\main\native\windows\build.bat
+        run: call launcher-windows\src\main\native\windows\build.bat
 
-      - name: Verify badge-windows Windows natives
+      - name: Verify launcher-windows Windows natives
         shell: bash
         run: |
           for f in \
-            badge-windows/src/main/resources/nucleus/native/win32-x64/nucleus_badge_windows.dll \
-            badge-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_badge_windows.dll; do
+            launcher-windows/src/main/resources/nucleus/native/win32-x64/nucleus_launcher_windows.dll \
+            launcher-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_launcher_windows.dll; do
             if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
 
-      - name: Upload badge-windows Windows DLLs
+      - name: Upload launcher-windows Windows DLLs
         uses: actions/upload-artifact@v4
         with:
-          name: badge-windows
-          path: badge-windows/src/main/resources/nucleus/native/win32-*/
+          name: launcher-windows
+          path: launcher-windows/src/main/resources/nucleus/native/win32-*/
           retention-days: 1
 
   macos:

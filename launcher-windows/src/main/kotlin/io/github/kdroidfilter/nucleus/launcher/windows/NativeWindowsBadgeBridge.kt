@@ -1,8 +1,8 @@
-package io.github.kdroidfilter.nucleus.badge.windows
+package io.github.kdroidfilter.nucleus.launcher.windows
 
 import io.github.kdroidfilter.nucleus.core.runtime.NativeLibraryLoader
 
-private const val LIBRARY_NAME = "nucleus_badge_windows"
+private const val LIBRARY_NAME = "nucleus_launcher_windows"
 
 internal object NativeWindowsBadgeBridge {
     private val loaded = NativeLibraryLoader.load(LIBRARY_NAME, NativeWindowsBadgeBridge::class.java)

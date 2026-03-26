@@ -1,0 +1,8 @@
+{
+    "reflection": [
+        {
+            "type": "io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsBadgeBridge",
+            "jniAccessible": true
+        }
+    ]
+}

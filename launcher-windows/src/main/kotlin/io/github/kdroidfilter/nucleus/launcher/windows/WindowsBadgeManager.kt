@@ -1,4 +1,4 @@
-package io.github.kdroidfilter.nucleus.badge.windows
+package io.github.kdroidfilter.nucleus.launcher.windows
 
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp

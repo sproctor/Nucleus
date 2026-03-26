@@ -1,5 +1,5 @@
 @echo off
-REM Compiles nucleus_badge_windows.cpp into per-architecture DLLs (x64 + ARM64).
+REM Compiles nucleus_launcher_windows.cpp into per-architecture DLLs (x64 + ARM64).
 REM The outputs are placed in the JAR resources so they ship with the library.
 REM
 REM Prerequisites: Visual Studio Build Tools (MSVC) with Windows SDK.
@@ -8,7 +8,7 @@ REM Usage: build.bat
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "SRC=%SCRIPT_DIR%nucleus_badge_windows.cpp"
+set "SRC=%SCRIPT_DIR%nucleus_launcher_windows.cpp"
 set "RESOURCE_DIR=%SCRIPT_DIR%..\..\resources\nucleus\native"
 set "OUT_DIR_X64=%RESOURCE_DIR%\win32-x64"
 set "OUT_DIR_ARM64=%RESOURCE_DIR%\win32-aarch64"
@@ -65,7 +65,7 @@ if errorlevel 1 (
 cl /LD /O1 /EHsc /std:c++17 /GS- /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
-    /Fe:"%OUT_DIR_X64%\nucleus_badge_windows.dll" ^
+    /Fe:"%OUT_DIR_X64%\nucleus_launcher_windows.dll" ^
     /link ole32.lib runtimeobject.lib kernel32.lib
 if errorlevel 1 (
     echo ERROR: x64 compilation failed >&2
@@ -91,7 +91,7 @@ if errorlevel 1 (
 cl /LD /O1 /EHsc /std:c++17 /GS- /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
-    /Fe:"%OUT_DIR_ARM64%\nucleus_badge_windows.dll" ^
+    /Fe:"%OUT_DIR_ARM64%\nucleus_launcher_windows.dll" ^
     /link ole32.lib runtimeobject.lib kernel32.lib
 if errorlevel 1 (
     echo WARNING: ARM64 compilation failed. >&2
@@ -107,18 +107,18 @@ del /q "%SCRIPT_DIR%\*.obj" 2>nul
 :done
 echo.
 echo Built DLLs:
-if exist "%OUT_DIR_X64%\nucleus_badge_windows.dll" echo   %OUT_DIR_X64%\nucleus_badge_windows.dll
-if exist "%OUT_DIR_ARM64%\nucleus_badge_windows.dll" echo   %OUT_DIR_ARM64%\nucleus_badge_windows.dll
+if exist "%OUT_DIR_X64%\nucleus_launcher_windows.dll" echo   %OUT_DIR_X64%\nucleus_launcher_windows.dll
+if exist "%OUT_DIR_ARM64%\nucleus_launcher_windows.dll" echo   %OUT_DIR_ARM64%\nucleus_launcher_windows.dll
 
 REM Clear NativeLibraryLoader cache
 if defined LOCALAPPDATA (
     set "CACHE_BASE=%LOCALAPPDATA%\nucleus\native"
-    if exist "!CACHE_BASE!\win32-x64\nucleus_badge_windows.dll" (
-        del /q "!CACHE_BASE!\win32-x64\nucleus_badge_windows.dll"
+    if exist "!CACHE_BASE!\win32-x64\nucleus_launcher_windows.dll" (
+        del /q "!CACHE_BASE!\win32-x64\nucleus_launcher_windows.dll"
         echo Cleared x64 cache
     )
-    if exist "!CACHE_BASE!\win32-aarch64\nucleus_badge_windows.dll" (
-        del /q "!CACHE_BASE!\win32-aarch64\nucleus_badge_windows.dll"
+    if exist "!CACHE_BASE!\win32-aarch64\nucleus_launcher_windows.dll" (
+        del /q "!CACHE_BASE!\win32-aarch64\nucleus_launcher_windows.dll"
         echo Cleared ARM64 cache
     )
 )

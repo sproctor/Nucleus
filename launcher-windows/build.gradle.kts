@@ -35,7 +35,7 @@ val buildNativeWindows by tasks.registering(Exec::class) {
     group = "build"
     val nativeDir = file("src/main/native/windows")
     val outputDir = file("src/main/resources/nucleus/native")
-    val checkFile = File(outputDir, "win32-x64/nucleus_badge_windows.dll")
+    val checkFile = File(outputDir, "win32-x64/nucleus_launcher_windows.dll")
     onlyIf { Os.isFamily(Os.FAMILY_WINDOWS) && !checkFile.exists() }
     inputs.dir(nativeDir)
     outputs.dir(outputDir)
@@ -54,11 +54,11 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.badge-windows", publishVersion)
+    coordinates("io.github.kdroidfilter", "nucleus.launcher-windows", publishVersion)
 
     pom {
-        name.set("Nucleus Badge Windows")
-        description.set("Windows Badge Notifications API for JVM desktop applications via JNI")
+        name.set("Nucleus Launcher Windows")
+        description.set("Windows Launcher API (Badge Notifications) for JVM desktop applications via JNI")
         url.set("https://github.com/kdroidFilter/Nucleus")
 
         licenses {

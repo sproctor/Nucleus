@@ -1,5 +1,5 @@
 /**
- * nucleus_badge_windows.cpp
+ * nucleus_launcher_windows.cpp
  *
  * JNI bridge for Windows Badge Notifications via WinRT/WRL.
  *
@@ -225,7 +225,7 @@ static HRESULT setBadgeXml(const std::wstring &value) {
 extern "C" {
 
 JNIEXPORT jstring JNICALL
-Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativeInitialize(
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_nativeInitialize(
     JNIEnv *env, jclass clazz, jstring jAumid, jboolean jIsAppx
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -276,7 +276,7 @@ Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativ
 }
 
 JNIEXPORT jstring JNICALL
-Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativeSetBadgeNumber(
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_nativeSetBadgeNumber(
     JNIEnv *env, jclass clazz, jint value
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -289,7 +289,7 @@ Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativ
 }
 
 JNIEXPORT jstring JNICALL
-Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativeSetBadgeGlyph(
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_nativeSetBadgeGlyph(
     JNIEnv *env, jclass clazz, jstring jGlyph
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -302,7 +302,7 @@ Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativ
 }
 
 JNIEXPORT jstring JNICALL
-Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativeClearBadge(
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_nativeClearBadge(
     JNIEnv *env, jclass clazz
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -313,7 +313,7 @@ Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativ
 }
 
 JNIEXPORT void JNICALL
-Java_io_github_kdroidfilter_nucleus_badge_windows_NativeWindowsBadgeBridge_nativeUninitialize(
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_nativeUninitialize(
     JNIEnv *env, jclass clazz
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);

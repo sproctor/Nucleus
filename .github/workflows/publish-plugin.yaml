@@ -93,11 +93,11 @@ jobs:
           pattern: 'notification-windows*'
           merge-multiple: true
 
-      - name: Download badge-windows artifacts
+      - name: Download launcher-windows artifacts
         uses: actions/download-artifact@v4
         with:
-          path: badge-windows/src/main/resources/nucleus/native/
-          pattern: 'badge-windows*'
+          path: launcher-windows/src/main/resources/nucleus/native/
+          pattern: 'launcher-windows*'
           merge-multiple: true
 
       - name: Download launcher-linux artifacts

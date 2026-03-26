@@ -33,8 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import io.github.kdroidfilter.nucleus.badge.windows.BadgeGlyph
-import io.github.kdroidfilter.nucleus.badge.windows.WindowsBadgeManager
+import io.github.kdroidfilter.nucleus.launcher.windows.BadgeGlyph
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsBadgeManager
 
 private const val EVENT_LOG_MAX = 20
 

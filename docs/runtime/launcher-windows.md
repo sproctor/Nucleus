@@ -1,4 +1,4 @@
-# Badge (Windows)
+# Launcher (Windows)
 
 Windows Badge Notifications API via JNI — display numeric counts or status glyph icons on the app's taskbar button and Start tile.
 
@@ -6,7 +6,7 @@ Windows Badge Notifications API via JNI — display numeric counts or status gly
 
 ```kotlin
 dependencies {
-    implementation("io.github.kdroidfilter:nucleus.badge-windows:<version>")
+    implementation("io.github.kdroidfilter:nucleus.launcher-windows:<version>")
 }
 ```
 
@@ -22,8 +22,8 @@ The badge API requires a one-time initialization with an AUMID (Application User
 ## Quick Start
 
 ```kotlin
-import io.github.kdroidfilter.nucleus.badge.windows.BadgeGlyph
-import io.github.kdroidfilter.nucleus.badge.windows.WindowsBadgeManager
+import io.github.kdroidfilter.nucleus.launcher.windows.BadgeGlyph
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsBadgeManager
 
 // Initialize once at app startup
 if (WindowsBadgeManager.isAvailable) {
