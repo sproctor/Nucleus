@@ -304,6 +304,7 @@ fun LauncherScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(onClick = {
+                        log("Setting quicklist...")
                         quicklist.listener =
                             LinuxQuicklist.Listener { id ->
                                 log("Quicklist item clicked: id=$id")
@@ -347,19 +348,21 @@ fun LauncherScreen() {
                                 LauncherProperties(quicklist = quicklist.objectPath),
                             )
                             quicklistActive = true
+                            log("Quicklist active at ${quicklist.objectPath}")
+                        } else {
+                            log("Quicklist registration failed")
                         }
-                        log("Set quicklist -> $ok")
                     }) { Text("Set Quicklist") }
 
                     OutlinedButton(
                         onClick = {
+                            quicklist.dispose()
                             LinuxLauncherEntry.update(
                                 appUri(),
                                 LauncherProperties(quicklist = ""),
                             )
-                            quicklist.dispose()
                             quicklistActive = false
-                            log("Cleared quicklist")
+                            log("Quicklist cleared")
                         },
                         enabled = quicklistActive,
                     ) { Text("Clear Quicklist") }
@@ -372,6 +375,13 @@ fun LauncherScreen() {
                         fontFamily = FontFamily.Monospace,
                     )
                 }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Right-click the app icon in the dock to see the menu. " +
+                        "Click events depend on DE support (Plank, KDE yes / GNOME no).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // -- Event Log --
