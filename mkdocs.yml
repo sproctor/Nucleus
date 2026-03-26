@@ -76,6 +76,7 @@ nav:
           - Taskbar Progress: runtime/taskbar-progress.md
           - Notification (macOS): runtime/notification-macos.md
           - Notification (Windows): runtime/notification-windows.md
+          - Launcher (Windows): runtime/launcher-windows.md
           - Notification (Linux): runtime/notification-linux.md
           - Launcher (Linux): runtime/launcher-linux.md
           - Launcher (macOS): runtime/launcher-macos.md

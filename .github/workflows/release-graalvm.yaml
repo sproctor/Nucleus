@@ -118,6 +118,13 @@ jobs:
           pattern: 'notification-windows*'
           merge-multiple: true
 
+      - name: Download launcher-windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: launcher-windows/src/main/resources/nucleus/native/
+          pattern: 'launcher-windows*'
+          merge-multiple: true
+
       - name: Download launcher-linux artifacts
         uses: actions/download-artifact@v4
         with:

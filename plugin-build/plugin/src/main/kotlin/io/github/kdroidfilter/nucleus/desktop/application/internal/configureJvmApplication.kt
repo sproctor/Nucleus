@@ -20,6 +20,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJPackage
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractNotarizationTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractPatchCaCertificatesTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractProguardTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractRunAppXTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractRunDistributableTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractStripNativeLibsFromJarsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractSuggestModulesTask
@@ -550,6 +551,35 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
         )
     if (generateAotCache != null) {
         runDistributable.dependsOn(generateAotCache)
+    }
+
+    // runAppX: sideload and launch AppX package for local testing (Windows only)
+    if (currentOS == OS.Windows && hasStoreFormats) {
+        val appxPackageTask =
+            storePackageFormats.firstOrNull { task ->
+                task.map { it.targetFormat }.orNull == TargetFormat.AppX
+            }
+        if (appxPackageTask != null) {
+            val appxSettings = app.nativeDistributions.windows.appx
+            tasks.register<AbstractRunAppXTask>(
+                taskNameAction = "run",
+                taskNameObject = "appX",
+            ) {
+                dependsOn(appxPackageTask)
+                appxDir.set(appxPackageTask.flatMap { it.destinationDir })
+                identityName.set(
+                    project.provider {
+                        appxSettings.identityName
+                            ?: error("appx.identityName must be set to use runAppX")
+                    },
+                )
+                applicationId.set(
+                    project.provider {
+                        appxSettings.applicationId ?: "App"
+                    },
+                )
+            }
+        }
     }
 
     val run =

@@ -101,6 +101,13 @@ jobs:
           pattern: 'notification-windows*'
           merge-multiple: true
 
+      - name: Download launcher-windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: launcher-windows/src/main/resources/nucleus/native/
+          pattern: 'launcher-windows*'
+          merge-multiple: true
+
       - name: Download launcher-macos artifacts
         uses: actions/download-artifact@v4
         with:
@@ -155,6 +162,8 @@ jobs:
             "launcher-linux/src/main/resources/nucleus/native/linux-aarch64/libnucleus_launcher_linux.so"
             "notification-windows/src/main/resources/nucleus/native/win32-x64/nucleus_notification_windows.dll"
             "notification-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_notification_windows.dll"
+            "launcher-windows/src/main/resources/nucleus/native/win32-x64/nucleus_launcher_windows.dll"
+            "launcher-windows/src/main/resources/nucleus/native/win32-aarch64/nucleus_launcher_windows.dll"
             "launcher-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_launcher_macos.dylib"
             "launcher-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_launcher_macos.dylib"
           )

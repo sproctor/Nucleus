@@ -72,6 +72,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.energymanager.EnergyManager
 import io.github.kdroidfilter.nucleus.graalvm.GraalVmInitializer
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsJumpListManager
 import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
 import io.github.kdroidfilter.nucleus.systemcolor.systemAccentColor
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
@@ -99,7 +100,13 @@ private val deepLinkUri = mutableStateOf<URI?>(null)
 fun main(args: Array<String>) {
     GraalVmInitializer.initialize()
 
+    // Set AUMID before any window is created (required for jump lists in non-APPX mode)
+    if (Platform.Current == Platform.Windows) {
+        WindowsJumpListManager.setProcessAppId()
+    }
+
     DeepLinkHandler.register(args) { uri ->
+        println("[JumpList/DeepLink] Received: $uri")
         deepLinkUri.value = uri
     }
 
@@ -181,7 +188,10 @@ fun main(args: Array<String>) {
                                 ) {
                                     add("Notifications")
                                 }
-                                if (Platform.Current == Platform.Linux || Platform.Current == Platform.MacOS) {
+                                if (Platform.Current == Platform.Windows ||
+                                    Platform.Current == Platform.Linux ||
+                                    Platform.Current == Platform.MacOS
+                                ) {
                                     add("Launcher")
                                 }
                             }
@@ -319,6 +329,7 @@ fun main(args: Array<String>) {
                             }
                             "Launcher" -> {
                                 when (Platform.Current) {
+                                    Platform.Windows -> WindowsLauncherScreen(window)
                                     Platform.MacOS -> MacOsLauncherScreen()
                                     Platform.Linux -> LauncherScreen()
                                     else -> {}
