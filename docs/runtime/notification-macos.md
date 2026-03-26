@@ -41,6 +41,9 @@ NotificationCenter.requestAuthorization(
 }
 ```
 
+!!! info "All callbacks run on background threads"
+    Every callback (`requestAuthorization`, `add`, `getNotificationSettings`, etc.) is invoked on macOS's internal dispatch thread. Use `SwingUtilities.invokeLater` to marshal results back to the UI thread if you need to update Compose state.
+
 ## API Reference
 
 ### `NotificationCenter`
@@ -93,6 +96,20 @@ NotificationCenter.requestAuthorization(
 ### `NotificationCenterDelegate`
 
 Implement this interface to control foreground notification display and handle user interactions.
+
+!!! warning "Thread safety"
+    Delegate methods (`willPresent`, `didReceive`, `openSettings`) are called on macOS's internal notification thread, **not** the AWT Event Dispatch Thread or Compose UI thread. If you need to update Compose state (`mutableStateOf`, `SnapshotStateList`, etc.), dispatch to the UI thread:
+
+    ```kotlin
+    override fun didReceive(response: NotificationResponse) {
+        SwingUtilities.invokeLater {
+            // Safe to update Compose state here
+            messages.add(response.userText ?: "")
+        }
+    }
+    ```
+
+    `willPresent` must return synchronously — do not block or suspend in its implementation.
 
 ```kotlin
 NotificationCenter.setDelegate(object : NotificationCenterDelegate {
