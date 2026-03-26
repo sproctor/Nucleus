@@ -318,28 +318,31 @@ Java_io_github_kdroidfilter_nucleus_notification_macos_NativeMacNotificationBrid
     JNIEnv *env, jclass clazz, jint optionsMask, jlong callbackId) {
     if (@available(macOS 10.14, *)) {
         ensureDelegateInstalled();
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center requestAuthorizationWithOptions:(UNAuthorizationOptions)optionsMask
-                             completionHandler:^(BOOL granted, NSError *error) {
-            @autoreleasepool {
-                BOOL didAttach = NO;
-                JNIEnv *cbEnv = getEnv(&didAttach);
-                if (cbEnv == NULL) return;
+        // Must run on main thread for the permission dialog to appear
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+            [center requestAuthorizationWithOptions:(UNAuthorizationOptions)optionsMask
+                                 completionHandler:^(BOOL granted, NSError *error) {
+                @autoreleasepool {
+                    BOOL didAttach = NO;
+                    JNIEnv *cbEnv = getEnv(&didAttach);
+                    if (cbEnv == NULL) return;
 
-                jclass cls = (*cbEnv)->FindClass(cbEnv, BRIDGE_CLASS);
-                if (cls != NULL) {
-                    jmethodID method = (*cbEnv)->GetStaticMethodID(cbEnv, cls,
-                        "onAuthorizationResult", "(JZLjava/lang/String;)V");
-                    if (method != NULL) {
-                        jstring jError = error ? toJString(cbEnv, [error localizedDescription]) : NULL;
-                        (*cbEnv)->CallStaticVoidMethod(cbEnv, cls, method, callbackId,
-                            granted ? JNI_TRUE : JNI_FALSE, jError);
+                    jclass cls = (*cbEnv)->FindClass(cbEnv, BRIDGE_CLASS);
+                    if (cls != NULL) {
+                        jmethodID method = (*cbEnv)->GetStaticMethodID(cbEnv, cls,
+                            "onAuthorizationResult", "(JZLjava/lang/String;)V");
+                        if (method != NULL) {
+                            jstring jError = error ? toJString(cbEnv, [error localizedDescription]) : NULL;
+                            (*cbEnv)->CallStaticVoidMethod(cbEnv, cls, method, callbackId,
+                                granted ? JNI_TRUE : JNI_FALSE, jError);
+                        }
                     }
+                    clearException(cbEnv);
+                    releaseEnv(didAttach);
                 }
-                clearException(cbEnv);
-                releaseEnv(didAttach);
-            }
-        }];
+            }];
+        });
     }
 }
 
