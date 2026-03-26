@@ -34,35 +34,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.launcher.windows.BadgeGlyph
+import io.github.kdroidfilter.nucleus.launcher.windows.JumpListCategory
+import io.github.kdroidfilter.nucleus.launcher.windows.JumpListItem
 import io.github.kdroidfilter.nucleus.launcher.windows.WindowsBadgeManager
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsJumpListManager
 
-private const val EVENT_LOG_MAX = 20
+private const val EVENT_LOG_MAX = 30
 
-@OptIn(ExperimentalLayoutApi::class)
-@Suppress("FunctionNaming", "LongMethod")
+@Suppress("FunctionNaming")
 @Composable
-fun WindowsBadgeScreen() {
+fun WindowsLauncherScreen() {
     val events = remember { mutableStateListOf<String>() }
-    var statusText by remember { mutableStateOf("") }
-    var initialized by remember { mutableStateOf(false) }
-    var badgeCount by remember { mutableStateOf("3") }
-    var selectedGlyph by remember { mutableStateOf(BadgeGlyph.ALERT) }
-
-    DisposableEffect(Unit) {
-        if (WindowsBadgeManager.isAvailable) {
-            initialized = WindowsBadgeManager.initialize()
-            val err = WindowsBadgeManager.lastError
-            statusText = if (initialized) "Initialized" else "Failed: $err"
-            events.add(0, "init: ok=$initialized${if (err != null) " error=$err" else ""}")
-        } else {
-            statusText = "Native library not available"
-            events.add(0, "Badge native library not available")
-        }
-
-        onDispose {
-            WindowsBadgeManager.uninitialize()
-        }
-    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -73,133 +55,226 @@ fun WindowsBadgeScreen() {
                     .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Windows Badge Notifications", style = MaterialTheme.typography.headlineSmall)
-            Text("Status: $statusText", style = MaterialTheme.typography.bodyMedium)
-
+            BadgeSection(events)
             HorizontalDivider()
-
-            // -- Numeric badge --
-            Text("Numeric Badge", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    badgeCount,
-                    { badgeCount = it },
-                    label = { Text("Count") },
-                    modifier = Modifier.width(120.dp),
-                )
-                Button(
-                    onClick = {
-                        val count = badgeCount.toIntOrNull() ?: 0
-                        val ok = WindowsBadgeManager.setCount(count)
-                        events.add(0, if (ok) "Badge set: $count" else "Badge FAILED: ${WindowsBadgeManager.lastError}")
-                        if (events.size > EVENT_LOG_MAX) events.removeLast()
-                    },
-                    enabled = initialized,
-                ) {
-                    Text("Set Count")
-                }
-            }
-
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(0, 1, 3, 5, 10, 42, 99, 100).forEach { n ->
-                    OutlinedButton(
-                        onClick = {
-                            val ok = WindowsBadgeManager.setCount(n)
-                            events.add(0, if (ok) "Badge set: $n" else "Badge set FAILED: $n")
-                            if (events.size > EVENT_LOG_MAX) events.removeLast()
-                        },
-                        enabled = initialized,
-                    ) {
-                        Text("$n")
-                    }
-                }
-            }
-
+            JumpListSection(events)
             HorizontalDivider()
+            EventLogSection(events)
+        }
+    }
+}
 
-            // -- Glyph badge --
-            Text("Glyph Badge", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                BadgeGlyph.entries.filter { it != BadgeGlyph.NONE }.forEach { glyph ->
-                    val isSelected = glyph == selectedGlyph
-                    val colors =
-                        if (isSelected) {
-                            ButtonDefaults.buttonColors()
-                        } else {
-                            ButtonDefaults.outlinedButtonColors()
-                        }
-                    Button(
-                        onClick = { selectedGlyph = glyph },
-                        colors = colors,
-                    ) {
-                        Text(glyph.value, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
+@OptIn(ExperimentalLayoutApi::class)
+@Suppress("FunctionNaming", "LongMethod")
+@Composable
+private fun BadgeSection(events: MutableList<String>) {
+    var badgeStatus by remember { mutableStateOf("") }
+    var badgeInitialized by remember { mutableStateOf(false) }
+    var badgeCount by remember { mutableStateOf("3") }
+    var selectedGlyph by remember { mutableStateOf(BadgeGlyph.ALERT) }
 
-            Spacer(Modifier.height(4.dp))
+    DisposableEffect(Unit) {
+        if (WindowsBadgeManager.isAvailable) {
+            badgeInitialized = WindowsBadgeManager.initialize()
+            val err = WindowsBadgeManager.lastError
+            badgeStatus = if (badgeInitialized) "Initialized" else "Failed: $err"
+            events.add(0, "badge init: ok=$badgeInitialized${if (err != null) " error=$err" else ""}")
+        } else {
+            badgeStatus = "Native library not available"
+            events.add(0, "Badge native library not available")
+        }
+        onDispose { WindowsBadgeManager.uninitialize() }
+    }
 
-            Button(
-                onClick = {
-                    val ok = WindowsBadgeManager.setGlyph(selectedGlyph)
-                    val msg =
-                        if (ok) {
-                            "Glyph set: ${selectedGlyph.value}"
-                        } else {
-                            "Glyph FAILED: ${WindowsBadgeManager.lastError}"
-                        }
-                    events.add(0, msg)
-                    if (events.size > EVENT_LOG_MAX) events.removeLast()
-                },
-                enabled = initialized,
-            ) {
-                Text("Set Glyph (${selectedGlyph.value})")
-            }
+    Text("Badge Notifications", style = MaterialTheme.typography.headlineSmall)
+    Text("Status: $badgeStatus", style = MaterialTheme.typography.bodyMedium)
 
-            HorizontalDivider()
+    HorizontalDivider()
 
-            // -- Clear --
+    Text("Numeric Badge", style = MaterialTheme.typography.titleMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            badgeCount,
+            { badgeCount = it },
+            label = { Text("Count") },
+            modifier = Modifier.width(120.dp),
+        )
+        Button(
+            onClick = {
+                val count = badgeCount.toIntOrNull() ?: 0
+                val ok = WindowsBadgeManager.setCount(count)
+                val msg =
+                    if (ok) "Badge set: $count" else "Badge FAILED: ${WindowsBadgeManager.lastError}"
+                events.add(0, msg)
+                if (events.size > EVENT_LOG_MAX) events.removeLast()
+            },
+            enabled = badgeInitialized,
+        ) {
+            Text("Set Count")
+        }
+    }
+
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(0, 1, 3, 5, 10, 42, 99, 100).forEach { n ->
             OutlinedButton(
                 onClick = {
-                    val ok = WindowsBadgeManager.clear()
-                    events.add(0, if (ok) "Badge cleared" else "Clear FAILED: ${WindowsBadgeManager.lastError}")
+                    val ok = WindowsBadgeManager.setCount(n)
+                    events.add(0, if (ok) "Badge set: $n" else "Badge set FAILED: $n")
                     if (events.size > EVENT_LOG_MAX) events.removeLast()
                 },
-                enabled = initialized,
-                colors =
-                    ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
+                enabled = badgeInitialized,
             ) {
-                Text("Clear Badge")
+                Text("$n")
             }
+        }
+    }
 
-            HorizontalDivider()
+    HorizontalDivider()
 
-            // -- Event log --
-            Text("Event Log", style = MaterialTheme.typography.titleMedium)
-            val cardColors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-            Card(
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-                colors = cardColors,
-            ) {
-                Column(
-                    modifier = Modifier.padding(8.dp).verticalScroll(rememberScrollState()),
-                ) {
-                    if (events.isEmpty()) {
-                        Text("No events yet", style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        events.forEach { event ->
-                            Text(
-                                event,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                        }
-                    }
+    Text("Glyph Badge", style = MaterialTheme.typography.titleMedium)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        BadgeGlyph.entries.filter { it != BadgeGlyph.NONE }.forEach { glyph ->
+            val colors =
+                if (glyph == selectedGlyph) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors()
+            Button(onClick = { selectedGlyph = glyph }, colors = colors) {
+                Text(glyph.value, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
+
+    Button(
+        onClick = {
+            val ok = WindowsBadgeManager.setGlyph(selectedGlyph)
+            val msg =
+                if (ok) "Glyph set: ${selectedGlyph.value}" else "Glyph FAILED: ${WindowsBadgeManager.lastError}"
+            events.add(0, msg)
+            if (events.size > EVENT_LOG_MAX) events.removeLast()
+        },
+        enabled = badgeInitialized,
+    ) {
+        Text("Set Glyph (${selectedGlyph.value})")
+    }
+
+    OutlinedButton(
+        onClick = {
+            val ok = WindowsBadgeManager.clear()
+            val msg = if (ok) "Badge cleared" else "Clear FAILED: ${WindowsBadgeManager.lastError}"
+            events.add(0, msg)
+            if (events.size > EVENT_LOG_MAX) events.removeLast()
+        },
+        enabled = badgeInitialized,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+    ) {
+        Text("Clear Badge")
+    }
+}
+
+@Suppress("FunctionNaming", "LongMethod")
+@Composable
+private fun JumpListSection(events: MutableList<String>) {
+    val shell32 = remember {
+        System.getenv("SystemRoot")?.let { "$it\\System32\\shell32.dll" } ?: ""
+    }
+    val imageres = remember {
+        System.getenv("SystemRoot")?.let { "$it\\System32\\imageres.dll" } ?: ""
+    }
+
+    Text("Jump List", style = MaterialTheme.typography.headlineSmall)
+    Text(
+        "Items launch the app with arguments via SingleInstanceManager.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = {
+            val ok = WindowsJumpListManager.setJumpList(
+                categories = listOf(
+                    JumpListCategory(
+                        name = "Recent Actions",
+                        items = listOf(
+                            JumpListItem(
+                                title = "Open Dashboard",
+                                arguments = "nucleus://dashboard",
+                                description = "Open the main dashboard",
+                                iconPath = imageres,
+                                iconIndex = 109,
+                            ),
+                            JumpListItem(
+                                title = "Open Settings",
+                                arguments = "nucleus://settings",
+                                description = "Open application settings",
+                                iconPath = shell32,
+                                iconIndex = 176,
+                            ),
+                            JumpListItem(
+                                title = "View Logs",
+                                arguments = "nucleus://logs",
+                                description = "Open the log viewer",
+                                iconPath = shell32,
+                                iconIndex = 1,
+                            ),
+                        ),
+                    ),
+                ),
+                tasks = listOf(
+                    JumpListItem(
+                        title = "New Window",
+                        arguments = "nucleus://new-window",
+                        description = "Open a new application window",
+                        iconPath = shell32,
+                        iconIndex = 2,
+                    ),
+                    JumpListItem.SEPARATOR,
+                    JumpListItem(
+                        title = "Check for Updates",
+                        arguments = "nucleus://check-updates",
+                        description = "Check for application updates",
+                        iconPath = shell32,
+                        iconIndex = 46,
+                    ),
+                ),
+            )
+            val msg =
+                if (ok) "Jump list set" else "Jump list FAILED: ${WindowsJumpListManager.lastError}"
+            events.add(0, msg)
+            if (events.size > EVENT_LOG_MAX) events.removeLast()
+        }) {
+            Text("Set Jump List")
+        }
+
+        OutlinedButton(
+            onClick = {
+                val ok = WindowsJumpListManager.clearJumpList()
+                val msg =
+                    if (ok) "Jump list cleared" else "Clear FAILED: ${WindowsJumpListManager.lastError}"
+                events.add(0, msg)
+                if (events.size > EVENT_LOG_MAX) events.removeLast()
+            },
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Text("Clear Jump List")
+        }
+    }
+}
+
+@Suppress("FunctionNaming")
+@Composable
+private fun EventLogSection(events: List<String>) {
+    Text("Event Log", style = MaterialTheme.typography.titleMedium)
+    Card(
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp).verticalScroll(rememberScrollState()),
+        ) {
+            if (events.isEmpty()) {
+                Text("No events yet", style = MaterialTheme.typography.bodySmall)
+            } else {
+                events.forEach { event ->
+                    Text(event, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
                 }
             }
         }

@@ -1,6 +1,6 @@
 # Launcher (Windows)
 
-Windows Badge Notifications API via JNI — display numeric counts or status glyph icons on the app's taskbar button and Start tile.
+Windows Launcher API via JNI — badge notifications and jump lists for the app's taskbar button.
 
 ## Dependency
 
@@ -12,14 +12,16 @@ dependencies {
 
 ## Overview
 
-Badges are small indicators that appear on the app's taskbar button and Start tile. They can display:
+This module provides two Windows launcher APIs:
 
-- **Numeric values** (1–99, shown as "99+" for values >= 100)
-- **Status glyphs** (predefined icons like alert, busy, playing, etc.)
+- **Badge Notifications** — numeric counts (1–99+) or status glyph icons on the taskbar button and Start tile (APPX/MSIX only)
+- **Jump Lists** — custom categories and pinned tasks in the taskbar right-click menu (all packaging types)
 
-The badge API requires a one-time initialization with an AUMID (Application User Model ID), which is resolved automatically by Nucleus.
+---
 
-## Quick Start
+## Badge Notifications
+
+### Quick Start
 
 ```kotlin
 import io.github.kdroidfilter.nucleus.launcher.windows.BadgeGlyph
@@ -43,34 +45,25 @@ WindowsBadgeManager.clear()
 WindowsBadgeManager.uninitialize()
 ```
 
-## API Reference
-
 ### `WindowsBadgeManager`
 
-Thread-safe singleton providing the full badge API.
-
-#### Initialization
+Thread-safe singleton providing the full badge API. Requires APPX/MSIX packaging.
 
 | Method | Description |
 |--------|-------------|
 | `isAvailable: Boolean` | Whether the native library is loaded on this platform |
-| `initialize(aumid: String? = null): Boolean` | Initialize the badge subsystem. AUMID is auto-resolved from package identity (APPX) or `NucleusApp.appId` (unpackaged) |
+| `initialize(aumid: String? = null): Boolean` | Initialize the badge subsystem |
 | `uninitialize()` | Release native resources |
-
-#### Badge Operations
-
-| Method | Description |
-|--------|-------------|
 | `setCount(count: Int): Boolean` | Set a numeric badge (0 clears, 1–99 shown as number, 100+ as "99+") |
 | `setGlyph(glyph: BadgeGlyph): Boolean` | Set a glyph badge icon |
 | `clear(): Boolean` | Remove the badge entirely |
 
 ### `BadgeGlyph`
 
-Predefined status glyph icons.
+Predefined status glyph icons:
 
-| Glyph | XML Value | Description |
-|-------|-----------|-------------|
+| Glyph | Value | Description |
+|-------|-------|-------------|
 | `NONE` | `none` | Clears the badge |
 | `ACTIVITY` | `activity` | Activity indicator |
 | `ALARM` | `alarm` | Alarm status |
@@ -85,74 +78,113 @@ Predefined status glyph icons.
 | `PLAYING` | `playing` | Playing / active |
 | `UNAVAILABLE` | `unavailable` | Presence: unavailable |
 
+---
+
+## Jump Lists
+
+Jump lists appear when the user right-clicks the app's taskbar button. They support custom categories, shell-managed categories (Recent/Frequent), and pinned user tasks.
+
+### Quick Start
+
+```kotlin
+import io.github.kdroidfilter.nucleus.launcher.windows.JumpListCategory
+import io.github.kdroidfilter.nucleus.launcher.windows.JumpListItem
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsJumpListManager
+
+// Set a jump list with categories and tasks
+WindowsJumpListManager.setJumpList(
+    categories = listOf(
+        JumpListCategory(
+            name = "Recent Projects",
+            items = listOf(
+                JumpListItem(title = "Project A", arguments = "--open=project-a"),
+                JumpListItem(title = "Project B", arguments = "--open=project-b"),
+            ),
+        ),
+    ),
+    tasks = listOf(
+        JumpListItem(title = "New Window", arguments = "--new-window"),
+        JumpListItem.SEPARATOR,
+        JumpListItem(title = "Settings", arguments = "--settings"),
+    ),
+)
+
+// Clear the jump list
+WindowsJumpListManager.clearJumpList()
+```
+
+### `WindowsJumpListManager`
+
+Thread-safe singleton. Works for both APPX/MSIX and unpackaged apps.
+
+| Method | Description |
+|--------|-------------|
+| `isAvailable: Boolean` | Whether the native library is loaded |
+| `setJumpList(categories, tasks, knownCategories): Boolean` | Set the entire jump list atomically |
+| `clearJumpList(): Boolean` | Remove all jump list entries |
+
+### `JumpListItem`
+
+A single clickable item in a jump list.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `title` | `String` | Display text |
+| `arguments` | `String` | Command-line args passed when clicked |
+| `description` | `String` | Tooltip text |
+| `iconPath` | `String` | Icon file path (empty = app icon) |
+| `iconIndex` | `Int` | Icon resource index |
+| `isSeparator` | `Boolean` | Whether this is a separator (tasks only) |
+
+Use `JumpListItem.SEPARATOR` for visual separators in the tasks section.
+
+### `JumpListCategory`
+
+A named group of items.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `String` | Category display name (must be unique) |
+| `items` | `List<JumpListItem>` | Items in this category |
+
+### `KnownCategory`
+
+Shell-managed categories populated automatically by Windows.
+
+| Value | Description |
+|-------|-------------|
+| `FREQUENT` | Frequently used destinations |
+| `RECENT` | Recently used destinations |
+
+### How Click Handling Works
+
+When a jump list item is clicked, Windows **launches your application** with the item's `arguments`. For a running app, use `SingleInstanceManager` to forward the arguments to the existing instance:
+
+```kotlin
+SingleInstanceManager.isSingleInstance(
+    onRestoreRequest = {
+        // args from jump list click are available in the new process args
+    },
+)
+```
+
+---
+
 ## AUMID Resolution
 
-The AUMID (Application User Model ID) identifies your app to Windows for badge delivery:
+The AUMID (Application User Model ID) identifies your app to Windows:
 
-| Packaging | AUMID Source |
-|-----------|-------------|
-| **APPX/MSIX** | Automatic — Windows uses the package identity |
-| **Unpackaged (EXE, MSI, dev)** | Auto-derived from `NucleusApp.appId` |
-| **Explicit override** | Pass to `initialize(aumid = "com.example.MyApp")` |
-
-For unpackaged apps, the native code also creates a Start Menu shortcut with the AUMID property so that Windows can associate the badge with the app.
-
-## Compose Integration
-
-```kotlin
-@Composable
-fun BadgeDemo() {
-    var badgeCount by remember { mutableStateOf(0) }
-
-    DisposableEffect(Unit) {
-        if (WindowsBadgeManager.isAvailable) {
-            WindowsBadgeManager.initialize()
-        }
-        onDispose {
-            WindowsBadgeManager.uninitialize()
-        }
-    }
-
-    Column {
-        Button(onClick = {
-            badgeCount++
-            WindowsBadgeManager.setCount(badgeCount)
-        }) {
-            Text("Increment Badge ($badgeCount)")
-        }
-
-        Button(onClick = {
-            WindowsBadgeManager.setGlyph(BadgeGlyph.ALERT)
-        }) {
-            Text("Alert Glyph")
-        }
-
-        Button(onClick = {
-            badgeCount = 0
-            WindowsBadgeManager.clear()
-        }) {
-            Text("Clear Badge")
-        }
-    }
-}
-```
-
-## Shared Initialization with Toast Notifications
-
-If your app also uses `notification-windows` for toast notifications, both modules share the same AUMID concept. You can initialize them independently — each module manages its own WinRT updater.
-
-```kotlin
-// Both can be initialized independently
-WindowsNotificationCenter.initialize()
-WindowsBadgeManager.initialize()
-```
+| Packaging | Badge | Jump List |
+|-----------|-------|-----------|
+| **APPX/MSIX** | Automatic (package identity) | Automatic (package identity) |
+| **Unpackaged** | Not supported | Auto-derived from `NucleusApp.appId` |
 
 ## Platform Notes
 
-- Badges are a Windows-only feature. `isAvailable` returns `false` on other platforms.
-- Numeric badges display 1–99 directly. Values >= 100 display as "99+". A value of 0 clears the badge.
-- Badge updates are synchronous — no callback is needed.
-- The Start Menu shortcut created for unpackaged apps is idempotent (checked before creation).
+- Badge notifications require APPX/MSIX packaging (WinRT limitation).
+- Jump lists work for all packaging types.
+- All operations are synchronous.
+- `isAvailable` returns `false` on non-Windows platforms.
 
 ## ProGuard
 

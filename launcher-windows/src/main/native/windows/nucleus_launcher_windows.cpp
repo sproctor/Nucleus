@@ -1,10 +1,9 @@
 /**
  * nucleus_launcher_windows.cpp
  *
- * JNI bridge for Windows Badge Notifications via WinRT/WRL.
- *
- * Badges display a numeric count (1-99+) or a status glyph icon on the app's
- * taskbar button and Start tile. Uses the BadgeUpdateManager WinRT API.
+ * JNI bridge for Windows Launcher APIs:
+ * - Badge Notifications via WinRT/WRL (BadgeUpdateManager)
+ * - Jump Lists via COM (ICustomDestinationList)
  *
  * Prerequisites: Windows 10 SDK, MSVC (C++17).
  */
@@ -26,6 +25,8 @@
 #include <winstring.h>
 #include <propvarutil.h>
 #include <functiondiscoverykeys.h>
+#include <propkey.h>
+#include <objectarray.h>
 #include <strsafe.h>
 
 #include <wrl/implements.h>
@@ -36,6 +37,7 @@
 #include <jni.h>
 
 #include <string>
+#include <vector>
 #include <mutex>
 #include <cstdio>
 
@@ -47,6 +49,7 @@
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "propsys.lib")
+#pragma comment(lib, "uuid.lib")
 
 using namespace Microsoft::WRL;
 using namespace ABI::Windows::UI::Notifications;
@@ -64,6 +67,11 @@ static bool g_isAppx = false;
 
 static ComPtr<IBadgeUpdateManagerStatics> g_badgeManager;
 static ComPtr<IBadgeUpdater> g_badgeUpdater;
+
+// Jump List state
+static std::mutex g_jl_mutex;
+static ComPtr<ICustomDestinationList> g_jumpList;
+
 
 // ============================================================================
 // HSTRING wrapper
@@ -106,6 +114,118 @@ static jstring errorString(JNIEnv *env, const char *context, HRESULT hr) {
     char buf[256];
     snprintf(buf, sizeof(buf), "%s: HRESULT 0x%08lX", context, (unsigned long)hr);
     return env->NewStringUTF(buf);
+}
+
+static std::vector<std::wstring> toWStringArray(JNIEnv *env, jobjectArray jArray) {
+    std::vector<std::wstring> result;
+    if (!jArray) return result;
+    jsize len = env->GetArrayLength(jArray);
+    result.reserve(len);
+    for (jsize i = 0; i < len; i++) {
+        jstring jstr = (jstring)env->GetObjectArrayElement(jArray, i);
+        result.push_back(toWString(env, jstr));
+        if (jstr) env->DeleteLocalRef(jstr);
+    }
+    return result;
+}
+
+static std::vector<int> toIntVector(JNIEnv *env, jintArray jArray) {
+    std::vector<int> result;
+    if (!jArray) return result;
+    jsize len = env->GetArrayLength(jArray);
+    result.resize(len);
+    env->GetIntArrayRegion(jArray, 0, len, (jint*)result.data());
+    return result;
+}
+
+static std::vector<bool> toBoolVector(JNIEnv *env, jbooleanArray jArray) {
+    std::vector<bool> result;
+    if (!jArray) return result;
+    jsize len = env->GetArrayLength(jArray);
+    jboolean *raw = env->GetBooleanArrayElements(jArray, nullptr);
+    result.assign(raw, raw + len);
+    env->ReleaseBooleanArrayElements(jArray, raw, JNI_ABORT);
+    return result;
+}
+
+// ============================================================================
+// Jump List helpers
+// ============================================================================
+
+static HRESULT createShellLinkItem(
+    const std::wstring &title,
+    const std::wstring &arguments,
+    const std::wstring &description,
+    const std::wstring &iconPath,
+    int iconIndex,
+    IShellLinkW **ppLink
+) {
+    WCHAR exePath[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+    ComPtr<IShellLinkW> link;
+    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&link));
+    if (FAILED(hr)) return hr;
+
+    hr = link->SetPath(exePath);
+    if (FAILED(hr)) return hr;
+
+    hr = link->SetArguments(arguments.c_str());
+    if (FAILED(hr)) return hr;
+
+    if (!description.empty()) {
+        hr = link->SetDescription(description.c_str());
+        if (FAILED(hr)) return hr;
+    }
+
+    if (!iconPath.empty()) {
+        hr = link->SetIconLocation(iconPath.c_str(), iconIndex);
+    } else {
+        hr = link->SetIconLocation(exePath, iconIndex);
+    }
+    if (FAILED(hr)) return hr;
+
+    ComPtr<IPropertyStore> propStore;
+    hr = link.As(&propStore);
+    if (FAILED(hr)) return hr;
+
+    PROPVARIANT pv;
+    hr = InitPropVariantFromString(title.c_str(), &pv);
+    if (FAILED(hr)) return hr;
+    hr = propStore->SetValue(PKEY_Title, pv);
+    PropVariantClear(&pv);
+    if (FAILED(hr)) return hr;
+
+    hr = propStore->Commit();
+    if (FAILED(hr)) return hr;
+
+    *ppLink = link.Detach();
+    return S_OK;
+}
+
+static HRESULT createSeparatorLink(IShellLinkW **ppLink) {
+    ComPtr<IShellLinkW> link;
+    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&link));
+    if (FAILED(hr)) return hr;
+
+    ComPtr<IPropertyStore> propStore;
+    hr = link.As(&propStore);
+    if (FAILED(hr)) return hr;
+
+    PROPVARIANT pv;
+    hr = InitPropVariantFromBoolean(TRUE, &pv);
+    if (FAILED(hr)) return hr;
+    hr = propStore->SetValue(PKEY_AppUserModel_IsDestListSeparator, pv);
+    PropVariantClear(&pv);
+    if (FAILED(hr)) return hr;
+
+    hr = propStore->Commit();
+    if (FAILED(hr)) return hr;
+
+    *ppLink = link.Detach();
+    return S_OK;
 }
 
 // ============================================================================
@@ -320,6 +440,241 @@ Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_na
     g_badgeUpdater.Reset();
     g_badgeManager.Reset();
     g_initialized = false;
+}
+
+// ============================================================================
+// Jump List JNI exports
+// ============================================================================
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeSetProcessAppId(
+    JNIEnv *env, jclass clazz, jstring jAumid
+) {
+    std::wstring aumid = toWString(env, jAumid);
+    if (aumid.empty()) return env->NewStringUTF("AUMID is empty");
+
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE && hr != S_FALSE) {
+        return errorString(env, "CoInitializeEx failed", hr);
+    }
+
+    hr = SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
+    if (FAILED(hr)) return errorString(env, "SetCurrentProcessExplicitAppUserModelID failed", hr);
+
+    // Create Start Menu shortcut with AUMID (required for unpackaged apps)
+    std::wstring appName = aumid;
+    size_t lastDot = appName.find_last_of(L'.');
+    if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
+        appName = appName.substr(lastDot + 1);
+    }
+    createShortcut(aumid, appName);
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeBeginList(
+    JNIEnv *env, jclass clazz, jstring jAumid, jboolean jIsAppx
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE && hr != S_FALSE) {
+        return errorString(env, "CoInitializeEx failed", hr);
+    }
+
+    g_jumpList.Reset();
+    hr = CoCreateInstance(CLSID_DestinationList, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&g_jumpList));
+    if (FAILED(hr) || !g_jumpList) {
+        return errorString(env, "Failed to create ICustomDestinationList", hr);
+    }
+
+    std::wstring aumid = toWString(env, jAumid);
+    bool isAppx = (bool)jIsAppx;
+
+    if (!isAppx && !aumid.empty()) {
+        SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
+
+        // Create Start Menu shortcut with AUMID (required for unpackaged apps)
+        std::wstring appName = aumid;
+        size_t lastDot = appName.find_last_of(L'.');
+        if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
+            appName = appName.substr(lastDot + 1);
+        }
+        createShortcut(aumid, appName);
+
+        hr = g_jumpList->SetAppID(aumid.c_str());
+        if (FAILED(hr)) {
+            g_jumpList.Reset();
+            return errorString(env, "SetAppID failed", hr);
+        }
+    }
+
+    UINT minSlots = 0;
+    ComPtr<IObjectArray> removedItems;
+    hr = g_jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedItems));
+    if (FAILED(hr)) {
+        g_jumpList.Reset();
+        return errorString(env, "BeginList failed", hr);
+    }
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeAppendCategory(
+    JNIEnv *env, jclass clazz, jstring jName,
+    jobjectArray jTitles, jobjectArray jArguments, jobjectArray jDescriptions,
+    jobjectArray jIconPaths, jintArray jIconIndices
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+    if (!g_jumpList) return env->NewStringUTF("No active jump list session");
+
+    std::wstring name = toWString(env, jName);
+    auto titles = toWStringArray(env, jTitles);
+    auto arguments = toWStringArray(env, jArguments);
+    auto descriptions = toWStringArray(env, jDescriptions);
+    auto iconPaths = toWStringArray(env, jIconPaths);
+    auto iconIndices = toIntVector(env, jIconIndices);
+
+    size_t count = titles.size();
+
+    ComPtr<IObjectCollection> collection;
+    HRESULT hr = CoCreateInstance(CLSID_EnumerableObjectCollection, nullptr,
+        CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&collection));
+    if (FAILED(hr)) return errorString(env, "Failed to create IObjectCollection", hr);
+
+    for (size_t i = 0; i < count; i++) {
+        IShellLinkW *link = nullptr;
+        hr = createShellLinkItem(
+            titles[i],
+            i < arguments.size() ? arguments[i] : L"",
+            i < descriptions.size() ? descriptions[i] : L"",
+            i < iconPaths.size() ? iconPaths[i] : L"",
+            i < iconIndices.size() ? iconIndices[i] : 0,
+            &link);
+        if (FAILED(hr)) return errorString(env, "Failed to create shell link item", hr);
+        collection->AddObject(link);
+        link->Release();
+    }
+
+    ComPtr<IObjectArray> array;
+    hr = collection.As(&array);
+    if (FAILED(hr)) return errorString(env, "Failed to get IObjectArray", hr);
+
+    hr = g_jumpList->AppendCategory(name.c_str(), array.Get());
+    if (FAILED(hr)) return errorString(env, "AppendCategory failed", hr);
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeAppendKnownCategory(
+    JNIEnv *env, jclass clazz, jint categoryId
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+    if (!g_jumpList) return env->NewStringUTF("No active jump list session");
+
+    HRESULT hr = g_jumpList->AppendKnownCategory((KNOWNDESTCATEGORY)categoryId);
+    if (FAILED(hr)) return errorString(env, "AppendKnownCategory failed", hr);
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeAddUserTasks(
+    JNIEnv *env, jclass clazz,
+    jobjectArray jTitles, jobjectArray jArguments, jobjectArray jDescriptions,
+    jobjectArray jIconPaths, jintArray jIconIndices, jbooleanArray jIsSeparator
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+    if (!g_jumpList) return env->NewStringUTF("No active jump list session");
+
+    auto titles = toWStringArray(env, jTitles);
+    auto arguments = toWStringArray(env, jArguments);
+    auto descriptions = toWStringArray(env, jDescriptions);
+    auto iconPaths = toWStringArray(env, jIconPaths);
+    auto iconIndices = toIntVector(env, jIconIndices);
+    auto isSeparator = toBoolVector(env, jIsSeparator);
+
+    size_t count = titles.size();
+
+    ComPtr<IObjectCollection> collection;
+    HRESULT hr = CoCreateInstance(CLSID_EnumerableObjectCollection, nullptr,
+        CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&collection));
+    if (FAILED(hr)) return errorString(env, "Failed to create IObjectCollection", hr);
+
+    for (size_t i = 0; i < count; i++) {
+        IShellLinkW *link = nullptr;
+        if (i < isSeparator.size() && isSeparator[i]) {
+            hr = createSeparatorLink(&link);
+        } else {
+            hr = createShellLinkItem(
+                titles[i],
+                i < arguments.size() ? arguments[i] : L"",
+                i < descriptions.size() ? descriptions[i] : L"",
+                i < iconPaths.size() ? iconPaths[i] : L"",
+                i < iconIndices.size() ? iconIndices[i] : 0,
+                &link);
+        }
+        if (FAILED(hr)) return errorString(env, "Failed to create task item", hr);
+        collection->AddObject(link);
+        link->Release();
+    }
+
+    ComPtr<IObjectArray> array;
+    hr = collection.As(&array);
+    if (FAILED(hr)) return errorString(env, "Failed to get IObjectArray", hr);
+
+    hr = g_jumpList->AddUserTasks(array.Get());
+    if (FAILED(hr)) return errorString(env, "AddUserTasks failed", hr);
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeCommitList(
+    JNIEnv *env, jclass clazz
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+    if (!g_jumpList) return env->NewStringUTF("No active jump list session");
+
+    HRESULT hr = g_jumpList->CommitList();
+    g_jumpList.Reset();
+    if (FAILED(hr)) return errorString(env, "CommitList failed", hr);
+
+    return nullptr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge_nativeDeleteList(
+    JNIEnv *env, jclass clazz, jstring jAumid, jboolean jIsAppx
+) {
+    std::lock_guard<std::mutex> lock(g_jl_mutex);
+
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE && hr != S_FALSE) {
+        return errorString(env, "CoInitializeEx failed", hr);
+    }
+
+    ComPtr<ICustomDestinationList> destList;
+    hr = CoCreateInstance(CLSID_DestinationList, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&destList));
+    if (FAILED(hr)) return errorString(env, "Failed to create ICustomDestinationList", hr);
+
+    std::wstring aumid = toWString(env, jAumid);
+    bool isAppx = (bool)jIsAppx;
+
+    if (!isAppx && !aumid.empty()) {
+        hr = destList->SetAppID(aumid.c_str());
+        if (FAILED(hr)) return errorString(env, "SetAppID failed", hr);
+    }
+
+    hr = destList->DeleteList(isAppx ? nullptr : aumid.c_str());
+    if (FAILED(hr)) return errorString(env, "DeleteList failed", hr);
+
+    return nullptr;
 }
 
 } // extern "C"

@@ -3,6 +3,10 @@
         {
             "type": "io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsBadgeBridge",
             "jniAccessible": true
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsJumpListBridge",
+            "jniAccessible": true
         }
     ]
 }
