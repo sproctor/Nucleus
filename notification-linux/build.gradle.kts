@@ -14,6 +14,7 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
+    api(project(":freedesktop-icons"))
     compileOnly(project(":core-runtime"))
 }
 

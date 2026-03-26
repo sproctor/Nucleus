@@ -71,7 +71,7 @@ class LinuxQuicklist(
             ids.add(item.id)
             parentIds.add(parentId)
             labels.add(item.label)
-            iconNames.add(item.iconName)
+            iconNames.add(item.icon?.value ?: "")
             types.add(item.type.value)
             enabledFlags.add(item.enabled)
             visibleFlags.add(item.visible)

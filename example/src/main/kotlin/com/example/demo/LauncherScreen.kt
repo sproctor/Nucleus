@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import io.github.kdroidfilter.nucleus.freedesktop.icons.FreedesktopIcon
 import io.github.kdroidfilter.nucleus.launcher.linux.DbusmenuItem
 import io.github.kdroidfilter.nucleus.launcher.linux.LauncherProperties
 import io.github.kdroidfilter.nucleus.launcher.linux.LinuxLauncherEntry
@@ -309,13 +310,13 @@ fun LauncherScreen() {
 
                         fun buildMenu() =
                             listOf(
-                                DbusmenuItem(id = 1, label = "New Window", iconName = "window-new"),
-                                DbusmenuItem(id = 2, label = "Open File", iconName = "document-open"),
+                                DbusmenuItem(id = 1, label = "New Window", icon = FreedesktopIcon.Action.WINDOW_NEW),
+                                DbusmenuItem(id = 2, label = "Open File", icon = FreedesktopIcon.Action.DOCUMENT_OPEN),
                                 DbusmenuItem.separator(id = 3),
                                 DbusmenuItem(
                                     id = 4,
                                     label = "Recent",
-                                    iconName = "document-open-recent",
+                                    icon = FreedesktopIcon.Action.DOCUMENT_OPEN_RECENT,
                                     children =
                                         listOf(
                                             DbusmenuItem(id = 41, label = "project.kt"),
@@ -334,7 +335,7 @@ fun LauncherScreen() {
                                 DbusmenuItem(
                                     id = 8,
                                     label = "Quit",
-                                    iconName = "application-exit",
+                                    icon = FreedesktopIcon.Action.APPLICATION_EXIT,
                                     disposition = DbusmenuItem.Disposition.ALERT,
                                 ),
                             )

@@ -1,5 +1,7 @@
 package io.github.kdroidfilter.nucleus.launcher.linux
 
+import io.github.kdroidfilter.nucleus.freedesktop.icons.FreedesktopIcon
+
 /**
  * Represents a single menu item in a `com.canonical.dbusmenu` quicklist.
  *
@@ -8,7 +10,7 @@ package io.github.kdroidfilter.nucleus.launcher.linux
  *
  * @property id Unique numeric identifier for this item. Must be > 0 (0 is reserved for the root).
  * @property label Display text. Supports mnemonics with `_` prefix (e.g. `"_Open"`).
- * @property iconName Freedesktop icon name (e.g. `"document-open"`), or empty string for no icon.
+ * @property icon Freedesktop icon (e.g. `FreedesktopIcon.Action.DOCUMENT_OPEN`), or `null` for no icon.
  * @property enabled Whether the item is clickable.
  * @property visible Whether the item is shown in the menu.
  * @property type Item type: [ItemType.STANDARD] or [ItemType.SEPARATOR].
@@ -22,7 +24,7 @@ package io.github.kdroidfilter.nucleus.launcher.linux
 data class DbusmenuItem(
     val id: Int,
     val label: String = "",
-    val iconName: String = "",
+    val icon: FreedesktopIcon? = null,
     val enabled: Boolean = true,
     val visible: Boolean = true,
     val type: ItemType = ItemType.STANDARD,
