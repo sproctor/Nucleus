@@ -8,16 +8,8 @@ internal object NativeLinuxLauncherBridge {
     private val loaded = NativeLibraryLoader.load(LIBRARY_NAME, NativeLinuxLauncherBridge::class.java)
     val isLoaded: Boolean get() = loaded
 
-    // ---- Native methods ------------------------------------------------
+    // ---- LauncherEntry native methods ------------------------------------
 
-    /**
-     * Emits a `com.canonical.Unity.LauncherEntry.Update` signal on the session bus.
-     *
-     * Boolean flags use tri-state: -1 = not set, 0 = false, 1 = true.
-     * Nullable strings pass null when the property should be omitted.
-     *
-     * @return `true` if the signal was emitted successfully.
-     */
     @JvmStatic
     external fun nativeUpdate(
         appUri: String,
@@ -32,20 +24,9 @@ internal object NativeLinuxLauncherBridge {
         updating: Int,
     ): Boolean
 
-    /**
-     * Handles an incoming `com.canonical.Unity.LauncherEntry.Query` method call.
-     *
-     * Registers a D-Bus object that responds to Query with the current state.
-     * Must be called once to enable Query support.
-     *
-     * @return `true` if the object was registered successfully.
-     */
     @JvmStatic
     external fun nativeRegisterQueryHandler(appUri: String): Boolean
 
-    /**
-     * Updates the internal state returned by Query without emitting an Update signal.
-     */
     @JvmStatic
     external fun nativeSetState(
         hasCount: Boolean,
@@ -59,9 +40,45 @@ internal object NativeLinuxLauncherBridge {
         updating: Int,
     )
 
-    /**
-     * Unregisters the Query handler and releases D-Bus resources.
-     */
     @JvmStatic
     external fun nativeUnregister()
+
+    // ---- Dbusmenu native methods -----------------------------------------
+
+    /**
+     * Registers a `com.canonical.dbusmenu` object at [objectPath] with the given menu items.
+     *
+     * Items are passed as flattened parallel arrays. Parent-child relationships are
+     * encoded via [parentIds] (0 = child of root).
+     */
+    @JvmStatic
+    external fun nativeSetMenu(
+        objectPath: String,
+        ids: IntArray,
+        parentIds: IntArray,
+        labels: Array<String>,
+        iconNames: Array<String>,
+        types: Array<String>,
+        enabled: BooleanArray,
+        visible: BooleanArray,
+        toggleTypes: Array<String>,
+        toggleStates: IntArray,
+        dispositions: Array<String>,
+    ): Boolean
+
+    /**
+     * Unregisters and destroys the dbusmenu server at the given object path.
+     */
+    @JvmStatic
+    external fun nativeDestroyMenu(objectPath: String)
+
+    // ---- Callbacks from native (menu item events) ------------------------
+
+    @JvmStatic
+    fun onMenuItemEvent(
+        objectPath: String,
+        itemId: Int,
+    ) {
+        LinuxQuicklist.onItemEvent(objectPath, itemId)
+    }
 }

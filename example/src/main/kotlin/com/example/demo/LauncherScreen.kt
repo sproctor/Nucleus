@@ -37,8 +37,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import io.github.kdroidfilter.nucleus.launcher.linux.DbusmenuItem
 import io.github.kdroidfilter.nucleus.launcher.linux.LauncherProperties
 import io.github.kdroidfilter.nucleus.launcher.linux.LinuxLauncherEntry
+import io.github.kdroidfilter.nucleus.launcher.linux.LinuxQuicklist
 
 private const val EVENT_LOG_MAX = 20
 
@@ -62,12 +64,20 @@ fun LauncherScreen() {
         if (events.size > EVENT_LOG_MAX) events.removeRange(EVENT_LOG_MAX, events.size)
     }
 
+    // Quicklist server
+    val quicklist =
+        remember {
+            LinuxQuicklist("/com/example/NucleusDemo/Menu")
+        }
+    var quicklistActive by remember { mutableStateOf(false) }
+
     // Register Query handler on mount, unregister on dispose
     DisposableEffect(Unit) {
         if (LinuxLauncherEntry.isAvailable) {
             LinuxLauncherEntry.registerQueryHandler(LinuxLauncherEntry.appUri(desktopFileId))
         }
         onDispose {
+            quicklist.dispose()
             LinuxLauncherEntry.unregister()
         }
     }
@@ -285,6 +295,83 @@ fun LauncherScreen() {
                             "urgent=$urgent updating=$updating -> $ok",
                     )
                 }) { Text("Send Update") }
+            }
+
+            // -- Quicklist (Dbusmenu) --
+            LauncherSectionCard("Quicklist (com.canonical.dbusmenu)") {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(onClick = {
+                        quicklist.listener =
+                            LinuxQuicklist.Listener { id ->
+                                log("Quicklist item clicked: id=$id")
+                            }
+                        val ok =
+                            quicklist.setMenu(
+                                listOf(
+                                    DbusmenuItem(id = 1, label = "New Window", iconName = "window-new"),
+                                    DbusmenuItem(id = 2, label = "Open File", iconName = "document-open"),
+                                    DbusmenuItem.separator(id = 3),
+                                    DbusmenuItem(
+                                        id = 4,
+                                        label = "Recent",
+                                        iconName = "document-open-recent",
+                                        children =
+                                            listOf(
+                                                DbusmenuItem(id = 41, label = "project.kt"),
+                                                DbusmenuItem(id = 42, label = "build.gradle.kts"),
+                                                DbusmenuItem(id = 43, label = "README.md"),
+                                            ),
+                                    ),
+                                    DbusmenuItem.separator(id = 5),
+                                    DbusmenuItem(
+                                        id = 6,
+                                        label = "Dark Mode",
+                                        toggleType = DbusmenuItem.ToggleType.CHECKBOX,
+                                        toggleState = 1,
+                                    ),
+                                    DbusmenuItem.separator(id = 7),
+                                    DbusmenuItem(
+                                        id = 8,
+                                        label = "Quit",
+                                        iconName = "application-exit",
+                                        disposition = DbusmenuItem.Disposition.ALERT,
+                                    ),
+                                ),
+                            )
+                        if (ok) {
+                            LinuxLauncherEntry.update(
+                                appUri(),
+                                LauncherProperties(quicklist = quicklist.objectPath),
+                            )
+                            quicklistActive = true
+                        }
+                        log("Set quicklist -> $ok")
+                    }) { Text("Set Quicklist") }
+
+                    OutlinedButton(
+                        onClick = {
+                            LinuxLauncherEntry.update(
+                                appUri(),
+                                LauncherProperties(quicklist = ""),
+                            )
+                            quicklist.dispose()
+                            quicklistActive = false
+                            log("Cleared quicklist")
+                        },
+                        enabled = quicklistActive,
+                    ) { Text("Clear Quicklist") }
+                }
+                if (quicklistActive) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Active at: ${quicklist.objectPath}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
             }
 
             // -- Event Log --
