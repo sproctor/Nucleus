@@ -91,14 +91,15 @@ object WindowsJumpListManager {
         for (category in categories) {
             val items = category.items.filter { !it.isSeparator }
             if (items.isEmpty()) continue
-            error = NativeWindowsJumpListBridge.nativeAppendCategory(
-                category.name,
-                items.map { it.title }.toTypedArray(),
-                items.map { it.arguments }.toTypedArray(),
-                items.map { it.description }.toTypedArray(),
-                items.map { it.iconPath }.toTypedArray(),
-                items.map { it.iconIndex }.toIntArray(),
-            )
+            error =
+                NativeWindowsJumpListBridge.nativeAppendCategory(
+                    category.name,
+                    items.map { it.title }.toTypedArray(),
+                    items.map { it.arguments }.toTypedArray(),
+                    items.map { it.description }.toTypedArray(),
+                    items.map { it.iconPath }.toTypedArray(),
+                    items.map { it.iconIndex }.toIntArray(),
+                )
             if (error != null) {
                 lastError = error
                 logger.warning("AppendCategory '${category.name}' failed: $error")
@@ -116,14 +117,15 @@ object WindowsJumpListManager {
         }
 
         if (tasks.isNotEmpty()) {
-            error = NativeWindowsJumpListBridge.nativeAddUserTasks(
-                tasks.map { it.title }.toTypedArray(),
-                tasks.map { it.arguments }.toTypedArray(),
-                tasks.map { it.description }.toTypedArray(),
-                tasks.map { it.iconPath }.toTypedArray(),
-                tasks.map { it.iconIndex }.toIntArray(),
-                tasks.map { it.isSeparator }.toBooleanArray(),
-            )
+            error =
+                NativeWindowsJumpListBridge.nativeAddUserTasks(
+                    tasks.map { it.title }.toTypedArray(),
+                    tasks.map { it.arguments }.toTypedArray(),
+                    tasks.map { it.description }.toTypedArray(),
+                    tasks.map { it.iconPath }.toTypedArray(),
+                    tasks.map { it.iconIndex }.toIntArray(),
+                    tasks.map { it.isSeparator }.toBooleanArray(),
+                )
             if (error != null) {
                 lastError = error
                 logger.warning("AddUserTasks failed: $error")

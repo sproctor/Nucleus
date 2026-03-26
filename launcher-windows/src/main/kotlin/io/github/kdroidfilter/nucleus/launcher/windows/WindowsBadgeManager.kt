@@ -43,8 +43,9 @@ object WindowsBadgeManager {
         }
         val isAppx = ExecutableRuntime.isAppX()
         if (!isAppx) {
-            val msg = "Badge notifications only work in APPX/MSIX packaged apps. " +
-                "Use the packageAppx task to test badges."
+            val msg =
+                "Badge notifications only work in APPX/MSIX packaged apps. " +
+                    "Use the packageAppx task to test badges."
             lastError = msg
             logger.warning(msg)
             return false

@@ -1267,7 +1267,13 @@ private fun copyAppImage(
                 if (Files.isSymbolicLink(file)) {
                     Files.createSymbolicLink(target, Files.readSymbolicLink(file))
                 } else {
-                    Files.copy(file, target, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS)
+                    Files.copy(
+                        file,
+                        target,
+                        StandardCopyOption.COPY_ATTRIBUTES,
+                        StandardCopyOption.REPLACE_EXISTING,
+                        LinkOption.NOFOLLOW_LINKS,
+                    )
                 }
                 return FileVisitResult.CONTINUE
             }
@@ -1385,14 +1391,20 @@ private fun killProcessesIn(
     try {
         val dirPath = dir.absolutePath.lowercase()
         ProcessHandle.allProcesses().forEach { ph ->
-            val cmd = ph.info().command().orElse(null)?.lowercase() ?: return@forEach
+            val cmd =
+                ph
+                    .info()
+                    .command()
+                    .orElse(null)
+                    ?.lowercase() ?: return@forEach
             if (cmd.startsWith(dirPath)) {
                 logger.info("Killing process ${ph.pid()} ($cmd)")
                 ph.destroyForcibly()
             }
         }
         // Also try taskkill for the app exe name (covers processes launched from installed AppX location)
-        dir.listFiles()
+        dir
+            .listFiles()
             ?.filter { it.extension.equals("exe", ignoreCase = true) }
             ?.forEach { exe ->
                 try {

@@ -39,8 +39,9 @@ abstract class AbstractRunAppXTask : AbstractNucleusTask() {
     @TaskAction
     fun run() {
         val dir = appxDir.get().asFile
-        val appxFile = dir.walkTopDown().firstOrNull { it.extension == "appx" }
-            ?: error("No .appx file found in $dir")
+        val appxFile =
+            dir.walkTopDown().firstOrNull { it.extension == "appx" }
+                ?: error("No .appx file found in $dir")
 
         val identity = identityName.get()
 
@@ -55,9 +56,10 @@ abstract class AbstractRunAppXTask : AbstractNucleusTask() {
 
         // Install the new package
         logger.lifecycle("Installing ${appxFile.name}...")
-        val installResult = runPowerShell(
-            "Add-AppxPackage -Path '${appxFile.absolutePath}' -ForceTargetApplicationShutdown",
-        )
+        val installResult =
+            runPowerShell(
+                "Add-AppxPackage -Path '${appxFile.absolutePath}' -ForceTargetApplicationShutdown",
+            )
         if (installResult.exitCode != 0) {
             error(
                 "Failed to install AppX package (exit code ${installResult.exitCode}):\n${installResult.output}",
@@ -66,9 +68,10 @@ abstract class AbstractRunAppXTask : AbstractNucleusTask() {
 
         // Get the install location
         logger.lifecycle("Resolving install location...")
-        val locationResult = runPowerShell(
-            "(Get-AppxPackage -Name '$identity').InstallLocation",
-        )
+        val locationResult =
+            runPowerShell(
+                "(Get-AppxPackage -Name '$identity').InstallLocation",
+            )
         val installLocation = locationResult.output.trim()
         if (installLocation.isEmpty()) {
             error("Could not resolve install location for '$identity'. Is the app installed?")
@@ -77,8 +80,9 @@ abstract class AbstractRunAppXTask : AbstractNucleusTask() {
 
         // Find the app executable
         val installDir = File(installLocation)
-        val exe = findAppExecutable(installDir)
-            ?: error("No .exe found in $installLocation")
+        val exe =
+            findAppExecutable(installDir)
+                ?: error("No .exe found in $installLocation")
         logger.lifecycle("Launching: ${exe.absolutePath}")
 
         // Run the exe directly — stdout/stderr go to Gradle console
@@ -92,33 +96,39 @@ abstract class AbstractRunAppXTask : AbstractNucleusTask() {
     private fun findAppExecutable(installDir: File): File? {
         // Look for the main exe: typically at the root or in an 'app' subdirectory.
         // Exclude runtime/jre executables.
-        val candidates = installDir.walkTopDown()
-            .filter { it.extension.equals("exe", ignoreCase = true) }
-            .filter { !it.path.contains("\\runtime\\", ignoreCase = true) }
-            .filter { !it.path.contains("\\jre\\", ignoreCase = true) }
-            .toList()
+        val candidates =
+            installDir
+                .walkTopDown()
+                .filter { it.extension.equals("exe", ignoreCase = true) }
+                .filter { !it.path.contains("\\runtime\\", ignoreCase = true) }
+                .filter { !it.path.contains("\\jre\\", ignoreCase = true) }
+                .toList()
 
         // Prefer exe at root level
         return candidates.minByOrNull { it.relativeTo(installDir).path.count { c -> c == '\\' } }
     }
 
-    private data class ProcessResult(val exitCode: Int, val output: String)
+    private data class ProcessResult(
+        val exitCode: Int,
+        val output: String,
+    )
 
     private fun runPowerShell(command: String): ProcessResult {
         val stdout = ByteArrayOutputStream()
         val stderr = ByteArrayOutputStream()
-        val result = execOperations.exec { spec ->
-            spec.commandLine(
-                "powershell",
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                command,
-            )
-            spec.standardOutput = stdout
-            spec.errorOutput = stderr
-            spec.isIgnoreExitValue = true
-        }
+        val result =
+            execOperations.exec { spec ->
+                spec.commandLine(
+                    "powershell",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    command,
+                )
+                spec.standardOutput = stdout
+                spec.errorOutput = stderr
+                spec.isIgnoreExitValue = true
+            }
         val combined = stdout.toString(Charsets.UTF_8) + stderr.toString(Charsets.UTF_8)
         if (verbose.get() || result.exitValue != 0) {
             logger.lifecycle(combined)

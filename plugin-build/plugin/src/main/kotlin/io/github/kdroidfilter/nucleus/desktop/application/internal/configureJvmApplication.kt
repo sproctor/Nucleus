@@ -555,9 +555,10 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
 
     // runAppX: sideload and launch AppX package for local testing (Windows only)
     if (currentOS == OS.Windows && hasStoreFormats) {
-        val appxPackageTask = storePackageFormats.firstOrNull { task ->
-            task.map { it.targetFormat }.orNull == TargetFormat.AppX
-        }
+        val appxPackageTask =
+            storePackageFormats.firstOrNull { task ->
+                task.map { it.targetFormat }.orNull == TargetFormat.AppX
+            }
         if (appxPackageTask != null) {
             val appxSettings = app.nativeDistributions.windows.appx
             tasks.register<AbstractRunAppXTask>(

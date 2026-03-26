@@ -174,12 +174,14 @@ private fun BadgeSection(events: MutableList<String>) {
 @Suppress("FunctionNaming", "LongMethod")
 @Composable
 private fun JumpListSection(events: MutableList<String>) {
-    val shell32 = remember {
-        System.getenv("SystemRoot")?.let { "$it\\System32\\shell32.dll" } ?: ""
-    }
-    val imageres = remember {
-        System.getenv("SystemRoot")?.let { "$it\\System32\\imageres.dll" } ?: ""
-    }
+    val shell32 =
+        remember {
+            System.getenv("SystemRoot")?.let { "$it\\System32\\shell32.dll" } ?: ""
+        }
+    val imageres =
+        remember {
+            System.getenv("SystemRoot")?.let { "$it\\System32\\imageres.dll" } ?: ""
+        }
 
     Text("Jump List", style = MaterialTheme.typography.headlineSmall)
     Text(
@@ -189,53 +191,57 @@ private fun JumpListSection(events: MutableList<String>) {
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = {
-            val ok = WindowsJumpListManager.setJumpList(
-                categories = listOf(
-                    JumpListCategory(
-                        name = "Recent Actions",
-                        items = listOf(
-                            JumpListItem(
-                                title = "Open Dashboard",
-                                arguments = "nucleus://dashboard",
-                                description = "Open the main dashboard",
-                                iconPath = imageres,
-                                iconIndex = 109,
-                            ),
-                            JumpListItem(
-                                title = "Open Settings",
-                                arguments = "nucleus://settings",
-                                description = "Open application settings",
-                                iconPath = shell32,
-                                iconIndex = 176,
-                            ),
-                            JumpListItem(
-                                title = "View Logs",
-                                arguments = "nucleus://logs",
-                                description = "Open the log viewer",
-                                iconPath = shell32,
-                                iconIndex = 1,
+            val ok =
+                WindowsJumpListManager.setJumpList(
+                    categories =
+                        listOf(
+                            JumpListCategory(
+                                name = "Recent Actions",
+                                items =
+                                    listOf(
+                                        JumpListItem(
+                                            title = "Open Dashboard",
+                                            arguments = "nucleus://dashboard",
+                                            description = "Open the main dashboard",
+                                            iconPath = imageres,
+                                            iconIndex = 109,
+                                        ),
+                                        JumpListItem(
+                                            title = "Open Settings",
+                                            arguments = "nucleus://settings",
+                                            description = "Open application settings",
+                                            iconPath = shell32,
+                                            iconIndex = 176,
+                                        ),
+                                        JumpListItem(
+                                            title = "View Logs",
+                                            arguments = "nucleus://logs",
+                                            description = "Open the log viewer",
+                                            iconPath = shell32,
+                                            iconIndex = 1,
+                                        ),
+                                    ),
                             ),
                         ),
-                    ),
-                ),
-                tasks = listOf(
-                    JumpListItem(
-                        title = "New Window",
-                        arguments = "nucleus://new-window",
-                        description = "Open a new application window",
-                        iconPath = shell32,
-                        iconIndex = 2,
-                    ),
-                    JumpListItem.SEPARATOR,
-                    JumpListItem(
-                        title = "Check for Updates",
-                        arguments = "nucleus://check-updates",
-                        description = "Check for application updates",
-                        iconPath = shell32,
-                        iconIndex = 46,
-                    ),
-                ),
-            )
+                    tasks =
+                        listOf(
+                            JumpListItem(
+                                title = "New Window",
+                                arguments = "nucleus://new-window",
+                                description = "Open a new application window",
+                                iconPath = shell32,
+                                iconIndex = 2,
+                            ),
+                            JumpListItem.SEPARATOR,
+                            JumpListItem(
+                                title = "Check for Updates",
+                                arguments = "nucleus://check-updates",
+                                description = "Check for application updates",
+                                iconPath = shell32,
+                                iconIndex = 46,
+                            ),
+                        ),
+                )
             val msg =
                 if (ok) "Jump list set" else "Jump list FAILED: ${WindowsJumpListManager.lastError}"
             events.add(0, msg)
