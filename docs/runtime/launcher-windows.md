@@ -158,15 +158,113 @@ Shell-managed categories populated automatically by Windows.
 
 ### How Click Handling Works
 
-When a jump list item is clicked, Windows **launches your application** with the item's `arguments`. For a running app, use `SingleInstanceManager` to forward the arguments to the existing instance:
+Unlike macOS (which uses in-process `NSMenu` delegates) or Linux (which uses D-Bus callbacks),
+Windows jump lists have **no in-process callback mechanism**. When a user clicks a jump list item,
+Windows **launches a new process** of your application with the item's `arguments` appended to the
+command line.
+
+To handle this in a running application, you need two pieces from `core-runtime`:
+
+1. **`SingleInstanceManager`** — detects that a second instance was launched and forwards data to the primary instance via a file-based IPC mechanism.
+2. **`DeepLinkHandler`** — parses URI-style arguments from the command line and provides a callback when a deep link is received.
+
+#### Setup in `main()`
 
 ```kotlin
-SingleInstanceManager.isSingleInstance(
-    onRestoreRequest = {
-        // args from jump list click are available in the new process args
-    },
+fun main(args: Array<String>) {
+    // 1. Set the AUMID before any window is created (unpackaged apps only)
+    WindowsJumpListManager.setProcessAppId()
+
+    // 2. Register the deep link handler — parses any URI from CLI args
+    DeepLinkHandler.register(args) { uri ->
+        println("Received deep link: $uri")
+        // Handle the URI (navigate, open file, etc.)
+    }
+
+    application {
+        // 3. Enforce single instance with argument forwarding
+        val isFirstInstance = remember {
+            SingleInstanceManager.isSingleInstance(
+                onRestoreFileCreated = {
+                    // Secondary instance: write the received URI to the IPC file
+                    DeepLinkHandler.writeUriTo(this)
+                },
+                onRestoreRequest = {
+                    // Primary instance: read the URI from the IPC file
+                    DeepLinkHandler.readUriFrom(this)
+                    // Bring window to front
+                    isWindowVisible = true
+                },
+            )
+        }
+
+        // 4. If this is a secondary instance, exit immediately
+        if (!isFirstInstance) {
+            exitApplication()
+            return@application
+        }
+
+        // ... create your window
+    }
+}
+```
+
+#### Complete Flow
+
+```
+User clicks jump list item ("Open Dashboard", arguments = "myapp://dashboard")
+    │
+    ▼
+Windows launches: myapp.exe myapp://dashboard
+    │
+    ▼
+main(args = ["myapp://dashboard"]) starts
+    │
+    ├─► DeepLinkHandler.register(args) parses "myapp://dashboard" as a URI
+    │
+    ▼
+SingleInstanceManager.isSingleInstance() tries to acquire lock
+    │
+    ├─ Lock FAILS (primary instance holds it)
+    │   ├─► onRestoreFileCreated: writes URI to .restore_request file
+    │   └─► Secondary instance exits
+    │
+    ▼
+Primary instance's WatchService detects .restore_request file
+    │
+    ├─► onRestoreRequest: DeepLinkHandler.readUriFrom(path)
+    │   └─► onDeepLink callback fires with URI("myapp://dashboard")
+    │
+    └─► Window brought to front, URI handled
+```
+
+#### Jump List Items with URI Arguments
+
+Use URI-style arguments so `DeepLinkHandler` can parse them automatically:
+
+```kotlin
+WindowsJumpListManager.setJumpList(
+    categories = listOf(
+        JumpListCategory(
+            name = "Recent Projects",
+            items = listOf(
+                JumpListItem(
+                    title = "Open Dashboard",
+                    arguments = "myapp://dashboard",
+                ),
+                JumpListItem(
+                    title = "Open Settings",
+                    arguments = "myapp://settings",
+                ),
+            ),
+        ),
+    ),
 )
 ```
+
+> **Note:** Jump list items require a real application executable. They do **not** work
+> in Gradle `run` dev mode (where the process is `java.exe`). Test with `runDistributable`
+> or a packaged build (APPX, NSIS, MSI).
 
 ---
 
