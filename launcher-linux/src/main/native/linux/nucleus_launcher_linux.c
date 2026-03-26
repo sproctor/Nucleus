@@ -451,7 +451,7 @@ static MenuItem *find_item(DbusmenuServer *srv, gint32 id) {
     return NULL;
 }
 
-static GVariant *build_item_properties(MenuItem *item) {
+static GVariant *build_item_properties(DbusmenuServer *srv, MenuItem *item) {
     GVariantBuilder b;
     g_variant_builder_init(&b, G_VARIANT_TYPE("a{sv}"));
     if (item->label && item->label[0])
@@ -472,7 +472,12 @@ static GVariant *build_item_properties(MenuItem *item) {
         g_variant_builder_add(&b, "{sv}", "disposition", g_variant_new_string(item->disposition));
 
     /* Mark items with children as having a submenu */
-    /* Check if any child has this item as parent — we do a quick scan */
+    for (int i = 0; i < srv->item_count; i++) {
+        if (srv->items[i].parent_id == item->id) {
+            g_variant_builder_add(&b, "{sv}", "children-display", g_variant_new_string("submenu"));
+            break;
+        }
+    }
     return g_variant_builder_end(&b);
 }
 
@@ -482,7 +487,7 @@ static GVariant *build_layout(DbusmenuServer *srv, gint32 parent_id, int depth) 
 
     GVariant *props;
     if (item) {
-        props = build_item_properties(item);
+        props = build_item_properties(srv, item);
     } else {
         /* Root node: empty properties */
         GVariantBuilder b;
@@ -505,7 +510,7 @@ static GVariant *build_layout(DbusmenuServer *srv, gint32 parent_id, int depth) 
         }
     }
 
-    return g_variant_new("(ia{sv}av)", parent_id, props, &children);
+    return g_variant_new("(i@a{sv}av)", parent_id, props, &children);
 }
 
 /* ===================================================================== */
@@ -552,7 +557,7 @@ static void dbusmenu_handle_method(
         while (g_variant_iter_next(&iter, "i", &id)) {
             MenuItem *item = find_item(srv, id);
             if (item) {
-                GVariant *props = build_item_properties(item);
+                GVariant *props = build_item_properties(srv, item);
                 g_variant_builder_add(&result, "(i@a{sv})", id, props);
             }
         }
