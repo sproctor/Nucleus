@@ -446,7 +446,7 @@ LinuxNotificationCenter.notify(
 
 ## Native Library
 
-Ships a pre-built Linux shared library (x86_64). No macOS or Windows native — `isAvailable` returns `false` on other platforms.
+Ships pre-built Linux shared libraries (x86_64 + aarch64). No macOS or Windows native — `isAvailable` returns `false` on other platforms.
 
 - `libnucleus_notification_linux.so` — linked against `libgio-2.0` (GLib/GIO)
 - Build requirement: `libgio-2.0-dev` (Debian/Ubuntu) or `glib2-devel` (Fedora)

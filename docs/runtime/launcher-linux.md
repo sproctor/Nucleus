@@ -229,7 +229,7 @@ Use `launcher-linux` directly when you need Linux-specific features like badge c
 
 ## Native Library
 
-Ships a pre-built Linux shared library (x86_64). `isAvailable` returns `false` on other platforms.
+Ships pre-built Linux shared libraries (x86_64 + aarch64). `isAvailable` returns `false` on other platforms.
 
 - `libnucleus_launcher_linux.so` — linked against `libgio-2.0` (GLib/GIO)
 - Build requirement: `libglib2.0-dev` (Debian/Ubuntu) or `glib2-devel` (Fedora)
