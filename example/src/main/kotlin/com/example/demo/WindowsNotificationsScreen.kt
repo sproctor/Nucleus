@@ -152,9 +152,24 @@ fun WindowsNotificationsScreen() {
 
             // -- Content fields --
             SectionTitle("Content")
-            OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(body, { body = it }, label = { Text("Body") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(body2, { body2 = it }, label = { Text("Body line 2") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("Title") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                body,
+                { body = it },
+                label = { Text("Body") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                body2,
+                { body2 = it },
+                label = { Text("Body line 2") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 attribution,
                 { attribution = it },
