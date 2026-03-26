@@ -164,8 +164,6 @@ fun NotificationsScreen() {
                 AuthorizationOption.ALERT,
                 AuthorizationOption.SOUND,
                 AuthorizationOption.BADGE,
-                AuthorizationOption.CRITICAL_ALERT,
-                AuthorizationOption.TIME_SENSITIVE,
             ),
         ) { granted, error ->
             if (!granted) {
