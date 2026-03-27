@@ -1,0 +1,188 @@
+package io.github.kdroidfilter.nucleus.globalhotkey
+
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.globalhotkey.windows.NativeWindowsHotKeyBridge
+import java.util.logging.Logger
+
+/**
+ * Cross-platform manager for system-wide global hotkeys.
+ *
+ * Global hotkeys are keyboard shortcuts that fire even when the application
+ * does not have focus. This is useful for media players, screenshot tools,
+ * accessibility shortcuts, etc.
+ *
+ * Currently implemented:
+ * - **Windows**: Win32 `RegisterHotKey` / `UnregisterHotKey` via JNI.
+ * - **macOS**: No-op (not yet implemented).
+ * - **Linux**: No-op (not yet implemented).
+ *
+ * Thread-safe singleton.
+ *
+ * Usage:
+ * ```kotlin
+ * GlobalHotKeyManager.initialize()
+ * val id = GlobalHotKeyManager.register(
+ *     keyCode = java.awt.event.KeyEvent.VK_F12,
+ *     modifiers = HotKeyModifier.CONTROL + HotKeyModifier.ALT,
+ * ) { keyCode, modifiers ->
+ *     println("Hotkey pressed!")
+ * }
+ * // later:
+ * GlobalHotKeyManager.unregister(id)
+ * GlobalHotKeyManager.shutdown()
+ * ```
+ */
+object GlobalHotKeyManager {
+    private val logger = Logger.getLogger(GlobalHotKeyManager::class.java.simpleName)
+    private var initialized = false
+
+    /** The last error from a native operation, or null if the last operation succeeded. */
+    var lastError: String? = null
+        private set
+
+    /** Whether the native library is loaded and functional on this platform. */
+    val isAvailable: Boolean
+        get() = when (Platform.Current) {
+            Platform.Windows -> NativeWindowsHotKeyBridge.isLoaded
+            else -> false
+        }
+
+    /**
+     * Initialize the global hotkey subsystem.
+     * Starts the native message loop thread (Windows).
+     *
+     * @return true if initialization succeeded.
+     */
+    fun initialize(): Boolean {
+        if (initialized) return true
+        if (!isAvailable) {
+            lastError = "Global hotkeys not available on this platform"
+            logger.warning(lastError)
+            return false
+        }
+
+        val error = when (Platform.Current) {
+            Platform.Windows -> NativeWindowsHotKeyBridge.nativeInit()
+            else -> "Unsupported platform"
+        }
+
+        initialized = error == null
+        lastError = error
+        if (!initialized) {
+            logger.warning("Failed to initialize global hotkey subsystem: $error")
+        }
+        return initialized
+    }
+
+    /**
+     * Register a global hotkey.
+     *
+     * @param keyCode AWT virtual key code (e.g., [java.awt.event.KeyEvent.VK_F12]).
+     * @param modifiers bitmask of [HotKeyModifier] values (e.g., `HotKeyModifier.CONTROL + HotKeyModifier.ALT`).
+     *                  Use 0 for no modifiers.
+     * @param listener callback invoked when the hotkey is pressed.
+     * @return a registration handle for [unregister], or -1 on failure.
+     */
+    fun register(keyCode: Int, modifiers: Int = 0, listener: HotKeyListener): Long {
+        if (!ensureReady()) return -1
+
+        return when (Platform.Current) {
+            Platform.Windows -> registerWindows(keyCode, modifiers, listener)
+            else -> -1
+        }
+    }
+
+    /**
+     * Register a media key as a global hotkey.
+     *
+     * @param mediaKey the media key to register.
+     * @param listener callback invoked when the key is pressed.
+     * @return a registration handle for [unregister], or -1 on failure.
+     */
+    fun register(mediaKey: MediaKey, listener: HotKeyListener): Long {
+        if (!ensureReady()) return -1
+
+        return when (Platform.Current) {
+            Platform.Windows -> registerWindows(mediaKey.nativeCode, 0, listener)
+            else -> -1
+        }
+    }
+
+    /**
+     * Unregister a previously registered global hotkey.
+     *
+     * @param handle the registration handle returned by [register].
+     * @return true if the hotkey was successfully unregistered.
+     */
+    fun unregister(handle: Long): Boolean {
+        if (!ensureReady()) return false
+
+        return when (Platform.Current) {
+            Platform.Windows -> unregisterWindows(handle)
+            else -> false
+        }
+    }
+
+    /**
+     * Shut down the hotkey subsystem.
+     * Unregisters all hotkeys and stops the native message loop.
+     */
+    fun shutdown() {
+        if (!initialized) return
+
+        when (Platform.Current) {
+            Platform.Windows -> {
+                NativeWindowsHotKeyBridge.nativeShutdown()
+                NativeWindowsHotKeyBridge.clearListeners()
+            }
+            else -> {}
+        }
+
+        initialized = false
+    }
+
+    private fun registerWindows(keyCode: Int, modifiers: Int, listener: HotKeyListener): Long {
+        val id = NativeWindowsHotKeyBridge.registerListener(listener)
+
+        // Map portable modifier flags to Win32 MOD_* constants
+        var winMods = 0
+        if (modifiers and HotKeyModifier.ALT.nativeFlag != 0) winMods = winMods or 0x0001 // MOD_ALT
+        if (modifiers and HotKeyModifier.CONTROL.nativeFlag != 0) winMods = winMods or 0x0002 // MOD_CONTROL
+        if (modifiers and HotKeyModifier.SHIFT.nativeFlag != 0) winMods = winMods or 0x0004 // MOD_SHIFT
+        if (modifiers and HotKeyModifier.META.nativeFlag != 0) winMods = winMods or 0x0008 // MOD_WIN
+        winMods = winMods or 0x4000 // MOD_NOREPEAT
+
+        val error = NativeWindowsHotKeyBridge.nativeRegister(id, winMods, keyCode)
+        if (error != null) {
+            NativeWindowsHotKeyBridge.removeListener(id)
+            lastError = error
+            logger.warning("register(keyCode=$keyCode, modifiers=$modifiers) failed: $error")
+            return -1
+        }
+        lastError = null
+        return id
+    }
+
+    private fun unregisterWindows(handle: Long): Boolean {
+        val error = NativeWindowsHotKeyBridge.nativeUnregister(handle)
+        NativeWindowsHotKeyBridge.removeListener(handle)
+        lastError = error
+        if (error != null) {
+            logger.warning("unregister(handle=$handle) failed: $error")
+            return false
+        }
+        return true
+    }
+
+    private fun ensureReady(): Boolean {
+        if (!isAvailable) {
+            lastError = "Not available on this platform"
+            return false
+        }
+        if (!initialized) {
+            lastError = "Not initialized - call GlobalHotKeyManager.initialize() first"
+            return false
+        }
+        return true
+    }
+}
