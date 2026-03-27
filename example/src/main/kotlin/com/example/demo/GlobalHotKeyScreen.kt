@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.globalhotkey.GlobalHotKeyManager
 import io.github.kdroidfilter.nucleus.globalhotkey.HotKeyModifier
 import io.github.kdroidfilter.nucleus.globalhotkey.MediaKey
@@ -47,14 +48,14 @@ fun GlobalHotKeyScreen() {
     val events = remember { mutableStateListOf<String>() }
     var initialized by remember { mutableStateOf(false) }
 
-    // Modifier toggles
+    // Modifier toggles — avoid Ctrl+Alt+Fn on Linux (triggers VT switching)
     var useCtrl by remember { mutableStateOf(true) }
-    var useAlt by remember { mutableStateOf(true) }
-    var useShift by remember { mutableStateOf(false) }
+    var useAlt by remember { mutableStateOf(false) }
+    var useShift by remember { mutableStateOf(true) }
     var useMeta by remember { mutableStateOf(false) }
 
     // Key input
-    var keyText by remember { mutableStateOf("F12") }
+    var keyText by remember { mutableStateOf("K") }
 
     DisposableEffect(Unit) {
         initialized = GlobalHotKeyManager.initialize()
@@ -75,14 +76,16 @@ fun GlobalHotKeyScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val statusText = when {
+                !GlobalHotKeyManager.isAvailable -> "Not available on this platform"
+                !initialized -> "Init failed: ${GlobalHotKeyManager.lastError}"
+                Platform.isWayland -> "Initialized (Wayland/Portal)"
+                else -> "Initialized"
+            }
             Text(
-                text = if (GlobalHotKeyManager.isAvailable) "Available" else "Not available on this platform",
+                text = statusText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (GlobalHotKeyManager.isAvailable) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
+                color = if (initialized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             )
 
             Spacer(modifier = Modifier.height(24.dp))

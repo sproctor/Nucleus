@@ -43,6 +43,20 @@ val buildNativeWindows by tasks.registering(Exec::class) {
     commandLine("cmd", "/c", File(nativeDir, "build.bat").absolutePath)
 }
 
+val buildNativeLinux by tasks.registering(Exec::class) {
+    description = "Compiles the C JNI bridge into a Linux shared library"
+    group = "build"
+    val nativeDir = file("src/main/native/linux")
+    val outputDir = file("src/main/resources/nucleus/native")
+    val arch = System.getProperty("os.arch").let { if (it == "amd64") "x64" else "aarch64" }
+    val checkFile = File(outputDir, "linux-$arch/libnucleus_global_hotkey.so")
+    onlyIf { Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC) && !checkFile.exists() }
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("bash", File(nativeDir, "build.sh").absolutePath)
+}
+
 val buildNativeMacOs by tasks.registering(Exec::class) {
     description = "Compiles the Objective-C JNI bridge into macOS dylibs (arm64 + x86_64)"
     group = "build"
@@ -57,12 +71,12 @@ val buildNativeMacOs by tasks.registering(Exec::class) {
 }
 
 tasks.processResources {
-    dependsOn(buildNativeWindows, buildNativeMacOs)
+    dependsOn(buildNativeWindows, buildNativeMacOs, buildNativeLinux)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeWindows, buildNativeMacOs)
+        dependsOn(buildNativeWindows, buildNativeMacOs, buildNativeLinux)
     }
 }
 
