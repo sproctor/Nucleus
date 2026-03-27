@@ -38,6 +38,7 @@ import java.util.logging.Logger
  */
 object GlobalHotKeyManager {
     private val logger = Logger.getLogger(GlobalHotKeyManager::class.java.simpleName)
+    @Volatile
     private var initialized = false
 
     /** The last error from a native operation, or null if the last operation succeeded. */
@@ -59,6 +60,7 @@ object GlobalHotKeyManager {
      *
      * @return true if initialization succeeded.
      */
+    @Synchronized
     fun initialize(): Boolean {
         if (initialized) return true
         if (!isAvailable) {
@@ -145,6 +147,7 @@ object GlobalHotKeyManager {
      * Shut down the hotkey subsystem.
      * Unregisters all hotkeys and stops the native message loop.
      */
+    @Synchronized
     fun shutdown() {
         if (!initialized) return
 
