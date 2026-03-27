@@ -215,17 +215,41 @@ Uses the `org.freedesktop.portal.GlobalShortcuts` XDG Desktop Portal via GIO/GDB
 - The application must be launched from that `.desktop` file (or have `GIO_LAUNCHED_DESKTOP_FILE` set)
 - GNOME validates the `app_id` against `g_application_id_is_valid` — a plain name like `MyApp` will be rejected
 
-Configure the app id in your Nucleus build config:
+**Step 1 — Set a reverse-DNS `packageName` in your Nucleus build config:**
+
+`packageName` is used as the `.desktop` filename on Linux. It **must** follow reverse-DNS notation and pass `g_application_id_is_valid`. A plain name like `MyApp` or `my-app` is rejected by GNOME.
 
 ```kotlin
 nucleus.application {
     nativeDistributions {
-        packageName = "io.github.kdroidfilter.MyApp" // used as the .desktop filename
+        appName    = "MyApp"                       // human-readable display name
+        packageName = "io.github.kdroidfilter.MyApp" // becomes io.github.kdroidfilter.MyApp.desktop
     }
 }
 ```
 
-The portal backend uses a dedicated GLib thread permanently attached to the JVM. Each `register()` / `unregister()` call recreates the portal session (GNOME only allows one `BindShortcuts` per session) and posts the full shortcut list.
+!!! warning "`appName` is required"
+    Without `appName`, the application title shown in GNOME Shell and window decorations
+    will fall back to the full `packageName` (`io.github.kdroidfilter.MyApp`).
+    Always set both: `packageName` for the reverse-DNS identity, `appName` for the display name.
+
+**Step 2 — Launch from the `.desktop` file:**
+
+The portal uses `GIO_LAUNCHED_DESKTOP_FILE` (set automatically by the desktop environment when the app is started from its launcher entry) to identify the calling application. If you launch the app directly from a terminal, this variable is not set and GNOME will reject the session with response code 2.
+
+For development, you can set it manually:
+
+```bash
+GIO_LAUNCHED_DESKTOP_FILE=/usr/share/applications/io.github.kdroidfilter.MyApp.desktop \
+GIO_LAUNCHED_DESKTOP_FILE_PID=$$ \
+./my-app
+```
+
+Or install the app once (via DEB/AppImage/Flatpak) so the `.desktop` file is registered, then launch from the application menu.
+
+**How the portal session works:**
+
+The portal backend uses a dedicated GLib thread permanently attached to the JVM. Because GNOME only allows one `BindShortcuts` call per portal session, the implementation automatically closes and recreates the session on every `register()` / `unregister()` call, then rebinds the full shortcut list. On Wayland, `register()` blocks the calling thread until GNOME responds — use `Dispatchers.IO` as shown above.
 
 ## Platform Support Matrix
 
