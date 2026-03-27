@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":launcher-linux"))
     implementation(project(":launcher-macos"))
     implementation(project(":global-hotkey"))
+    implementation(libs.coroutines.swing)
     implementation(project(":graalvm-runtime"))
     implementation(libs.reorderable)
     implementation("com.materialkolor:material-kolor:4.1.1")
