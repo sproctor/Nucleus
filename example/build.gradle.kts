@@ -96,7 +96,7 @@ nucleus.application {
     nativeDistributions {
         targetFormats(*TargetFormat.entries.toTypedArray())
         appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
-
+        appName = "NucleusDemo"
         packageName = "io.github.kdroidfilter.NucleusDemo"
         packageVersion = releaseVersion
 
