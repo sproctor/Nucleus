@@ -27,9 +27,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -38,6 +35,9 @@ import io.github.kdroidfilter.nucleus.globalhotkey.GlobalHotKeyManager
 import io.github.kdroidfilter.nucleus.globalhotkey.HotKeyModifier
 import io.github.kdroidfilter.nucleus.globalhotkey.MediaKey
 import io.github.kdroidfilter.nucleus.globalhotkey.plus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.awt.event.KeyEvent
 
 private data class RegisteredHotKey(
@@ -81,12 +81,13 @@ fun GlobalHotKeyScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val statusText = when {
-                !GlobalHotKeyManager.isAvailable -> "Not available on this platform"
-                !initialized -> "Init failed: ${GlobalHotKeyManager.lastError}"
-                Platform.isWayland -> "Initialized (Wayland/Portal)"
-                else -> "Initialized"
-            }
+            val statusText =
+                when {
+                    !GlobalHotKeyManager.isAvailable -> "Not available on this platform"
+                    !initialized -> "Init failed: ${GlobalHotKeyManager.lastError}"
+                    Platform.isWayland -> "Initialized (Wayland/Portal)"
+                    else -> "Initialized"
+                }
             Text(
                 text = statusText,
                 style = MaterialTheme.typography.bodyMedium,
@@ -137,20 +138,36 @@ fun GlobalHotKeyScreen() {
                         val keyCode = resolveKeyCode(keyText) ?: return@Button
                         var mods = 0
                         val parts = mutableListOf<String>()
-                        if (useCtrl) { mods = mods + HotKeyModifier.CONTROL; parts += "Ctrl" }
-                        if (useAlt) { mods = mods + HotKeyModifier.ALT; parts += "Alt" }
-                        if (useShift) { mods = mods + HotKeyModifier.SHIFT; parts += "Shift" }
-                        if (useMeta) { mods = mods + HotKeyModifier.META; parts += "Meta" }
+                        if (useCtrl) {
+                            mods = mods + HotKeyModifier.CONTROL
+                            parts += "Ctrl"
+                        }
+                        if (useAlt) {
+                            mods = mods + HotKeyModifier.ALT
+                            parts += "Alt"
+                        }
+                        if (useShift) {
+                            mods = mods + HotKeyModifier.SHIFT
+                            parts += "Shift"
+                        }
+                        if (useMeta) {
+                            mods = mods + HotKeyModifier.META
+                            parts += "Meta"
+                        }
                         parts += keyText
                         val label = parts.joinToString("+")
                         scope.launch(Dispatchers.IO) {
-                            val handle = GlobalHotKeyManager.register(keyCode, mods) { _, _ ->
-                                events.add(0, "Hotkey pressed: $label")
-                                if (events.size > 50) events.removeAt(events.lastIndex)
-                            }
+                            val handle =
+                                GlobalHotKeyManager.register(keyCode, mods) { _, _ ->
+                                    events.add(0, "Hotkey pressed: $label")
+                                    if (events.size > 50) events.removeAt(events.lastIndex)
+                                }
                             withContext(Dispatchers.Main) {
-                                if (handle >= 0) registered += RegisteredHotKey(handle, label)
-                                else events.add(0, "Failed to register $label: ${GlobalHotKeyManager.lastError}")
+                                if (handle >= 0) {
+                                    registered += RegisteredHotKey(handle, label)
+                                } else {
+                                    events.add(0, "Failed to register $label: ${GlobalHotKeyManager.lastError}")
+                                }
                             }
                         }
                     },
@@ -168,13 +185,17 @@ fun GlobalHotKeyScreen() {
                     OutlinedButton(
                         onClick = {
                             scope.launch(Dispatchers.IO) {
-                                val handle = GlobalHotKeyManager.register(mk) { _, _ ->
-                                    events.add(0, "Media key: ${mk.name}")
-                                    if (events.size > 50) events.removeAt(events.lastIndex)
-                                }
+                                val handle =
+                                    GlobalHotKeyManager.register(mk) { _, _ ->
+                                        events.add(0, "Media key: ${mk.name}")
+                                        if (events.size > 50) events.removeAt(events.lastIndex)
+                                    }
                                 withContext(Dispatchers.Main) {
-                                    if (handle >= 0) registered += RegisteredHotKey(handle, mk.name)
-                                    else events.add(0, "Failed: ${mk.name}: ${GlobalHotKeyManager.lastError}")
+                                    if (handle >= 0) {
+                                        registered += RegisteredHotKey(handle, mk.name)
+                                    } else {
+                                        events.add(0, "Failed: ${mk.name}: ${GlobalHotKeyManager.lastError}")
+                                    }
                                 }
                             }
                         },
@@ -212,9 +233,10 @@ fun GlobalHotKeyScreen() {
                                                 }
                                             }
                                         },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.error,
-                                        ),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error,
+                                            ),
                                     ) { Text("Remove") }
                                 }
                             }
@@ -248,6 +270,7 @@ fun GlobalHotKeyScreen() {
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 private fun resolveKeyCode(text: String): Int? {
     val upper = text.trim().uppercase()
     return when {
