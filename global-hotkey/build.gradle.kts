@@ -43,13 +43,26 @@ val buildNativeWindows by tasks.registering(Exec::class) {
     commandLine("cmd", "/c", File(nativeDir, "build.bat").absolutePath)
 }
 
+val buildNativeMacOs by tasks.registering(Exec::class) {
+    description = "Compiles the Objective-C JNI bridge into macOS dylibs (arm64 + x86_64)"
+    group = "build"
+    val nativeDir = file("src/main/native/macos")
+    val outputDir = file("src/main/resources/nucleus/native")
+    val checkFile = File(outputDir, "darwin-aarch64/libnucleus_global_hotkey.dylib")
+    onlyIf { Os.isFamily(Os.FAMILY_MAC) && !checkFile.exists() }
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("bash", File(nativeDir, "build.sh").absolutePath)
+}
+
 tasks.processResources {
-    dependsOn(buildNativeWindows)
+    dependsOn(buildNativeWindows, buildNativeMacOs)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeWindows)
+        dependsOn(buildNativeWindows, buildNativeMacOs)
     }
 }
 

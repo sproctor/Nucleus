@@ -1,6 +1,7 @@
 package io.github.kdroidfilter.nucleus.globalhotkey
 
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.globalhotkey.macos.NativeMacOsHotKeyBridge
 import io.github.kdroidfilter.nucleus.globalhotkey.windows.NativeWindowsHotKeyBridge
 import java.util.logging.Logger
 
@@ -13,7 +14,7 @@ import java.util.logging.Logger
  *
  * Currently implemented:
  * - **Windows**: Win32 `RegisterHotKey` / `UnregisterHotKey` via JNI.
- * - **macOS**: No-op (not yet implemented).
+ * - **macOS**: Carbon `RegisterEventHotKey` / `UnregisterEventHotKey` via JNI.
  * - **Linux**: No-op (not yet implemented).
  *
  * Thread-safe singleton.
@@ -44,6 +45,7 @@ object GlobalHotKeyManager {
     val isAvailable: Boolean
         get() = when (Platform.Current) {
             Platform.Windows -> NativeWindowsHotKeyBridge.isLoaded
+            Platform.MacOS -> NativeMacOsHotKeyBridge.isLoaded
             else -> false
         }
 
@@ -63,6 +65,7 @@ object GlobalHotKeyManager {
 
         val error = when (Platform.Current) {
             Platform.Windows -> NativeWindowsHotKeyBridge.nativeInit()
+            Platform.MacOS -> NativeMacOsHotKeyBridge.nativeInit()
             else -> "Unsupported platform"
         }
 
@@ -88,6 +91,7 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> registerWindows(keyCode, modifiers, listener)
+            Platform.MacOS -> registerMacOs(keyCode, modifiers, listener)
             else -> -1
         }
     }
@@ -104,6 +108,11 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> registerWindows(mediaKey.nativeCode, 0, listener)
+            Platform.MacOS -> {
+                lastError = "Media keys are not supported on macOS"
+                logger.warning(lastError)
+                -1
+            }
             else -> -1
         }
     }
@@ -119,6 +128,7 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> unregisterWindows(handle)
+            Platform.MacOS -> unregisterMacOs(handle)
             else -> false
         }
     }
@@ -134,6 +144,10 @@ object GlobalHotKeyManager {
             Platform.Windows -> {
                 NativeWindowsHotKeyBridge.nativeShutdown()
                 NativeWindowsHotKeyBridge.clearListeners()
+            }
+            Platform.MacOS -> {
+                NativeMacOsHotKeyBridge.nativeShutdown()
+                NativeMacOsHotKeyBridge.clearListeners()
             }
             else -> {}
         }
@@ -166,6 +180,31 @@ object GlobalHotKeyManager {
     private fun unregisterWindows(handle: Long): Boolean {
         val error = NativeWindowsHotKeyBridge.nativeUnregister(handle)
         NativeWindowsHotKeyBridge.removeListener(handle)
+        lastError = error
+        if (error != null) {
+            logger.warning("unregister(handle=$handle) failed: $error")
+            return false
+        }
+        return true
+    }
+
+    private fun registerMacOs(keyCode: Int, modifiers: Int, listener: HotKeyListener): Long {
+        val id = NativeMacOsHotKeyBridge.registerListener(listener)
+
+        val error = NativeMacOsHotKeyBridge.nativeRegister(id, modifiers, keyCode)
+        if (error != null) {
+            NativeMacOsHotKeyBridge.removeListener(id)
+            lastError = error
+            logger.warning("register(keyCode=$keyCode, modifiers=$modifiers) failed: $error")
+            return -1
+        }
+        lastError = null
+        return id
+    }
+
+    private fun unregisterMacOs(handle: Long): Boolean {
+        val error = NativeMacOsHotKeyBridge.nativeUnregister(handle)
+        NativeMacOsHotKeyBridge.removeListener(handle)
         lastError = error
         if (error != null) {
             logger.warning("unregister(handle=$handle) failed: $error")
