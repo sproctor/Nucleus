@@ -1,6 +1,8 @@
 package io.github.kdroidfilter.nucleus.globalhotkey
 
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.globalhotkey.linux.NativeLinuxHotKeyBridge
+import io.github.kdroidfilter.nucleus.globalhotkey.macos.NativeMacOsHotKeyBridge
 import io.github.kdroidfilter.nucleus.globalhotkey.windows.NativeWindowsHotKeyBridge
 import java.util.logging.Logger
 
@@ -13,8 +15,10 @@ import java.util.logging.Logger
  *
  * Currently implemented:
  * - **Windows**: Win32 `RegisterHotKey` / `UnregisterHotKey` via JNI.
- * - **macOS**: No-op (not yet implemented).
- * - **Linux**: No-op (not yet implemented).
+ * - **macOS**: Carbon `RegisterEventHotKey` / `UnregisterEventHotKey` via JNI.
+ * - **Linux (X11)**: X11 `XGrabKey` / `XUngrabKey` via JNI.
+ * - **Linux (Wayland)**: `org.freedesktop.portal.GlobalShortcuts` D-Bus portal via JNI.
+ *   Requires a reverse-DNS `.desktop` file and the app launched from it.
  *
  * Thread-safe singleton.
  *
@@ -44,6 +48,8 @@ object GlobalHotKeyManager {
     val isAvailable: Boolean
         get() = when (Platform.Current) {
             Platform.Windows -> NativeWindowsHotKeyBridge.isLoaded
+            Platform.MacOS -> NativeMacOsHotKeyBridge.isLoaded
+            Platform.Linux -> NativeLinuxHotKeyBridge.isLoaded
             else -> false
         }
 
@@ -63,6 +69,8 @@ object GlobalHotKeyManager {
 
         val error = when (Platform.Current) {
             Platform.Windows -> NativeWindowsHotKeyBridge.nativeInit()
+            Platform.MacOS -> NativeMacOsHotKeyBridge.nativeInit()
+            Platform.Linux -> NativeLinuxHotKeyBridge.nativeInit()
             else -> "Unsupported platform"
         }
 
@@ -88,6 +96,8 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> registerWindows(keyCode, modifiers, listener)
+            Platform.MacOS -> registerMacOs(keyCode, modifiers, listener)
+            Platform.Linux -> registerLinux(keyCode, modifiers, listener)
             else -> -1
         }
     }
@@ -104,6 +114,12 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> registerWindows(mediaKey.nativeCode, 0, listener)
+            Platform.MacOS -> {
+                lastError = "Media keys are not supported on macOS"
+                logger.warning(lastError)
+                -1
+            }
+            Platform.Linux -> registerLinux(mediaKey.nativeCode, 0, listener)
             else -> -1
         }
     }
@@ -119,6 +135,8 @@ object GlobalHotKeyManager {
 
         return when (Platform.Current) {
             Platform.Windows -> unregisterWindows(handle)
+            Platform.MacOS -> unregisterMacOs(handle)
+            Platform.Linux -> unregisterLinux(handle)
             else -> false
         }
     }
@@ -134,6 +152,14 @@ object GlobalHotKeyManager {
             Platform.Windows -> {
                 NativeWindowsHotKeyBridge.nativeShutdown()
                 NativeWindowsHotKeyBridge.clearListeners()
+            }
+            Platform.MacOS -> {
+                NativeMacOsHotKeyBridge.nativeShutdown()
+                NativeMacOsHotKeyBridge.clearListeners()
+            }
+            Platform.Linux -> {
+                NativeLinuxHotKeyBridge.nativeShutdown()
+                NativeLinuxHotKeyBridge.clearListeners()
             }
             else -> {}
         }
@@ -166,6 +192,55 @@ object GlobalHotKeyManager {
     private fun unregisterWindows(handle: Long): Boolean {
         val error = NativeWindowsHotKeyBridge.nativeUnregister(handle)
         NativeWindowsHotKeyBridge.removeListener(handle)
+        lastError = error
+        if (error != null) {
+            logger.warning("unregister(handle=$handle) failed: $error")
+            return false
+        }
+        return true
+    }
+
+    private fun registerMacOs(keyCode: Int, modifiers: Int, listener: HotKeyListener): Long {
+        val id = NativeMacOsHotKeyBridge.registerListener(listener)
+
+        val error = NativeMacOsHotKeyBridge.nativeRegister(id, modifiers, keyCode)
+        if (error != null) {
+            NativeMacOsHotKeyBridge.removeListener(id)
+            lastError = error
+            logger.warning("register(keyCode=$keyCode, modifiers=$modifiers) failed: $error")
+            return -1
+        }
+        lastError = null
+        return id
+    }
+
+    private fun unregisterMacOs(handle: Long): Boolean {
+        val error = NativeMacOsHotKeyBridge.nativeUnregister(handle)
+        NativeMacOsHotKeyBridge.removeListener(handle)
+        lastError = error
+        if (error != null) {
+            logger.warning("unregister(handle=$handle) failed: $error")
+            return false
+        }
+        return true
+    }
+
+    private fun registerLinux(keyCode: Int, modifiers: Int, listener: HotKeyListener): Long {
+        val id = NativeLinuxHotKeyBridge.registerListener(listener)
+        val error = NativeLinuxHotKeyBridge.nativeRegister(id, modifiers, keyCode)
+        if (error != null) {
+            NativeLinuxHotKeyBridge.removeListener(id)
+            lastError = error
+            logger.warning("register(keyCode=$keyCode, modifiers=$modifiers) failed: $error")
+            return -1
+        }
+        lastError = null
+        return id
+    }
+
+    private fun unregisterLinux(handle: Long): Boolean {
+        val error = NativeLinuxHotKeyBridge.nativeUnregister(handle)
+        NativeLinuxHotKeyBridge.removeListener(handle)
         lastError = error
         if (error != null) {
             logger.warning("unregister(handle=$handle) failed: $error")

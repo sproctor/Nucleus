@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":launcher-linux"))
     implementation(project(":launcher-macos"))
     implementation(project(":global-hotkey"))
+    implementation(libs.coroutines.swing)
     implementation(project(":graalvm-runtime"))
     implementation(libs.reorderable)
     implementation("com.materialkolor:material-kolor:4.1.1")
@@ -95,8 +96,8 @@ nucleus.application {
     nativeDistributions {
         targetFormats(*TargetFormat.entries.toTypedArray())
         appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
-
-        packageName = "NucleusDemo"
+        appName = "NucleusDemo"
+        packageName = "io.github.kdroidfilter.NucleusDemo"
         packageVersion = releaseVersion
 
         // ============================================================
