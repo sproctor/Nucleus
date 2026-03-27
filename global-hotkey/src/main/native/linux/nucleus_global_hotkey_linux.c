@@ -95,15 +95,6 @@ static int             g_session_seq = 0;
 static volatile int    g_resp_done = 0;
 static volatile guint32 g_resp_code = 99;
 
-/* Portal bind request (main thread → portal thread) */
-typedef struct {
-    volatile int done;
-    volatile int result;
-    char         error[512];
-    pthread_mutex_t mutex;
-    pthread_cond_t  cond;
-} BindRequest;
-
 /* ------------------------------------------------------------------ */
 /* JNI callback                                                        */
 /* ------------------------------------------------------------------ */
@@ -464,35 +455,13 @@ static int portal_bind(char *err_buf, int err_sz) {
         bind_tok, err_buf, err_sz);
 }
 
-/* Invoked on portal thread via g_main_context_invoke */
-static gboolean portal_bind_on_thread(gpointer data) {
-    BindRequest *req = data;
-    req->result = portal_bind(req->error, sizeof(req->error));
-    pthread_mutex_lock(&req->mutex);
-    req->done = 1;
-    pthread_cond_signal(&req->cond);
-    pthread_mutex_unlock(&req->mutex);
+/* Dispatched on the portal thread via g_main_context_invoke — non-blocking for the caller. */
+static gboolean portal_bind_async(gpointer data) {
+    (void)data;
+    char err[512] = {0};
+    if (portal_bind(err, sizeof(err)) != 0)
+        fprintf(stderr, "nucleus: portal bind failed: %s\n", err);
     return G_SOURCE_REMOVE;
-}
-
-/* Called from any thread — posts work to portal thread and waits */
-static int portal_bind_sync(char *err_buf, int err_sz) {
-    BindRequest req = { .done = 0, .result = -1, .error = {0} };
-    pthread_mutex_init(&req.mutex, NULL);
-    pthread_cond_init(&req.cond, NULL);
-
-    g_main_context_invoke(g_portal_ctx, portal_bind_on_thread, &req);
-
-    pthread_mutex_lock(&req.mutex);
-    while (!req.done) pthread_cond_wait(&req.cond, &req.mutex);
-    pthread_mutex_unlock(&req.mutex);
-
-    if (req.result != 0 && err_buf)
-        snprintf(err_buf, err_sz, "%s", req.error);
-
-    pthread_mutex_destroy(&req.mutex);
-    pthread_cond_destroy(&req.cond);
-    return req.result;
 }
 
 /* Portal thread entry: attach JVM, subscribe signals, run main loop.
@@ -687,11 +656,8 @@ Java_io_github_kdroidfilter_nucleus_globalhotkey_linux_NativeLinuxHotKeyBridge_n
     } else if (g_backend == BACKEND_PORTAL) {
         g_hotkeyCount++;
         pthread_mutex_unlock(&g_mutex);
-        char err[512] = {0};
-        if (portal_bind_sync(err, sizeof(err)) != 0) {
-            pthread_mutex_lock(&g_mutex); g_hotkeyCount--; pthread_mutex_unlock(&g_mutex);
-            return (*env)->NewStringUTF(env, err);
-        }
+        /* Fire-and-forget: portal bind runs on the portal thread; never blocks the caller. */
+        g_main_context_invoke(g_portal_ctx, portal_bind_async, NULL);
 
     } else {
         pthread_mutex_unlock(&g_mutex);
@@ -719,10 +685,8 @@ Java_io_github_kdroidfilter_nucleus_globalhotkey_linux_NativeLinuxHotKeyBridge_n
     pthread_mutex_unlock(&g_mutex);
 
     if (g_backend == BACKEND_X11) x11_ungrab(&entry);
-    else if (g_backend == BACKEND_PORTAL) {
-        char err[512];
-        portal_bind_sync(err, sizeof(err)); /* rebind remaining */
-    }
+    else if (g_backend == BACKEND_PORTAL)
+        g_main_context_invoke(g_portal_ctx, portal_bind_async, NULL); /* rebind remaining */
     return NULL;
 }
 
