@@ -102,9 +102,10 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     )
 
                     if (currentOS == OS.MacOS) {
-                        val dockName = app.nativeDistributions.appName
-                            ?: app.nativeDistributions.packageName
-                            ?: project.name
+                        val dockName =
+                            app.nativeDistributions.appName
+                                ?: app.nativeDistributions.packageName
+                                ?: project.name
                         add("-Dapple.awt.application.name=$dockName")
                     }
 
