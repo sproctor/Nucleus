@@ -40,7 +40,6 @@ import io.github.kdroidfilter.nucleus.menu.macos.NativeKeyShortcut
 import io.github.kdroidfilter.nucleus.menu.macos.NativeMenuBar
 import io.github.kdroidfilter.nucleus.menu.macos.NsMenuItemBadge
 import io.github.kdroidfilter.nucleus.menu.macos.NsMenuItemImage
-import io.github.kdroidfilter.nucleus.menu.macos.NsMenuItemState
 import io.github.kdroidfilter.nucleus.sfsymbols.SFSymbolArrows
 import io.github.kdroidfilter.nucleus.sfsymbols.SFSymbolDevices
 import io.github.kdroidfilter.nucleus.sfsymbols.SFSymbolGeneral
@@ -86,7 +85,11 @@ fun MacOsMenuScreen() {
                     icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.INFO_CIRCLE),
                 ) { log("About") }
                 Separator()
-                Item("Settings...", shortcut = NativeKeyShortcut(","), icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.GEARSHAPE)) {
+                Item(
+                    "Settings...",
+                    shortcut = NativeKeyShortcut(","),
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.GEARSHAPE),
+                ) {
                     log("Settings")
                 }
                 Separator()
@@ -99,7 +102,11 @@ fun MacOsMenuScreen() {
                 ) { log("Hide Others") }
                 Item("Show All") { log("Show All") }
                 Separator()
-                Item("Quit Nucleus Demo", shortcut = NativeKeyShortcut("q"), icon = NsMenuItemImage.SystemSymbol(SFSymbolPower.POWER)) {
+                Item(
+                    "Quit Nucleus Demo",
+                    shortcut = NativeKeyShortcut("q"),
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolPower.POWER),
+                ) {
                     log("Quit")
                 }
             }
@@ -110,29 +117,53 @@ fun MacOsMenuScreen() {
                     log("$customMenuTitle > New")
                 }
                 if (fileMenuItemCount >= 2) {
-                    Item("Open...", shortcut = NativeKeyShortcut("o"), icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.FOLDER)) {
+                    Item(
+                        "Open...",
+                        shortcut = NativeKeyShortcut("o"),
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.FOLDER),
+                    ) {
                         log("$customMenuTitle > Open")
                     }
                 }
                 if (fileMenuItemCount >= 3) {
                     Menu("Open Recent", icon = NsMenuItemImage.SystemSymbol("clock.arrow.circlepath")) {
-                        Item("project.kt", icon = NsMenuItemImage.SystemSymbol("doc.text")) { log("$customMenuTitle > Recent > project.kt") }
-                        Item("build.gradle.kts", icon = NsMenuItemImage.SystemSymbol("doc.text")) { log("$customMenuTitle > Recent > build.gradle.kts") }
+                        Item(
+                            "project.kt",
+                            icon = NsMenuItemImage.SystemSymbol("doc.text"),
+                        ) { log("$customMenuTitle > Recent > project.kt") }
+                        Item(
+                            "build.gradle.kts",
+                            icon = NsMenuItemImage.SystemSymbol("doc.text"),
+                        ) { log("$customMenuTitle > Recent > build.gradle.kts") }
                         Separator()
-                        Item("Clear Menu", icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.XMARK_CIRCLE)) { log("$customMenuTitle > Clear Recent") }
+                        Item(
+                            "Clear Menu",
+                            icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.XMARK_CIRCLE),
+                        ) { log("$customMenuTitle > Clear Recent") }
                     }
                 }
                 if (fileMenuItemCount >= 4) {
                     Separator()
-                    Item("Save", shortcut = NativeKeyShortcut("s"), icon = NsMenuItemImage.SystemSymbol(SFSymbolShapes.SQUARE_AND_ARROW_DOWN)) {
+                    Item(
+                        "Save",
+                        shortcut = NativeKeyShortcut("s"),
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolShapes.SQUARE_AND_ARROW_DOWN),
+                    ) {
                         log("$customMenuTitle > Save")
                     }
                 }
                 if (fileMenuItemCount >= 5) {
-                    Item("Save As...", shortcut = NativeKeyShortcut("s", shift = true),
-                        icon = NsMenuItemImage.SystemSymbol(SFSymbolShapes.SQUARE_AND_ARROW_DOWN_ON_SQUARE)) { log("$customMenuTitle > Save As") }
+                    Item(
+                        "Save As...",
+                        shortcut = NativeKeyShortcut("s", shift = true),
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolShapes.SQUARE_AND_ARROW_DOWN_ON_SQUARE),
+                    ) { log("$customMenuTitle > Save As") }
                     Separator()
-                    Item("Print...", shortcut = NativeKeyShortcut("p"), icon = NsMenuItemImage.SystemSymbol(SFSymbolDevices.PRINTER)) {
+                    Item(
+                        "Print...",
+                        shortcut = NativeKeyShortcut("p"),
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolDevices.PRINTER),
+                    ) {
                         log("$customMenuTitle > Print")
                     }
                 }
@@ -140,7 +171,11 @@ fun MacOsMenuScreen() {
 
             // ── Edit ──
             Menu("Edit") {
-                Item("Undo", shortcut = NativeKeyShortcut("z"), icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_UTURN_BACKWARD)) {
+                Item(
+                    "Undo",
+                    shortcut = NativeKeyShortcut("z"),
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_UTURN_BACKWARD),
+                ) {
                     log("Edit > Undo")
                 }
                 Item(
@@ -149,13 +184,21 @@ fun MacOsMenuScreen() {
                     icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_UTURN_FORWARD),
                 ) { log("Edit > Redo") }
                 Separator()
-                Item("Cut", shortcut = NativeKeyShortcut("x"), icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.SCISSORS)) {
+                Item(
+                    "Cut",
+                    shortcut = NativeKeyShortcut("x"),
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.SCISSORS),
+                ) {
                     log("Edit > Cut")
                 }
                 Item("Copy", shortcut = NativeKeyShortcut("c"), icon = NsMenuItemImage.SystemSymbol("doc.on.doc")) {
                     log("Edit > Copy")
                 }
-                Item("Paste", shortcut = NativeKeyShortcut("v"), icon = NsMenuItemImage.SystemSymbol("doc.on.clipboard")) {
+                Item(
+                    "Paste",
+                    shortcut = NativeKeyShortcut("v"),
+                    icon = NsMenuItemImage.SystemSymbol("doc.on.clipboard"),
+                ) {
                     log("Edit > Paste")
                 }
                 // Alternate item — shown when Option is held
@@ -164,7 +207,10 @@ fun MacOsMenuScreen() {
                     shortcut = NativeKeyShortcut("v", option = true, shift = true),
                     isAlternate = true,
                 ) { log("Edit > Paste & Match Style") }
-                Item("Delete", icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.DELETE_LEFT)) { log("Edit > Delete") }
+                Item(
+                    "Delete",
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.DELETE_LEFT),
+                ) { log("Edit > Delete") }
                 Item("Select All", shortcut = NativeKeyShortcut("a")) { log("Edit > Select All") }
                 Separator()
                 Menu("Find", icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.MAGNIFYINGGLASS)) {
@@ -172,8 +218,13 @@ fun MacOsMenuScreen() {
                     Item("Find and Replace...", shortcut = NativeKeyShortcut("f", option = true)) {
                         log("Edit > Find & Replace")
                     }
-                    Item("Find Next", shortcut = NativeKeyShortcut("g")) { log("Edit > Find Next") }
-                    Item("Find Previous", shortcut = NativeKeyShortcut("g", shift = true)) { log("Edit > Find Previous") }
+                    Item("Find Next", shortcut = NativeKeyShortcut("g")) {
+                        log("Edit > Find Next")
+                    }
+                    Item(
+                        "Find Previous",
+                        shortcut = NativeKeyShortcut("g", shift = true),
+                    ) { log("Edit > Find Previous") }
                 }
                 Menu("Transform", icon = NsMenuItemImage.SystemSymbol(SFSymbolTextFormatting.TEXTFORMAT)) {
                     Item("Make Uppercase", shortcut = NativeKeyShortcut("u", shift = true)) { log("Edit > Uppercase") }
@@ -185,35 +236,80 @@ fun MacOsMenuScreen() {
             // ── View (reactive checkboxes + radio + indentation) ──
             Menu("View") {
                 SectionHeader("Panels")
-                CheckboxItem("Show Toolbar", checked = showToolbar, icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.SIDEBAR_LEFT),
-                    onCheckedChange = { showToolbar = it; log("View > Toolbar = $it") })
-                CheckboxItem("Show Status Bar", checked = showStatusBar,
+                CheckboxItem(
+                    "Show Toolbar",
+                    checked = showToolbar,
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.SIDEBAR_LEFT),
+                    onCheckedChange = {
+                        showToolbar = it
+                        log("View > Toolbar = $it")
+                    },
+                )
+                CheckboxItem(
+                    "Show Status Bar",
+                    checked = showStatusBar,
                     icon = NsMenuItemImage.SystemSymbol("rectangle.bottomhalf.inset.filled"),
-                    onCheckedChange = { showStatusBar = it; log("View > Status Bar = $it") })
-                CheckboxItem("Show Navigator", checked = showNavigator,
+                    onCheckedChange = {
+                        showStatusBar = it
+                        log("View > Status Bar = $it")
+                    },
+                )
+                CheckboxItem(
+                    "Show Navigator",
+                    checked = showNavigator,
                     icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.SIDEBAR_LEADING),
                     toolTip = "Toggle the navigator panel",
-                    onCheckedChange = { showNavigator = it; log("View > Navigator = $it") })
+                    onCheckedChange = {
+                        showNavigator = it
+                        log("View > Navigator = $it")
+                    },
+                )
 
                 Separator()
                 SectionHeader("Theme")
-                RadioButtonItem("System", selected = selectedTheme == "System",
-                    onClick = { selectedTheme = "System"; log("View > Theme = System") })
-                RadioButtonItem("Light", selected = selectedTheme == "Light",
-                    onClick = { selectedTheme = "Light"; log("View > Theme = Light") })
-                RadioButtonItem("Dark", selected = selectedTheme == "Dark",
-                    onClick = { selectedTheme = "Dark"; log("View > Theme = Dark") })
+                RadioButtonItem(
+                    "System",
+                    selected = selectedTheme == "System",
+                    onClick = {
+                        selectedTheme = "System"
+                        log("View > Theme = System")
+                    },
+                )
+                RadioButtonItem(
+                    "Light",
+                    selected = selectedTheme == "Light",
+                    onClick = {
+                        selectedTheme = "Light"
+                        log("View > Theme = Light")
+                    },
+                )
+                RadioButtonItem(
+                    "Dark",
+                    selected = selectedTheme == "Dark",
+                    onClick = {
+                        selectedTheme = "Dark"
+                        log("View > Theme = Dark")
+                    },
+                )
 
                 Separator()
                 SectionHeader("Indentation")
-                Item("Project", indentationLevel = 0, icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.FOLDER)) { log("View > Project") }
+                Item(
+                    "Project",
+                    indentationLevel = 0,
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.FOLDER),
+                ) { log("View > Project") }
                 Item("Source Files", indentationLevel = 1, icon = NsMenuItemImage.SystemSymbol("doc.text")) {
                     log("View > Source")
                 }
                 Item("Resources", indentationLevel = 1, icon = NsMenuItemImage.SystemSymbol(SFSymbolMedia.PHOTO)) {
                     log("View > Resources")
                 }
-                Item("Tests", indentationLevel = 2, icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.CHECKMARK_CIRCLE)) {
+                Item(
+                    "Tests",
+                    indentationLevel = 2,
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.CHECKMARK_CIRCLE),
+                ) {
                     log("View > Tests")
                 }
 
@@ -226,33 +322,68 @@ fun MacOsMenuScreen() {
             }
 
             // ── Badges (conditionally shown) ──
-            if (showBadgesMenu) Menu("Badges") {
-                Item("Inbox", icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.TRAY_FILL),
-                    badge = NsMenuItemBadge.Count(inboxCount)) { log("Badges > Inbox ($inboxCount)") }
-                Item("Software Update", icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_DOWN_CIRCLE),
-                    badge = NsMenuItemBadge.updates(3)) { log("Badges > Update") }
-                Item("Security Alerts", icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.EXCLAMATIONMARK_TRIANGLE),
-                    badge = NsMenuItemBadge.alerts(1)) { log("Badges > Alerts") }
-                Item("Downloads", icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_DOWN_TO_LINE),
-                    badge = NsMenuItemBadge.newItems(7)) { log("Badges > Downloads") }
-                Item("Build Status", icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.HAMMER),
-                    badge = NsMenuItemBadge.Text("PASS")) { log("Badges > Build") }
-                Separator()
-                Item("Disabled Entry", enabled = false, icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.NOSIGN))
-                Item("With Subtitle", icon = NsMenuItemImage.SystemSymbol(SFSymbolTextFormatting.TEXT_ALIGNLEFT),
-                    subtitle = "This is a subtitle (macOS 14.4+)") { log("Badges > Subtitle") }
-                Item("With Tooltip (hover me)", icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.QUESTIONMARK_CIRCLE),
-                    toolTip = "Tooltip on hover!") { log("Badges > Tooltip") }
-                Item("Multi-Modifier", shortcut = NativeKeyShortcut("k", shift = true, option = true),
-                    icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.COMMAND)) { log("Badges > Multi-Modifier") }
-                Item("Hidden (has shortcut)", shortcut = NativeKeyShortcut("h", shift = true, option = true),
-                    isHidden = true) { log("Badges > Hidden shortcut triggered") }
+            if (showBadgesMenu) {
+                Menu("Badges") {
+                    Item(
+                        "Inbox",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.TRAY_FILL),
+                        badge = NsMenuItemBadge.Count(inboxCount),
+                    ) { log("Badges > Inbox ($inboxCount)") }
+                    Item(
+                        "Software Update",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_DOWN_CIRCLE),
+                        badge = NsMenuItemBadge.updates(3),
+                    ) { log("Badges > Update") }
+                    Item(
+                        "Security Alerts",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.EXCLAMATIONMARK_TRIANGLE),
+                        badge = NsMenuItemBadge.alerts(1),
+                    ) { log("Badges > Alerts") }
+                    Item(
+                        "Downloads",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolArrows.ARROW_DOWN_TO_LINE),
+                        badge = NsMenuItemBadge.newItems(7),
+                    ) { log("Badges > Downloads") }
+                    Item(
+                        "Build Status",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.HAMMER),
+                        badge = NsMenuItemBadge.Text("PASS"),
+                    ) { log("Badges > Build") }
+                    Separator()
+                    Item("Disabled Entry", enabled = false, icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.NOSIGN))
+                    Item(
+                        "With Subtitle",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolTextFormatting.TEXT_ALIGNLEFT),
+                        subtitle = "This is a subtitle (macOS 14.4+)",
+                    ) { log("Badges > Subtitle") }
+                    Item(
+                        "With Tooltip (hover me)",
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.QUESTIONMARK_CIRCLE),
+                        toolTip = "Tooltip on hover!",
+                    ) { log("Badges > Tooltip") }
+                    Item(
+                        "Multi-Modifier",
+                        shortcut = NativeKeyShortcut("k", shift = true, option = true),
+                        icon = NsMenuItemImage.SystemSymbol(SFSymbolGeneral.COMMAND),
+                    ) { log("Badges > Multi-Modifier") }
+                    Item(
+                        "Hidden (has shortcut)",
+                        shortcut = NativeKeyShortcut("h", shift = true, option = true),
+                        isHidden = true,
+                    ) { log("Badges > Hidden shortcut triggered") }
+                }
             }
 
             // ── Advanced (conditional submenu driven by state) ──
             Menu("Advanced") {
-                CheckboxItem("Enable Advanced", checked = advancedEnabled,
-                    onCheckedChange = { advancedEnabled = it; log("Advanced > Enabled = $it") })
+                CheckboxItem(
+                    "Enable Advanced",
+                    checked = advancedEnabled,
+                    onCheckedChange = {
+                        advancedEnabled = it
+                        log("Advanced > Enabled = $it")
+                    },
+                )
                 if (advancedEnabled) {
                     Separator()
                     Menu("Settings") {
@@ -276,11 +407,20 @@ fun MacOsMenuScreen() {
 
             // ── Help ──
             Menu("Help") {
-                Item("Nucleus Demo Help", shortcut = NativeKeyShortcut("?"),
-                    icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.QUESTIONMARK_CIRCLE)) { log("Help") }
+                Item(
+                    "Nucleus Demo Help",
+                    shortcut = NativeKeyShortcut("?"),
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.QUESTIONMARK_CIRCLE),
+                ) { log("Help") }
                 Separator()
-                Item("Documentation", icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.BOOK)) { log("Help > Docs") }
-                Item("Release Notes", icon = NsMenuItemImage.SystemSymbol("doc.plaintext")) { log("Help > Release Notes") }
+                Item(
+                    "Documentation",
+                    icon = NsMenuItemImage.SystemSymbol(SFSymbolObjectsAndTools.BOOK),
+                ) { log("Help > Docs") }
+                Item(
+                    "Release Notes",
+                    icon = NsMenuItemImage.SystemSymbol("doc.plaintext"),
+                ) { log("Help > Release Notes") }
                 Item("Report an Issue...", icon = NsMenuItemImage.SystemSymbol(SFSymbolStatus.EXCLAMATIONMARK_BUBBLE)) {
                     log("Help > Report")
                 }
@@ -291,10 +431,11 @@ fun MacOsMenuScreen() {
     // ── UI ──
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("NSMenu — Compose API", style = MaterialTheme.typography.headlineSmall)
@@ -414,7 +555,10 @@ fun MacOsMenuScreen() {
 }
 
 @Composable
-private fun MenuCard(title: String, content: @Composable () -> Unit) {
+private fun MenuCard(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),

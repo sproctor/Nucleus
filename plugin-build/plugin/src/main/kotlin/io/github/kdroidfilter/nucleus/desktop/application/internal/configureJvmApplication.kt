@@ -985,9 +985,10 @@ private fun JvmApplicationContext.configureRunTask(
             add("-D$APP_ID=${resolvedAppIdProvider().get()}")
 
             if (currentOS == OS.MacOS) {
-                val dockName = app.nativeDistributions.appName
-                    ?: app.nativeDistributions.packageName
-                    ?: project.name
+                val dockName =
+                    app.nativeDistributions.appName
+                        ?: app.nativeDistributions.packageName
+                        ?: project.name
                 add("-Dapple.awt.application.name=$dockName")
                 val file = app.nativeDistributions.macOS.iconFile.ioFileOrNull
                 if (file != null) add("-Xdock:icon=$file")
