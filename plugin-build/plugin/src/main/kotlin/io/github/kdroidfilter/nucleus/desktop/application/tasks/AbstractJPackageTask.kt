@@ -752,7 +752,9 @@ abstract class AbstractJPackageTask
                     ?: launcherMainClass.get().substringBeforeLast(".")
             plist[PlistKeys.CFBundleIdentifier] = bundleId
             plist[PlistKeys.CFBundleInfoDictionaryVersion] = "6.0"
-            plist[PlistKeys.CFBundleName] = appName.orNull ?: packageName
+            val displayName = appName.orNull ?: packageName
+            plist[PlistKeys.CFBundleName] = displayName
+            plist[PlistKeys.CFBundleDisplayName] = displayName
             plist[PlistKeys.CFBundlePackageType] = "APPL"
             val packageVersion = packageVersion.get()
             plist[PlistKeys.CFBundleShortVersionString] = packageVersion

@@ -1020,6 +1020,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
             doLast {
                 val plist = InfoPlistBuilder()
                 plist[PlistKeys.CFBundleName] = plistBundleName
+                plist[PlistKeys.CFBundleDisplayName] = plistBundleName
                 plist[PlistKeys.CFBundleIdentifier] = plistBundleID
                 plist[PlistKeys.CFBundleVersion] = plistVersion
                 plist[PlistKeys.CFBundleShortVersionString] = plistVersion

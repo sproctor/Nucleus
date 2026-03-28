@@ -160,6 +160,7 @@ internal object PlistKeys {
     val CFBundleIdentifier by this
     val CFBundleInfoDictionaryVersion by this
     val CFBundleName by this
+    val CFBundleDisplayName by this
     val CFBundlePackageType by this
     val CFBundleShortVersionString by this
     val CFBundleSignature by this
