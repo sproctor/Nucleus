@@ -101,6 +101,14 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         },
                     )
 
+                    if (currentOS == OS.MacOS) {
+                        val dockName =
+                            app.nativeDistributions.appName
+                                ?: app.nativeDistributions.packageName
+                                ?: project.name
+                        add("-Dapple.awt.application.name=$dockName")
+                    }
+
                     val tempDir =
                         agentTempDir
                             .get()
@@ -939,7 +947,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
 
     // Generate Info.plist — all DSL values are captured at configuration time
     // to avoid serializing Project/SourceSet references into the configuration cache.
-    val plistBundleName: String = app.nativeDistributions.packageName ?: project.name
+    val plistBundleName: String = app.nativeDistributions.appName ?: app.nativeDistributions.packageName ?: project.name
     val plistBundleID: String? = app.nativeDistributions.macOS.bundleID
     val plistVersion: String =
         app.nativeDistributions.packageVersion
@@ -1013,6 +1021,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
             doLast {
                 val plist = InfoPlistBuilder()
                 plist[PlistKeys.CFBundleName] = plistBundleName
+                plist[PlistKeys.CFBundleDisplayName] = plistBundleName
                 plist[PlistKeys.CFBundleIdentifier] = plistBundleID
                 plist[PlistKeys.CFBundleVersion] = plistVersion
                 plist[PlistKeys.CFBundleShortVersionString] = plistVersion
