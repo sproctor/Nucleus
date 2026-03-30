@@ -99,7 +99,7 @@ nucleus.application {
         targetFormats(*TargetFormat.entries.toTypedArray())
         appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
         appName = "Nucleus Demo"
-        packageName = "io.github.kdroidfilter.NucleusDemo"
+        packageName = "NucleusDemo"
         packageVersion = releaseVersion
 
         // ============================================================
