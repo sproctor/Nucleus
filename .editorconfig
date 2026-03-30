@@ -26,4 +26,4 @@ ktlint = disabled
 ktlint_standard_enum-entry-name-case = disabled
 
 [plugin-build/**]
-max_line_length = off
+ktlint = disabled
