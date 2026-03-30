@@ -67,81 +67,101 @@ That's the entire configuration. The plugin handles compilation, bundling, and l
 
 Here's a real-world example: capturing the screen using macOS's CoreGraphics API. This is a platform API with no JVM equivalent — the kind of thing that would normally require JNI C glue.
 
-**Native side** (`src/nativeMain/kotlin/com/example/screen/ScreenCapture.kt`):
+**Native side** (`src/nativeMain/kotlin/com/example/screen/SystemDesktop.kt`):
 
 ```kotlin
-package com.example.screen
-
-import kotlinx.cinterop.*
-import platform.CoreFoundation.*
-import platform.CoreGraphics.*
-
-class ScreenCapture {
-
-    fun capture(): ByteArray {
-        val image = CGWindowListCreateImage(
-            CGRectInfinite,
-            kCGWindowListOptionOnScreenOnly,
-            kCGNullWindowID,
-            kCGWindowImageDefault
-        ) ?: return ByteArray(0)
-
-        val provider = CGImageGetDataProvider(image)
-        val data = CGDataProviderCopyData(provider)
-
-        val bytes = CFDataGetBytePtr(data)
-        val length = CFDataGetLength(data).toInt()
-        val result = ByteArray(length) { bytes!![it] }
-
-        CFRelease(data)
-        CGImageRelease(image)
-        return result
+// suspend — runs off the main thread, returns PNG bytes
+actual suspend fun captureScreen(): ByteArray = memScoped {
+    if (!CGPreflightScreenCaptureAccess()) {
+        CGRequestScreenCaptureAccess()
+        return@memScoped ByteArray(0)
     }
 
-    fun width(): Int {
-        val image = CGWindowListCreateImage(
-            CGRectInfinite,
-            kCGWindowListOptionOnScreenOnly,
-            kCGNullWindowID,
-            kCGWindowImageDefault
-        ) ?: return 0
-        val w = CGImageGetWidth(image).toInt()
-        CGImageRelease(image)
-        return w
+    val rect = alloc<CGRect>().apply {
+        origin.x = CGRectInfinite.origin.x
+        origin.y = CGRectInfinite.origin.y
+        size.width = CGRectInfinite.size.width
+        size.height = CGRectInfinite.size.height
     }
+    val cgImage = CGWindowListCreateImage(
+        rect.readValue(),
+        kCGWindowListOptionOnScreenOnly,
+        kCGNullWindowID,
+        kCGWindowImageDefault,
+    ) ?: return@memScoped ByteArray(0)
 
-    fun height(): Int {
-        val image = CGWindowListCreateImage(
-            CGRectInfinite,
-            kCGWindowListOptionOnScreenOnly,
-            kCGNullWindowID,
-            kCGWindowImageDefault
-        ) ?: return 0
-        val h = CGImageGetHeight(image).toInt()
-        CGImageRelease(image)
-        return h
+    // Encode as PNG — NSBitmapImageRep handles all the pixel format details
+    val bitmapRep = NSBitmapImageRep(cGImage = cgImage)
+    CGImageRelease(cgImage)
+
+    val pngData = bitmapRep.representationUsingType(
+        NSBitmapImageFileTypePNG,
+        properties = emptyMap<Any?, Any>(),
+    ) ?: return@memScoped ByteArray(0)
+
+    ByteArray(pngData.length.toInt()) { i ->
+        (pngData.bytes!!.reinterpret<ByteVar>() + i)!!.pointed.value
     }
 }
 ```
 
-**JVM side** — the plugin generates the proxy, you just use it:
+**JVM + Compose side** — the plugin generates the proxy, you just use it:
 
 ```kotlin
-import com.example.screen.ScreenCapture
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.example.screen.SystemDesktop
+import kotlinx.coroutines.launch
+import org.jetbrains.skia.Image as SkiaImage
 
-fun main() {
-    val capture = ScreenCapture()
+@Composable
+fun ScreenshotViewer() {
+    val desktop = remember { SystemDesktop() }
+    var bitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var capturing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    val pixels = capture.capture()          // ByteArray, straight from CoreGraphics
-    val w = capture.width()
-    val h = capture.height()
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Button(
+            onClick = {
+                capturing = true
+                scope.launch {
+                    val bytes = desktop.captureScreen()   // suspend — UI never blocks
+                    if (bytes.isNotEmpty()) {
+                        bitmap = SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
+                    }
+                    capturing = false
+                }
+            },
+            enabled = !capturing,
+        ) {
+            Text(if (capturing) "Capturing…" else "Capture Screen")
+        }
 
-    println("Captured ${w}×${h} pixels (${pixels.size} bytes)")
-    capture.close()                         // explicit release (or auto-GC'd)
+        bitmap?.let {
+            Image(
+                bitmap = it,
+                contentDescription = "Screenshot",
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 ```
 
-**No C. No JNI headers. No build scripts. No `System.loadLibrary` call.** The `.dylib` is compiled by the plugin, bundled in the JAR, and extracted automatically at runtime.
+**No C. No JNI headers. No build scripts. No `System.loadLibrary` call.** The `.dylib` is compiled by the plugin, bundled in the JAR, and extracted automatically at runtime. The `suspend` on the native side maps transparently to a coroutine on the JVM — the UI stays responsive while CoreGraphics does the work.
+
+!!! tip "Full working example"
+    The [systeminfo example](https://github.com/kdroidFilter/NucleusNativeAccess/tree/main/examples/systeminfo) in the NucleusNativeAccess repo implements this pattern for all three platforms (CoreGraphics on macOS, XDG ScreenCast + PipeWire on Linux, GDI on Windows), plus native notifications, a system tray menu, and real-time memory updates via `Flow`.
 
 The same pattern works for any other platform API:
 
