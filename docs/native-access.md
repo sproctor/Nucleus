@@ -189,7 +189,15 @@ The same pattern works for any other platform API:
 
 ## Using Top-Level Functions
 
-You don't have to wrap everything in a class. Top-level functions are grouped into a singleton object on the JVM side:
+You don't have to wrap everything in a class. Top-level functions are grouped into a singleton `object` named after `nativeLibName` (first letter uppercased):
+
+```kotlin
+// build.gradle.kts
+kotlinNativeExport {
+    nativeLibName = "utils"          // → object Utils { … }
+    nativePackage = "com.example.utils"
+}
+```
 
 ```kotlin
 // nativeMain — top-level function
@@ -199,37 +207,43 @@ fun currentProcessId(): Int = platform.posix.getpid()
 ```
 
 ```kotlin
-// jvmMain — generated singleton
-import com.example.utils.UtilsFunctions
+// jvmMain — generated object
+import com.example.utils.Utils
 
-val pid = UtilsFunctions.currentProcessId()
+val pid = Utils.currentProcessId()
 ```
 
 ---
 
 ## Supported Types
 
-The plugin handles marshalling automatically for all common types:
+| Type | As param | As return | As property | Notes |
+|------|----------|-----------|-------------|-------|
+| `Int`, `Long`, `Double`, `Float`, `Boolean`, `Byte`, `Short` | ✅ | ✅ | ✅ | Direct pass-through |
+| `String` | ✅ | ✅ | ✅ | UTF-8 output-buffer pattern |
+| `ByteArray` | ✅ | ✅ | — | Pointer + size; also works in `suspend fun` |
+| `enum class` | ✅ | ✅ | ✅ | Ordinal mapping |
+| `data class` | ✅ | ✅ | — | Fields decomposed into flat C ABI args — field types limited (see below) |
+| `Object` (class instances) | ✅ | ✅ | — | Opaque `StableRef` handle, lifecycle tracked |
+| Nested classes | ✅ | ✅ | ✅ | Exported as `Outer_Inner`, up to 3+ nesting levels |
+| `T?` (nullable) | ✅ | ✅ | ✅ | Sentinel-based; **not supported as callback param** |
+| `List<T>`, `Set<T>` | ✅ | ✅ | — | Primitives, `String`, `Enum`, `Object` — **not as property** |
+| `List<DataClass>` | — | ✅ | — | Return only — not supported as param |
+| `Map<K, V>` | ✅ | ✅ | — | Parallel key + value arrays |
+| `(T) -> R` (lambda) | ✅ | — | — | FFM upcall stub; nullable callback params not supported |
+| `suspend fun` | — | ✅ | — | Transparent coroutine + bidirectional cancellation (see limitations) |
+| `Flow<T>` | — | ✅ | — | `channelFlow` on JVM, auto-cancels (see limitations) |
 
-| Type | Notes |
-|------|-------|
-| `Int`, `Long`, `Double`, `Float`, `Boolean`, `Byte`, `Short` | Direct pass-through |
-| `String` | UTF-8, output-buffer pattern |
-| `ByteArray` | Pointer + size |
-| `data class` | Fields decomposed into flat C ABI arguments |
-| `enum class` | Ordinal mapping |
-| `List<T>`, `Set<T>`, `Map<K, V>` | Pointer + count arrays |
-| `T?` (nullable) | Sentinel-based encoding |
-| `(T) -> R` (lambda / callback) | FFM upcall stub |
-| `suspend fun` | Transparent coroutine mapping with cancellation |
-| `Flow<T>` | `channelFlow` on JVM, auto-cancels |
-| `Object` (class instances) | Opaque `StableRef` handle, lifecycle tracked |
+### Data class field limitations
 
-### What stays in commonMain
+Data class fields support: primitives, `String`, `enum class`, other data classes (nested), `Object`.
+**Not supported as fields**: `ByteArray`, `List<T>`, `Set<T>`, `Map<K, V>` — use separate getter methods instead.
 
-Some constructs don't cross the FFM boundary and should stay in shared code:
+### What belongs in commonMain, not nativeMain
 
-- Interfaces, abstract classes, sealed classes
+These constructs can't cross the FFM boundary and should live in shared KMP code:
+
+- Interfaces, abstract/open classes, sealed classes
 - Inheritance hierarchies
 - Generic class definitions
 - Nested collections (`List<List<T>>`)
@@ -238,57 +252,70 @@ Some constructs don't cross the FFM boundary and should stay in shared code:
 
 ## Object Lifecycle
 
-Generated proxy classes implement `AutoCloseable`. Native memory is freed when you call `close()`, or automatically when the object is garbage collected (via Java `Cleaner`):
+Generated proxy classes implement `AutoCloseable`. Native memory is freed on `close()`, or automatically when garbage collected (via Java `Cleaner`):
 
 ```kotlin
-// Explicit — preferred in performance-sensitive code
-val capture = ScreenCapture()
-try {
-    val pixels = capture.capture()
-    // ...
-} finally {
-    capture.close()
-}
-
-// Or use-style
+// Preferred — explicit, deterministic
 ScreenCapture().use { capture ->
-    val pixels = capture.capture()
+    val bytes = capture.captureScreen()
+    // ...
 }
 
-// Implicit — GC will clean up, but timing is non-deterministic
+// Also valid — Cleaner will release when GC runs
 val capture = ScreenCapture()
-val pixels = capture.capture()
-// no close() — Cleaner will release when GC runs
+val bytes = capture.captureScreen()
 ```
 
 ---
 
 ## Coroutines and Flows
 
-Suspend functions and `Flow` are fully transparent:
+Suspend functions and `Flow` are transparent — no callbacks, no `CompletableFuture`, just coroutines on both sides:
 
 ```kotlin
 // nativeMain
-suspend fun fetchFromNative(query: String): String {
-    delay(50)
+suspend fun fetchData(query: String): String {
+    delay(100)
     return "result: $query"
 }
 
-fun nativeEventStream(): Flow<Int> = flow {
-    repeat(10) { emit(it); delay(100) }
+fun eventStream(max: Int): Flow<Int> = flow {
+    for (i in 1..max) { delay(10); emit(i) }
 }
 ```
 
 ```kotlin
-// jvmMain — no special wiring needed
-val result = NativeFunctions.fetchFromNative("hello")
+// jvmMain — identical API
+val result = MyLib.fetchData("hello")      // suspends, doesn't block
 
-NativeFunctions.nativeEventStream()
-    .take(5)          // automatically cancels native coroutine
+MyLib.eventStream(100)
+    .take(5)       // cancels the native Flow automatically at 5 elements
     .collect { println(it) }
 ```
 
 Cancellation is bidirectional: cancelling the JVM `Job` cancels the native coroutine, and vice versa.
+
+### Suspend function limitations
+
+| Unsupported return type | Alternative |
+|-------------------------|-------------|
+| `suspend fun(): DataClass` | Return individual fields, or use a non-suspend function |
+| `suspend fun(): List<T>` / `Set<T>` / `Map<K,V>` | Return collections from non-suspend functions |
+
+### Flow element limitations
+
+| Unsupported | Alternative |
+|-------------|-------------|
+| `Flow<ByteArray>` | `Flow<String>` with Base64 encoding |
+| `Flow<List<T>>` / `Flow<Set<T>>` / `Flow<Map<K,V>>` | Flatten to individual elements |
+
+### Callback limitations
+
+| Unsupported | Alternative |
+|-------------|-------------|
+| Lambda as **return** type | Return a class with methods |
+| Nullable callback params `(T?) -> R` | Use non-null wrapper or default value |
+| `ByteArray` as callback param | Pass as `String` (Base64) |
 
 ---
 
