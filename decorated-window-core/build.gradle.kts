@@ -50,13 +50,26 @@ val buildNativeWindows by tasks.registering(Exec::class) {
     commandLine("cmd", "/c", nativeDir.file("build.bat").asFile.absolutePath)
 }
 
+val buildNativeLinux by tasks.registering(Exec::class) {
+    description = "Compiles the C JNI bridge for layout direction detection (Linux)"
+    group = "build"
+    val prebuiltFile = nativeResourceDir.dir("linux-x64").file("libnucleus_layout_direction.so").asFile
+    enabled = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC) && !prebuiltFile.exists()
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/linux")
+    inputs.dir(nativeDir)
+    outputs.dir(nativeResourceDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
 tasks.processResources {
-    dependsOn(buildNativeMacOs, buildNativeWindows)
+    dependsOn(buildNativeMacOs, buildNativeWindows, buildNativeLinux)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeMacOs, buildNativeWindows)
+        dependsOn(buildNativeMacOs, buildNativeWindows, buildNativeLinux)
     }
 }
 

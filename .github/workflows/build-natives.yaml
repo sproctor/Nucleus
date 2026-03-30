@@ -601,6 +601,22 @@ jobs:
           path: launcher-linux/src/main/resources/nucleus/native/linux-*/
           retention-days: 1
 
+      - name: Build decorated-window-core Linux native shared library
+        run: bash decorated-window-core/src/main/native/linux/build.sh
+
+      - name: Verify decorated-window-core Linux native
+        run: |
+          f="decorated-window-core/src/main/resources/nucleus/native/linux-${{ matrix.arch }}/libnucleus_layout_direction.so"
+          if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+          echo "OK: $f ($(wc -c < "$f") bytes)"
+
+      - name: Upload decorated-window-core Linux shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: decorated-window-core-linux-${{ matrix.arch }}
+          path: decorated-window-core/src/main/resources/nucleus/native/linux-*/
+          retention-days: 1
+
       - name: Build global-hotkey Linux native shared library
         run: bash global-hotkey/src/main/native/linux/build.sh
 

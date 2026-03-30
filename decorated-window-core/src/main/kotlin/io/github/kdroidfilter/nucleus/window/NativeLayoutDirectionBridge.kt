@@ -4,7 +4,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.NativeLibraryLoader
 
 private const val LIBRARY_NAME = "nucleus_layout_direction"
 
-// Known RTL languages used as fallback when the native library is unavailable (e.g. Linux)
+// Known RTL languages used as fallback when the native library is unavailable
 private val RTL_LANGUAGES = setOf("ar", "he", "fa", "ur", "yi", "ps", "sd", "ckb", "ku", "ug", "syr", "dv")
 
 internal object NativeLayoutDirectionBridge {
