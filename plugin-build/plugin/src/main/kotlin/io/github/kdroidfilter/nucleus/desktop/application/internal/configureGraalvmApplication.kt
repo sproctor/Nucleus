@@ -1031,6 +1031,8 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
                 plist[PlistKeys.NSHighResolutionCapable] = true
                 plist[PlistKeys.NSSupportsAutomaticGraphicsSwitching] = true
                 plist[PlistKeys.LSMinimumSystemVersion] = plistMinSystemVersion.get()
+                plist[PlistKeys.CFBundleDevelopmentRegion] = "English"
+                plist[PlistKeys.CFBundleAllowMixedLocalizations] = "true"
 
                 if (plistCopyright != null) {
                     plist[PlistKeys.NSHumanReadableCopyright] = plistCopyright
@@ -1097,6 +1099,11 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
                 )
             from(iconFile)
             into(appBundleDir.map { it.dir("Resources") })
+
+            // Create Base.lproj so macOS uses the system language for auto-added menu items
+            doLast {
+                appBundleDir.get().dir("Resources/Base.lproj").asFile.mkdirs()
+            }
         }
 
     // Copy file association icons into Resources/ with unique names

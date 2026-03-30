@@ -823,17 +823,10 @@ JNIEXPORT void JNICALL JNI_FN(nativeSetMainMenu)(JNIEnv *env, jclass clazz, jlon
     runOnMain(^{
         [NSApp setMainMenu:menu];
 
-        // Register well-known menus so macOS populates them automatically.
+        // Register Services menu (nested inside the app menu, i.e. first item's submenu).
         for (NSMenuItem *item in [menu itemArray]) {
             NSMenu *sub = [item submenu];
             if (sub == nil) continue;
-            NSString *title = [sub title];
-            if ([title isEqualToString:@"Window"]) {
-                [NSApp setWindowsMenu:sub];
-            } else if ([title isEqualToString:@"Help"]) {
-                [NSApp setHelpMenu:sub];
-            }
-            // Services is nested inside the app menu (first item's submenu)
             for (NSMenuItem *child in [sub itemArray]) {
                 NSMenu *childSub = [child submenu];
                 if (childSub && [[childSub title] isEqualToString:@"Services"]) {
@@ -841,6 +834,22 @@ JNIEXPORT void JNICALL JNI_FN(nativeSetMainMenu)(JNIEnv *env, jclass clazz, jlon
                 }
             }
         }
+    });
+}
+
+JNIEXPORT void JNICALL JNI_FN(nativeSetWindowsMenu)(JNIEnv *env, jclass clazz, jlong menuHandle) {
+    (void)env; (void)clazz;
+    NSMenu *menu = HANDLE_TO_MENU(menuHandle);
+    runOnMain(^{
+        [NSApp setWindowsMenu:menu];
+    });
+}
+
+JNIEXPORT void JNICALL JNI_FN(nativeSetHelpMenu)(JNIEnv *env, jclass clazz, jlong menuHandle) {
+    (void)env; (void)clazz;
+    NSMenu *menu = HANDLE_TO_MENU(menuHandle);
+    runOnMain(^{
+        [NSApp setHelpMenu:menu];
     });
 }
 

@@ -96,6 +96,9 @@ abstract class AbstractNativeMacApplicationPackageAppDirTask : AbstractNativeMac
         val appIconFile = appResourcesDir.resolve("$packageName.icns")
         iconFile.ioFile.copyTo(appIconFile)
 
+        // Create Base.lproj so macOS uses the system language for auto-added menu items
+        appResourcesDir.resolve("Base.lproj").mkdirs()
+
         InfoPlistBuilder().apply {
             setupInfoPlist(executableName = appExecutableFile.name)
             writeToFile(contentsDir.resolve("Info.plist"))
