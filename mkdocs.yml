@@ -1,0 +1,125 @@
+site_name: Nucleus
+site_description: Gradle plugin for packaging JVM desktop apps as native installers
+site_url: https://kdroidfilter.github.io/Nucleus
+repo_url: https://github.com/kdroidFilter/Nucleus
+repo_name: kdroidFilter/Nucleus
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+  favicon: assets/favicon.png
+  logo: assets/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Targets:
+      - macOS: targets/macos.md
+      - Windows: targets/windows.md
+      - Linux: targets/linux.md
+  - Features:
+      - Sandboxing: sandboxing.md
+      - Code Signing: code-signing.md
+      - Auto Update: auto-update.md
+      - Publishing: publishing.md
+      - Trusted CA Certificates: trusted-certificates.md
+      - AOT Cache: runtime/aot-cache.md
+      - GraalVM Native Image: graalvm-native-image.md
+      - Native Access: native-access.md
+      - CI/CD: ci-cd.md
+      - Runtime APIs:
+          - Overview: runtime/index.md
+          - App Metadata: runtime/app-metadata.md
+          - Executable Type: runtime/executable-type.md
+          - Single Instance: runtime/single-instance.md
+          - Deep Links: runtime/deep-links.md
+          - Decorated Window: runtime/decorated-window.md
+          - Decorated Window — Jewel: runtime/decorated-window-jewel.md
+          - Decorated Window — Material 2: runtime/decorated-window-material2.md
+          - Decorated Window — Material 3: runtime/decorated-window-material3.md
+          - Dark Mode Detector: runtime/darkmode-detector.md
+          - System Color: runtime/system-color.md
+          - Taskbar Progress: runtime/taskbar-progress.md
+          - Global Hotkey: runtime/global-hotkey.md
+          - Notification (macOS): runtime/notification-macos.md
+          - Notification (Windows): runtime/notification-windows.md
+          - Launcher (Windows): runtime/launcher-windows.md
+          - Notification (Linux): runtime/notification-linux.md
+          - Launcher (Linux): runtime/launcher-linux.md
+          - Launcher (macOS): runtime/launcher-macos.md
+          - Menu (macOS): runtime/menu-macos.md
+          - Freedesktop Icons: runtime/freedesktop-icons.md
+          - Energy Manager: runtime/energy-manager.md
+          - Linux HiDPI: runtime/linux-hidpi.md
+          - Native SSL: runtime/native-ssl.md
+          - Native HTTP: runtime/native-http.md
+  - Comparison: comparison.md
+  - Migration: migration.md
+  - Changelog: changelog.md
+  - LLM Documentation: llm.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Made with ❤️ by <a href="https://eliegambache.kdroidfilter.com/" target="_blank">Elie Gambache</a> - KdroidFilter
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/kdroidFilter/Nucleus
