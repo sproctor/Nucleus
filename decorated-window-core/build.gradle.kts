@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -17,6 +18,52 @@ val publishVersion =
 dependencies {
     compileOnly(project(":core-runtime"))
     compileOnly(libs.compose.desktop.common)
+}
+
+// ---------- Native JNI builds ----------
+
+val nativeResourceDir = layout.projectDirectory.dir("src/main/resources/nucleus/native")
+
+val buildNativeMacOs by tasks.registering(Exec::class) {
+    description = "Compiles the Objective-C JNI bridge for layout direction detection (macOS)"
+    group = "build"
+    val hasPrebuilt = nativeResourceDir
+        .dir("darwin-aarch64")
+        .file("libnucleus_layout_direction.dylib")
+        .asFile.exists()
+    enabled = Os.isFamily(Os.FAMILY_MAC) && !hasPrebuilt
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/macos")
+    inputs.dir(nativeDir)
+    outputs.dir(nativeResourceDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
+val buildNativeWindows by tasks.registering(Exec::class) {
+    description = "Compiles the C JNI bridge for layout direction detection (Windows)"
+    group = "build"
+    val hasPrebuilt = nativeResourceDir
+        .dir("win32-x64")
+        .file("nucleus_layout_direction.dll")
+        .asFile.exists()
+    enabled = Os.isFamily(Os.FAMILY_WINDOWS) && !hasPrebuilt
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/windows")
+    inputs.dir(nativeDir)
+    outputs.dir(nativeResourceDir)
+    workingDir(nativeDir)
+    commandLine("cmd", "/c", nativeDir.file("build.bat").asFile.absolutePath)
+}
+
+tasks.processResources {
+    dependsOn(buildNativeMacOs, buildNativeWindows)
+}
+
+tasks.configureEach {
+    if (name == "sourcesJar") {
+        dependsOn(buildNativeMacOs, buildNativeWindows)
+    }
 }
 
 java {
