@@ -61,6 +61,70 @@ That's the entire configuration. The plugin handles compilation, bundling, and l
 !!! warning "JDK requirement"
     FFM is stable from **JDK 22+**. JDK 25 is recommended. When running tests or the app, the JVM arg `--enable-native-access=ALL-UNNAMED` is required — the plugin adds it automatically for tests.
 
+### Using with Compose Desktop
+
+The Compose compiler plugin doesn't support arbitrary Kotlin/Native targets (e.g. `linuxX64`, `mingwX64`) used for FFM bridges. **Put your native code in a separate Gradle module** without the Compose compiler plugin:
+
+```
+my-app/
+├── native/              ← Kotlin/Native + nucleusnativeaccess (no Compose)
+│   └── build.gradle.kts
+├── app/                 ← Compose Desktop + Nucleus, depends on :native
+│   └── build.gradle.kts
+└── settings.gradle.kts
+```
+
+**`:native/build.gradle.kts`**:
+
+```kotlin
+plugins {
+    kotlin("multiplatform")
+    id("io.github.kdroidfilter.nucleusnativeaccess") version "<version>"
+}
+
+kotlin {
+    jvmToolchain(25)
+    linuxX64()  // or macosArm64(), mingwX64()
+    jvm()
+}
+
+kotlinNativeExport {
+    nativeLibName = "mylib"
+    nativePackage = "com.example.mylib"
+}
+```
+
+**`:app/build.gradle.kts`**:
+
+```kotlin
+plugins {
+    kotlin("multiplatform")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("io.github.kdroidfilter.nucleus")
+}
+
+kotlin {
+    jvmToolchain(25)
+    jvm()
+
+    sourceSets {
+        val jvmMain by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(project(":native"))
+            }
+        }
+    }
+}
+
+nucleus.application {
+    mainClass = "com.example.MainKt"
+    jvmArgs += listOf("--enable-native-access=ALL-UNNAMED")
+}
+```
+
+
 ---
 
 ## Example: Take a Screenshot on macOS
