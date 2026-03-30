@@ -296,7 +296,9 @@ internal object NativeNsMenuBridge {
     @JvmStatic external fun nativeGetMainMenu(): Long
 
     @JvmStatic external fun nativeSetMainMenu(menuHandle: Long)
+
     @JvmStatic external fun nativeSetWindowsMenu(menuHandle: Long)
+
     @JvmStatic external fun nativeSetHelpMenu(menuHandle: Long)
 
     // ---- Menu submenu ----
