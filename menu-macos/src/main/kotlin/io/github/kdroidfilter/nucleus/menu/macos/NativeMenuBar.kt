@@ -51,9 +51,17 @@ fun NativeMenuBar(content: NativeMenuBarScope.() -> Unit) {
     SideEffect {
         currentMenu?.close()
         NativeNsMenuBridge.clearAllActions()
-        val menu = materializeMenuBar(scope.entries)
+        val (menu, roleHandles) = materializeMenuBar(scope.entries)
         currentMenu = menu
         NsMenu.setMainMenu(menu)
+        // Register well-known menus after setMainMenu so macOS picks them up.
+        for ((role, handle) in roleHandles) {
+            when (role) {
+                MenuRole.Window -> NativeNsMenuBridge.nativeSetWindowsMenu(handle)
+                MenuRole.Help -> NativeNsMenuBridge.nativeSetHelpMenu(handle)
+                MenuRole.None -> { /* nothing */ }
+            }
+        }
     }
 
     DisposableEffect(Unit) {
@@ -91,7 +99,45 @@ class NativeMenuBarScope internal constructor() {
     ) {
         val scope = NativeMenuScope()
         scope.content()
-        entries += MenuBarEntry(text, enabled, scope.entries.toList())
+        entries += MenuBarEntry(text, enabled, scope.entries.toList(), MenuRole.None)
+    }
+
+    /**
+     * Adds the Window menu to the menu bar.
+     *
+     * macOS automatically populates this menu with the window list
+     * and "Bring All to Front", regardless of the displayed title.
+     *
+     * @param text Localized title shown in the menu bar.
+     * @param content Items inside this menu (optional; macOS adds its own).
+     */
+    fun MenuWindow(
+        text: String,
+        enabled: Boolean = true,
+        content: NativeMenuScope.() -> Unit = {},
+    ) {
+        val scope = NativeMenuScope()
+        scope.content()
+        entries += MenuBarEntry(text, enabled, scope.entries.toList(), MenuRole.Window)
+    }
+
+    /**
+     * Adds the Help menu to the menu bar.
+     *
+     * macOS automatically adds a search field at the top of this menu,
+     * regardless of the displayed title.
+     *
+     * @param text Localized title shown in the menu bar.
+     * @param content Items inside this menu (optional; macOS adds its own).
+     */
+    fun MenuHelp(
+        text: String,
+        enabled: Boolean = true,
+        content: NativeMenuScope.() -> Unit = {},
+    ) {
+        val scope = NativeMenuScope()
+        scope.content()
+        entries += MenuBarEntry(text, enabled, scope.entries.toList(), MenuRole.Help)
     }
 }
 
@@ -282,11 +328,15 @@ class NativeMenuScope internal constructor() {
 
 // ─── Description types (internal) ────────────────────────────────────────────
 
+/** Role hint for macOS well-known menus. */
+enum class MenuRole { None, Window, Help }
+
 @PublishedApi
 internal data class MenuBarEntry(
     val text: String,
     val enabled: Boolean,
     val items: List<MenuItemEntry>,
+    val role: MenuRole = MenuRole.None,
 )
 
 @PublishedApi
@@ -326,8 +376,9 @@ internal sealed class MenuItemEntry {
 
 // ─── Materialization (description → native NSMenu tree) ──────────────────────
 
-private fun materializeMenuBar(entries: List<MenuBarEntry>): NsMenu {
+private fun materializeMenuBar(entries: List<MenuBarEntry>): Pair<NsMenu, List<Pair<MenuRole, Long>>> {
     val menuBar = NsMenu("MainMenu")
+    val roleHandles = mutableListOf<Pair<MenuRole, Long>>()
     for (entry in entries) {
         val menuItem = NsMenuItem(entry.text)
         if (!entry.enabled) menuItem.isEnabled = false
@@ -336,10 +387,15 @@ private fun materializeMenuBar(entries: List<MenuBarEntry>): NsMenu {
         materializeItems(submenu, entry.items)
         menuItem.submenu = submenu
         menuBar.addItem(menuItem)
+
+        if (entry.role != MenuRole.None) {
+            roleHandles += entry.role to submenu.handle
+        }
+
         menuItem.close()
         submenu.close()
     }
-    return menuBar
+    return menuBar to roleHandles
 }
 
 @Suppress("CyclomaticComplexMethod")
