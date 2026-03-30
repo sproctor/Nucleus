@@ -24,3 +24,6 @@ ktlint = disabled
 
 [sf-symbols/**]
 ktlint_standard_enum-entry-name-case = disabled
+
+[plugin-build/**]
+max_line_length = off
