@@ -56,6 +56,43 @@ A multi-module Gradle plugin and runtime library toolkit for shipping production
 - `decorated-window-jni` is the recommended backend for new projects (fixes resize artifacts, true Windows fullscreen, GraalVM compatible)
 - macOS Liquid Glass enabled by default via `macOsSdkVersion = "26.0"` (vtool SDK patching)
 
+## Adding a Native JNI Module
+
+When creating a new module with platform-specific JNI libraries, all steps below are required:
+
+1. **Native source** — `<module>/src/main/native/{linux,macos,windows}/` with `build.sh`/`build.bat` + C/ObjC source. Library name: `nucleus_<feature>`. Linux: prefer `dlopen` over hard compile-time deps.
+2. **Build output** — scripts must place binaries in `<module>/src/main/resources/nucleus/native/{linux-x64,linux-aarch64,darwin-x64,darwin-aarch64,win32-x64,win32-aarch64}/`. Build scripts must also clear the `NativeLibraryLoader` cache (`~/.cache/nucleus/native/<arch>/`) after compilation, otherwise the loader serves the stale cached copy instead of the freshly built library.
+3. **Kotlin JNI bridge** — `internal object` using `NativeLibraryLoader.load()` with `@JvmStatic external` methods. Always provide a Kotlin fallback when native lib is unavailable.
+4. **GraalVM reachability metadata** — create `<module>/src/main/resources/META-INF/native-image/io.github.kdroidfilter/nucleus.<module>/reachability-metadata.json` declaring all JNI-accessible classes/methods. Without this, native-image silently eliminates the bridge.
+5. **CI build** (`build-natives.yaml`) — add build + verify + upload steps for each platform (Windows, macOS, Linux matrix x64+aarch64). Artifact naming: `<module>-<platform>`.
+6. **CI consumers** — add download step + EXPECTED verify entries (all 6 arch paths) in **every** consumer workflow: `pre-merge.yaml`, `publish-maven.yaml`, `publish-plugin.yaml`, `test-packaging.yaml`, `test-graalvm.yaml`, `release-graalvm.yaml`.
+
+Common pitfalls: forgetting Linux `.so` in verify arrays, missing `reachability-metadata.json`, not adding download steps in all 6 consumer workflows.
+
+## Publishing to Maven Local
+
+Version is resolved from `GITHUB_REF` env var in every `build.gradle.kts` (`refs/tags/v1.3.0-beta-07` → `1.3.0-beta-07`). Without it, defaults to `1.0.0`.
+
+**Prerequisites:**
+- Use JDK 21 (`JAVA_HOME=/usr/lib/jvm/java-1.21.0-openjdk-amd64`) — Kotlin DSL script compiler crashes on JDK 25
+- Use `--no-configuration-cache` — configuration cache can serve a stale cached version
+- Use absolute `-p` paths to avoid working-directory confusion
+- No signing needed for local publish (signing is conditional on `signingInMemoryKey` property)
+
+**Runtime libraries (main project):**
+```bash
+GITHUB_REF=refs/tags/v1.3.0-beta-07 JAVA_HOME=/usr/lib/jvm/java-1.21.0-openjdk-amd64 \
+  ./gradlew -p /absolute/path/to/ComposeDeskKit publishToMavenLocal --no-configuration-cache
+```
+
+**Plugin (plugin-build):**
+```bash
+GITHUB_REF=refs/tags/v1.3.0-beta-07 JAVA_HOME=/usr/lib/jvm/java-1.21.0-openjdk-amd64 \
+  ./gradlew -p /absolute/path/to/ComposeDeskKit/plugin-build :plugin:publishToMavenLocal --no-configuration-cache
+```
+
+Version format: `1.3.0-beta-XX` (hyphen before number, e.g. `1.3.0-beta-07`).
+
 ## GraalVM Native Image
 
 - Reflection metadata is centralized in 3 levels — users no longer copy hundreds of entries:

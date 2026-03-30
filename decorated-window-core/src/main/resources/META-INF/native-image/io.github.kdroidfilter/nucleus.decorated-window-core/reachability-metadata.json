@@ -1,0 +1,14 @@
+{
+    "reflection": [
+        {
+            "type": "io.github.kdroidfilter.nucleus.window.NativeLayoutDirectionBridge",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "nativeIsRTL",
+                    "parameterTypes": []
+                }
+            ]
+        }
+    ]
+}
