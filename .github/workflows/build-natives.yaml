@@ -407,6 +407,25 @@ jobs:
           path: global-hotkey/src/main/resources/nucleus/native/darwin-*/
           retention-days: 1
 
+      - name: Build menu-macos macOS dylibs
+        run: bash menu-macos/src/main/native/macos/build.sh
+
+      - name: Verify menu-macos macOS natives
+        run: |
+          for f in \
+            menu-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_menu_macos.dylib \
+            menu-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_menu_macos.dylib; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload menu-macos macOS dylibs
+        uses: actions/upload-artifact@v4
+        with:
+          name: menu-macos
+          path: menu-macos/src/main/resources/nucleus/native/darwin-*/
+          retention-days: 1
+
   linux:
     runs-on: ${{ matrix.os }}
     strategy:

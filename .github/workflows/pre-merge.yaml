@@ -127,6 +127,13 @@ jobs:
           pattern: 'global-hotkey-*'
           merge-multiple: true
 
+      - name: Download menu-macos artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: menu-macos/src/main/resources/nucleus/native/
+          pattern: 'menu-macos*'
+          merge-multiple: true
+
       - name: Verify all natives present
         run: |
           EXPECTED=(
@@ -184,6 +191,8 @@ jobs:
             "global-hotkey/src/main/resources/nucleus/native/darwin-x64/libnucleus_global_hotkey.dylib"
             "global-hotkey/src/main/resources/nucleus/native/linux-x64/libnucleus_global_hotkey.so"
             "global-hotkey/src/main/resources/nucleus/native/linux-aarch64/libnucleus_global_hotkey.so"
+            "menu-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_menu_macos.dylib"
+            "menu-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_menu_macos.dylib"
           )
           MISSING=0
           for f in "${EXPECTED[@]}"; do
