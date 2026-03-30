@@ -27,11 +27,8 @@ val nativeResourceDir = layout.projectDirectory.dir("src/main/resources/nucleus/
 val buildNativeMacOs by tasks.registering(Exec::class) {
     description = "Compiles the Objective-C JNI bridge for layout direction detection (macOS)"
     group = "build"
-    val hasPrebuilt = nativeResourceDir
-        .dir("darwin-aarch64")
-        .file("libnucleus_layout_direction.dylib")
-        .asFile.exists()
-    enabled = Os.isFamily(Os.FAMILY_MAC) && !hasPrebuilt
+    val prebuiltFile = nativeResourceDir.dir("darwin-aarch64").file("libnucleus_layout_direction.dylib").asFile
+    enabled = Os.isFamily(Os.FAMILY_MAC) && !prebuiltFile.exists()
 
     val nativeDir = layout.projectDirectory.dir("src/main/native/macos")
     inputs.dir(nativeDir)
@@ -43,11 +40,8 @@ val buildNativeMacOs by tasks.registering(Exec::class) {
 val buildNativeWindows by tasks.registering(Exec::class) {
     description = "Compiles the C JNI bridge for layout direction detection (Windows)"
     group = "build"
-    val hasPrebuilt = nativeResourceDir
-        .dir("win32-x64")
-        .file("nucleus_layout_direction.dll")
-        .asFile.exists()
-    enabled = Os.isFamily(Os.FAMILY_WINDOWS) && !hasPrebuilt
+    val prebuiltFile = nativeResourceDir.dir("win32-x64").file("nucleus_layout_direction.dll").asFile
+    enabled = Os.isFamily(Os.FAMILY_WINDOWS) && !prebuiltFile.exists()
 
     val nativeDir = layout.projectDirectory.dir("src/main/native/windows")
     inputs.dir(nativeDir)
