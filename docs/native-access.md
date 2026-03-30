@@ -331,19 +331,6 @@ No manual configuration needed — the generated metadata is picked up automatic
 
 ---
 
-## Performance Notes
-
-| Scenario | Recommendation |
-|----------|---------------|
-| Compute-bound work (stays native) | **Excellent** — native finishes faster, no JIT warmup needed |
-| Many small calls across the boundary | Add a batching layer — FFM crossing costs ~50 ns/call |
-| Memory-intensive work | **Excellent** — native allocations don't pressure the JVM heap |
-| String-heavy APIs | Fine for reasonable volumes — UTF-8 copy happens at boundary |
-
-FFM is not slower than JNI for individual calls, but the overhead is measurable at very high call rates. The right pattern is to move work into native and minimize how often you cross the boundary — not to use native as a per-operation cache.
-
----
-
 ## Repository
 
 Nucleus Native Access is maintained in a separate repository with its own release cycle:
