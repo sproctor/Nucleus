@@ -285,23 +285,18 @@ val pid = Utils.currentProcessId()
 |------|----------|-----------|-------------|-------|
 | `Int`, `Long`, `Double`, `Float`, `Boolean`, `Byte`, `Short` | ✅ | ✅ | ✅ | Direct pass-through |
 | `String` | ✅ | ✅ | ✅ | UTF-8 output-buffer pattern |
-| `ByteArray` | ✅ | ✅ | — | Pointer + size; also works in `suspend fun` |
+| `ByteArray` | ✅ | ✅ | — | Pointer + size; suspend, callbacks, DC fields, collections |
 | `enum class` | ✅ | ✅ | ✅ | Ordinal mapping |
-| `data class` | ✅ | ✅ | — | Fields decomposed into flat C ABI args — field types limited (see below) |
+| `data class` | ✅ | ✅ | — | Fields: primitives, String, ByteArray, Enum, Object, nested DC, List, Set, Map |
 | `Object` (class instances) | ✅ | ✅ | — | Opaque `StableRef` handle, lifecycle tracked |
 | Nested classes | ✅ | ✅ | ✅ | Exported as `Outer_Inner`, up to 3+ nesting levels |
-| `T?` (nullable) | ✅ | ✅ | ✅ | Sentinel-based; **not supported as callback param** |
-| `List<T>`, `Set<T>` | ✅ | ✅ | — | Primitives, `String`, `Enum`, `Object` — **not as property** |
-| `List<DataClass>` | — | ✅ | — | Return only — not supported as param |
-| `Map<K, V>` | ✅ | ✅ | — | Parallel key + value arrays |
-| `(T) -> R` (lambda) | ✅ | — | — | FFM upcall stub; nullable callback params not supported |
-| `suspend fun` | — | ✅ | — | Transparent coroutine + bidirectional cancellation (see limitations) |
-| `Flow<T>` | — | ✅ | — | `channelFlow` on JVM, auto-cancels (see limitations) |
-
-### Data class field limitations
-
-Data class fields support: primitives, `String`, `enum class`, other data classes (nested), `Object`.
-**Not supported as fields**: `ByteArray`, `List<T>`, `Set<T>`, `Map<K, V>` — use separate getter methods instead.
+| `T?` (nullable) | ✅ | ✅ | ✅ | Sentinel-based null encoding |
+| `List<T>`, `Set<T>` | ✅ | ✅ | ✅ | All element types incl. DataClass, ByteArray, nested collections |
+| `Map<K, V>` | ✅ | ✅ | ✅ | Parallel key + value arrays |
+| `List<List<T>>` | ✅ | ✅ | — | Nested collections via StableRef handles |
+| `(T) -> R` (lambda) | ✅ | ✅ | — | FFM upcall/downcall stubs; nullable `((T) -> R)?` supported |
+| `suspend fun` | — | ✅ | — | All return types: primitives, String, ByteArray, DataClass, List, Set, Map |
+| `Flow<T>` | — | ✅ | — | All element types: primitives, String, ByteArray, DataClass, List, Set, Map |
 
 ### What belongs in commonMain, not nativeMain
 
@@ -310,7 +305,6 @@ These constructs can't cross the FFM boundary and should live in shared KMP code
 - Interfaces, abstract/open classes, sealed classes
 - Inheritance hierarchies
 - Generic class definitions
-- Nested collections (`List<List<T>>`)
 
 ---
 
@@ -358,28 +352,6 @@ MyLib.eventStream(100)
 ```
 
 Cancellation is bidirectional: cancelling the JVM `Job` cancels the native coroutine, and vice versa.
-
-### Suspend function limitations
-
-| Unsupported return type | Alternative |
-|-------------------------|-------------|
-| `suspend fun(): DataClass` | Return individual fields, or use a non-suspend function |
-| `suspend fun(): List<T>` / `Set<T>` / `Map<K,V>` | Return collections from non-suspend functions |
-
-### Flow element limitations
-
-| Unsupported | Alternative |
-|-------------|-------------|
-| `Flow<ByteArray>` | `Flow<String>` with Base64 encoding |
-| `Flow<List<T>>` / `Flow<Set<T>>` / `Flow<Map<K,V>>` | Flatten to individual elements |
-
-### Callback limitations
-
-| Unsupported | Alternative |
-|-------------|-------------|
-| Lambda as **return** type | Return a class with methods |
-| Nullable callback params `(T?) -> R` | Use non-null wrapper or default value |
-| `ByteArray` as callback param | Pass as `String` (Base64) |
 
 ---
 
