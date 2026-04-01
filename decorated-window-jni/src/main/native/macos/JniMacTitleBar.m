@@ -421,10 +421,28 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
 
 // ─── Live resize observer ────────────────────────────────────────────────────────
 
+// Returns YES if the running macOS version is 26.0 or later.
+// Cached after the first call for zero-overhead subsequent checks.
+static BOOL isMacOS26OrLater(void) {
+    static BOOL checked = NO;
+    static BOOL result  = NO;
+    if (!checked) {
+        if (@available(macOS 26.0, *)) {
+            result = YES;
+        }
+        checked = YES;
+    }
+    return result;
+}
+
 // Recursively toggles presentsWithTransaction on all CAMetalLayer instances
 // found in the view hierarchy. During live resize, enabling this flag forces
 // Metal to present each frame synchronously, so the compositor uses the
 // freshly rendered frame instead of stretching the stale one.
+//
+// Only applied on macOS 26+ where the Metal/Skiko threading model handles
+// the sync toggle safely. On older macOS this can deadlock the main thread
+// against the render thread.
 static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
     CALayer *layer = view.layer;
     if (layer && [layer isKindOfClass:[CAMetalLayer class]]) {
@@ -445,6 +463,7 @@ static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
 
 - (void)viewWillStartLiveResize {
     [super viewWillStartLiveResize];
+    if (!isMacOS26OrLater()) return;
     NSWindow *w = self.window;
     if (w && w.contentView) {
         setPresentsWithTransactionRecursive(w.contentView, YES);
@@ -453,6 +472,7 @@ static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
 
 - (void)viewDidEndLiveResize {
     [super viewDidEndLiveResize];
+    if (!isMacOS26OrLater()) return;
     NSWindow *w = self.window;
     if (w && w.contentView) {
         setPresentsWithTransactionRecursive(w.contentView, NO);
@@ -745,7 +765,21 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
 // macOS calls _adjustWindowToScreen for window snapping/tiling near screen edges.
 // Since we set movable=NO, this callback is blocked. Override to temporarily
 // re-enable movable (mirrors JBR's AWTWindow_Normal._adjustWindowToScreen).
+// Re-entrancy guard prevents crashes when the original IMP or
+// updateFullScreenButtonsPosition triggers another _adjustWindowToScreen call
+// on older macOS versions.
+static BOOL sInAdjustWindow = NO;
+
 static void nucleus_adjustWindowToScreen(id self, SEL _cmd) {
+    if (sInAdjustWindow) {
+        // Re-entrant call — just forward to the original implementation
+        if (sOriginalAdjustWindowToScreen) {
+            ((void (*)(id, SEL))sOriginalAdjustWindowToScreen)(self, _cmd);
+        }
+        return;
+    }
+    sInAdjustWindow = YES;
+
     NSNumber *storedHeight = objc_getAssociatedObject(self, &kTitleBarHeightKey);
     BOOL needsRestore = storedHeight && ![(NSWindow *)self isMovable];
 
@@ -762,6 +796,8 @@ static void nucleus_adjustWindowToScreen(id self, SEL _cmd) {
     if (needsRestore) {
         [(NSWindow *)self setMovable:NO];
     }
+
+    sInAdjustWindow = NO;
 }
 
 // Called only from the main queue (via dispatch_async in nativeApplyTitleBar),
@@ -1199,7 +1235,14 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                 if ((__bridge void *)win == rawPtr) { w = win; break; }
             }
             if (!w) return;
+            // Temporarily re-enable movable so performWindowDragWithEvent:
+            // works on macOS < 26 where the system expects movable=YES.
+            // Mirrors JBR's forceHitTest(false) approach.
+            NSNumber *storedHeight = objc_getAssociatedObject(w, &kTitleBarHeightKey);
+            BOOL needsRestore = storedHeight && ![w isMovable];
+            if (needsRestore) [w setMovable:YES];
             [w performWindowDragWithEvent:event];
+            if (needsRestore) [w setMovable:NO];
         }
     });
 }
