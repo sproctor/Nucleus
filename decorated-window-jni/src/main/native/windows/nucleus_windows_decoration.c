@@ -434,17 +434,15 @@ static LRESULT CALLBACK decorationWndProc(
         LPMINMAXINFO lpmmi = (LPMINMAXINFO)lParam;
         UINT dpi = getDpi(hwnd);
 
-        /* Override with DPI-scaled values if set */
-        if (state->minSizePx.x > 0 || state->minSizePx.y > 0) {
+        /* Override with DPI-scaled values if set (per-axis) */
+        if (state->minSizePx.x > 0)
             lpmmi->ptMinTrackSize.x = MulDiv(state->minSizePx.x, dpi, 96);
+        if (state->minSizePx.y > 0)
             lpmmi->ptMinTrackSize.y = MulDiv(state->minSizePx.y, dpi, 96);
-        }
-        if (state->maxSizePx.x > 0 || state->maxSizePx.y > 0) {
-            if (state->maxSizePx.x > 0)
-                lpmmi->ptMaxTrackSize.x = MulDiv(state->maxSizePx.x, dpi, 96);
-            if (state->maxSizePx.y > 0)
-                lpmmi->ptMaxTrackSize.y = MulDiv(state->maxSizePx.y, dpi, 96);
-        }
+        if (state->maxSizePx.x > 0)
+            lpmmi->ptMaxTrackSize.x = MulDiv(state->maxSizePx.x, dpi, 96);
+        if (state->maxSizePx.y > 0)
+            lpmmi->ptMaxTrackSize.y = MulDiv(state->maxSizePx.y, dpi, 96);
         return result;
     }
 

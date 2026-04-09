@@ -270,6 +270,8 @@ private fun SyncMinMaxSizeToNative(window: java.awt.Window) {
             window.addPropertyChangeListener(propertyListener)
             onDispose {
                 window.removePropertyChangeListener(propertyListener)
+                JniWindowsDecorationBridge.nativeSetMinimumSize(hwnd, 0, 0)
+                JniWindowsDecorationBridge.nativeSetMaximumSize(hwnd, 0, 0)
             }
         } else {
             onDispose { }
