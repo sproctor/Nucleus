@@ -22,6 +22,7 @@ import java.nio.file.StandardWatchEventKinds
  * This object ensures that only one instance of the application can run at a time,
  * and provides a mechanism to notify the running instance when another instance attempts to start.
  */
+@Suppress("TooManyFunctions")
 object SingleInstanceManager {
     private const val TAG = "SingleInstanceChecker"
 
@@ -73,25 +74,11 @@ object SingleInstanceManager {
             return true
         }
         val lockFile = createLockFile()
-        fileChannel = RandomAccessFile(lockFile, "rw").channel
         return try {
+            fileChannel = openLockChannel(lockFile)
             fileLock = fileChannel?.tryLock()
             if (fileLock != null) {
-                // We are the only instance
-                debugLog { "Lock acquired, starting to watch for restore requests" }
-                // Ensure that watching is started only once
-                if (!isWatching) {
-                    isWatching = true
-                    watchForRestoreRequests(onRestoreRequest)
-                }
-                Runtime.getRuntime().addShutdownHook(
-                    Thread {
-                        releaseLock()
-                        lockFile.delete()
-                        deleteRestoreRequestFile()
-                        debugLog { "Shutdown hook executed" }
-                    },
-                )
+                onLockAcquired(lockFile, onRestoreRequest)
                 true
             } else {
                 // Another instance is already running
@@ -104,8 +91,66 @@ object SingleInstanceManager {
             debugLog { "The lock is already held by this process (${e.message})" }
             return true
         } catch (e: IOException) {
-            errorLog { "Error in isSingleInstance: $e" }
-            false
+            // Stale lock file (read-only, corrupted, etc.) — delete and retry once
+            debugLog { "Lock failed ($e), deleting stale lock file and retrying" }
+            deleteStaleLockFile(lockFile)
+            return retryLock(lockFile, onRestoreFileCreated, onRestoreRequest)
+        }
+    }
+
+    private fun openLockChannel(lockFile: File): FileChannel = RandomAccessFile(lockFile, "rw").channel
+
+    private fun onLockAcquired(
+        lockFile: File,
+        onRestoreRequest: Path.() -> Unit,
+    ) {
+        debugLog { "Lock acquired, starting to watch for restore requests" }
+        deleteRestoreRequestFile()
+        if (!isWatching) {
+            isWatching = true
+            watchForRestoreRequests(onRestoreRequest)
+        }
+        Runtime.getRuntime().addShutdownHook(
+            Thread {
+                releaseLock()
+                lockFile.delete()
+                deleteRestoreRequestFile()
+                debugLog { "Shutdown hook executed" }
+            },
+        )
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun retryLock(
+        lockFile: File,
+        onRestoreFileCreated: (Path.() -> Unit)?,
+        onRestoreRequest: Path.() -> Unit,
+    ): Boolean =
+        try {
+            fileChannel = openLockChannel(lockFile)
+            fileLock = fileChannel?.tryLock()
+            if (fileLock != null) {
+                onLockAcquired(lockFile, onRestoreRequest)
+                true
+            } else {
+                sendRestoreRequest(onRestoreFileCreated)
+                debugLog { "Restore request sent to the existing instance (retry)" }
+                false
+            }
+        } catch (e: Exception) {
+            // Cannot recover — fail-open to avoid silently blocking the user
+            errorLog { "Cannot acquire lock after retry: $e" }
+            true
+        }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun deleteStaleLockFile(lockFile: File) {
+        try {
+            lockFile.setWritable(true)
+            lockFile.delete()
+            debugLog { "Stale lock file deleted: ${lockFile.absolutePath}" }
+        } catch (e: Exception) {
+            errorLog { "Failed to delete stale lock file: $e" }
         }
     }
 
@@ -156,6 +201,7 @@ object SingleInstanceManager {
                 tempRestoreFilePath.onRestoreFileCreated()
                 Files.move(tempRestoreFilePath, restoreRequestFilePath, StandardCopyOption.REPLACE_EXISTING)
             } else {
+                Files.deleteIfExists(restoreRequestFilePath)
                 Files.createFile(restoreRequestFilePath)
             }
             debugLog { "Restore request file created: $restoreRequestFilePath" }
