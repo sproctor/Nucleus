@@ -48,6 +48,7 @@ static void ensureDragView(NSWindow *window);
 static void removeDragView(NSWindow *window);
 static void installMenuBarMonitor(NSWindow *window);
 static void removeMenuBarMonitor(NSWindow *window);
+static void neutralizeToolbarFullScreenWindows(void);
 
 // ─── JVM caching for native → Java callbacks ────────────────────────────────────
 
@@ -228,6 +229,28 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
     if (newControls) {
         installMenuBarMonitor(w);
     }
+
+    // Hide the native titlebar container to prevent it from intercepting
+    // click events that should reach the Compose content view. On non-notch
+    // screens in fullscreen the titlebar sits at y=0, overlapping with the
+    // Compose title bar area. Our replacement buttons (NucleusButtonsView)
+    // live in the contentView and remain unaffected.
+    {
+        NSView *btn = [w standardWindowButton:NSWindowCloseButton];
+        NSView *tb = btn ? btn.superview : nil;
+        NSView *tbc = tb ? tb.superview : nil;
+        if (tbc) {
+            [tbc setHidden:YES];
+        }
+    }
+
+    // The system may create NSToolbarFullScreenWindow lazily (e.g. on the
+    // next run-loop cycle). Schedule a deferred neutralization pass.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (atomic_load(&sShutdownInProgress)) return;
+        neutralizeToolbarFullScreenWindows();
+    });
 }
 
 // About to exit fullscreen — remove replacement buttons, hide native title bar
@@ -239,6 +262,18 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
 
     removeMenuBarMonitor(w);
     removeFullScreenButtons(w);
+
+    // Restore the native titlebar container (hidden in didEnterFullScreen)
+    // so the exit-fullscreen animation can use it.
+    {
+        NSView *btn = [w standardWindowButton:NSWindowCloseButton];
+        NSView *tb = btn ? btn.superview : nil;
+        NSView *tbc = tb ? tb.superview : nil;
+        if (tbc && [tbc isHidden]) {
+            [tbc setHidden:NO];
+        }
+    }
+
     [w setTitlebarAppearsTransparent:YES];
     [w setTitleVisibility:NSWindowTitleHidden];
 
@@ -421,10 +456,28 @@ static void notifyMenuBarOffsetChanged(NSWindow *window, float offset) {
 
 // ─── Live resize observer ────────────────────────────────────────────────────────
 
+// Returns YES if the running macOS version is 26.0 or later.
+// Cached after the first call for zero-overhead subsequent checks.
+static BOOL isMacOS26OrLater(void) {
+    static BOOL checked = NO;
+    static BOOL result  = NO;
+    if (!checked) {
+        if (@available(macOS 26.0, *)) {
+            result = YES;
+        }
+        checked = YES;
+    }
+    return result;
+}
+
 // Recursively toggles presentsWithTransaction on all CAMetalLayer instances
 // found in the view hierarchy. During live resize, enabling this flag forces
 // Metal to present each frame synchronously, so the compositor uses the
 // freshly rendered frame instead of stretching the stale one.
+//
+// Only applied on macOS 26+ where the Metal/Skiko threading model handles
+// the sync toggle safely. On older macOS this can deadlock the main thread
+// against the render thread.
 static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
     CALayer *layer = view.layer;
     if (layer && [layer isKindOfClass:[CAMetalLayer class]]) {
@@ -445,6 +498,7 @@ static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
 
 - (void)viewWillStartLiveResize {
     [super viewWillStartLiveResize];
+    if (!isMacOS26OrLater()) return;
     NSWindow *w = self.window;
     if (w && w.contentView) {
         setPresentsWithTransactionRecursive(w.contentView, YES);
@@ -453,6 +507,7 @@ static void setPresentsWithTransactionRecursive(NSView *view, BOOL value) {
 
 - (void)viewDidEndLiveResize {
     [super viewDidEndLiveResize];
+    if (!isMacOS26OrLater()) return;
     NSWindow *w = self.window;
     if (w && w.contentView) {
         setPresentsWithTransactionRecursive(w.contentView, NO);
@@ -483,12 +538,22 @@ static void removeResizeObserver(NSWindow *window) {
 
 // ─── Fullscreen button helpers ──────────────────────────────────────────────────
 
-// Hides the native NSToolbarFullScreenWindow so the system hover toolbar
-// doesn't overlap with our replacement buttons.
-static void hideToolbarFullScreenWindow(void) {
-    for (NSWindow *win in [[NSApplication sharedApplication] windows]) {
-        if ([win isKindOfClass:NSClassFromString(@"NSToolbarFullScreenWindow")]) {
-            [win.contentView setHidden:YES];
+// Neutralizes NSToolbarFullScreenWindow instances by hiding their content
+// and making them pass-through for mouse events. This prevents the system's
+// fullscreen title bar overlay from intercepting clicks that should reach
+// the Compose content view — especially on non-notch screens where the
+// overlay sits directly over the custom title bar area.
+static void neutralizeToolbarFullScreenWindows(void) {
+    Class cls = NSClassFromString(@"NSToolbarFullScreenWindow");
+    if (!cls) return;
+    for (NSWindow *win in [NSApp windows]) {
+        if ([win isKindOfClass:cls]) {
+            if (![win ignoresMouseEvents]) {
+                [win setIgnoresMouseEvents:YES];
+            }
+            if (![win.contentView isHidden]) {
+                [win.contentView setHidden:YES];
+            }
         }
     }
 }
@@ -513,8 +578,8 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     NSView *origClose = [window standardWindowButton:NSWindowCloseButton];
     if (!origClose) return;
 
-    // Hide the native toolbar fullscreen window
-    hideToolbarFullScreenWindow();
+    // Neutralize the system's fullscreen title bar overlay
+    neutralizeToolbarFullScreenWindows();
 
     // Compute button metrics matching floating mode
     float btnWidth, btnHeight, offset;
@@ -604,6 +669,9 @@ static void installMenuBarMonitor(NSWindow *window) {
         NSWindow *w = weakWindow;
         if (!w) return;
         if (!(w.styleMask & NSWindowStyleMaskFullScreen)) return;
+
+        // Re-neutralize in case the system re-created the overlay window
+        neutralizeToolbarFullScreenWindows();
 
         float offset = 0.0f;
 
@@ -702,6 +770,9 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
     NucleusButtonsView *container = objc_getAssociatedObject(window, &kFullscreenButtonsKey);
     if (!container) return;
 
+    // Re-neutralize in case the system re-created the overlay window
+    neutralizeToolbarFullScreenWindows();
+
     NSView *parent = window.contentView;
     if (!parent) return;
 
@@ -745,7 +816,21 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
 // macOS calls _adjustWindowToScreen for window snapping/tiling near screen edges.
 // Since we set movable=NO, this callback is blocked. Override to temporarily
 // re-enable movable (mirrors JBR's AWTWindow_Normal._adjustWindowToScreen).
+// Re-entrancy guard prevents crashes when the original IMP or
+// updateFullScreenButtonsPosition triggers another _adjustWindowToScreen call
+// on older macOS versions.
+static BOOL sInAdjustWindow = NO;
+
 static void nucleus_adjustWindowToScreen(id self, SEL _cmd) {
+    if (sInAdjustWindow) {
+        // Re-entrant call — just forward to the original implementation
+        if (sOriginalAdjustWindowToScreen) {
+            ((void (*)(id, SEL))sOriginalAdjustWindowToScreen)(self, _cmd);
+        }
+        return;
+    }
+    sInAdjustWindow = YES;
+
     NSNumber *storedHeight = objc_getAssociatedObject(self, &kTitleBarHeightKey);
     BOOL needsRestore = storedHeight && ![(NSWindow *)self isMovable];
 
@@ -762,6 +847,8 @@ static void nucleus_adjustWindowToScreen(id self, SEL _cmd) {
     if (needsRestore) {
         [(NSWindow *)self setMovable:NO];
     }
+
+    sInAdjustWindow = NO;
 }
 
 // Called only from the main queue (via dispatch_async in nativeApplyTitleBar),
@@ -1199,7 +1286,14 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                 if ((__bridge void *)win == rawPtr) { w = win; break; }
             }
             if (!w) return;
+            // Temporarily re-enable movable so performWindowDragWithEvent:
+            // works on macOS < 26 where the system expects movable=YES.
+            // Mirrors JBR's forceHitTest(false) approach.
+            NSNumber *storedHeight = objc_getAssociatedObject(w, &kTitleBarHeightKey);
+            BOOL needsRestore = storedHeight && ![w isMovable];
+            if (needsRestore) [w setMovable:YES];
             [w performWindowDragWithEvent:event];
+            if (needsRestore) [w setMovable:NO];
         }
     });
 }

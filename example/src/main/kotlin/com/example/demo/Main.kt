@@ -1,7 +1,6 @@
 package com.example.demo
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -546,7 +545,7 @@ private enum class ThemeMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionNaming", "DEPRECATION")
 @Composable
-private fun TitleBarIconButton(
+private fun io.github.kdroidfilter.nucleus.window.TitleBarScope.TitleBarIconButton(
     imageVector: ImageVector,
     contentDescription: String,
     modifier: Modifier = Modifier,
@@ -576,10 +575,7 @@ private fun TitleBarIconButton(
                             } else {
                                 Color.Transparent
                             },
-                        ).clickable(
-                            interactionSource = hoverInteraction,
-                            indication = null,
-                        ) { onClick() }
+                        ).titleBarClickable { onClick() }
                         .padding(4.dp)
                         .size(16.dp),
             )
