@@ -91,7 +91,6 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         }
     }
 
-
     // Sync RTL state with native side so traffic-light buttons move to the
     // correct side. Uses the control buttons direction (decoupled from content).
     val controlDir = controlButtonsDirection.resolve()
