@@ -1,6 +1,5 @@
 package io.github.kdroidfilter.nucleus.window.material
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -9,6 +8,8 @@ import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
 import io.github.kdroidfilter.nucleus.window.DecoratedWindowState
 import io.github.kdroidfilter.nucleus.window.TitleBar
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 
 /**
  * Material 3 themed title bar.
@@ -23,11 +24,11 @@ import io.github.kdroidfilter.nucleus.window.TitleBarScope
 fun DecoratedWindowScope.MaterialTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
+    style: TitleBarStyle = LocalTitleBarStyle.current,
     controlButtonsDirection: ControlButtonsDirection = ControlButtonsDirection.Auto,
     backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
-    val style = rememberMaterialTitleBarStyle(MaterialTheme.colorScheme)
     TitleBar(
         modifier = modifier,
         gradientStartColor = gradientStartColor,

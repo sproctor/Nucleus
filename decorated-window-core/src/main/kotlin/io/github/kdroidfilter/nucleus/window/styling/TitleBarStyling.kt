@@ -23,6 +23,8 @@ data class TitleBarColors(
     val fullscreenControlButtonsBackground: Color = Color.Unspecified,
     val iconButtonHoveredBackground: Color = Color.Transparent,
     val iconButtonPressedBackground: Color = Color.Transparent,
+    val controlButtonIconColor: Color = Color.Unspecified,
+    val controlButtonIconHoverColor: Color = Color.Unspecified,
 ) {
     @Composable
     fun backgroundFor(state: DecoratedWindowState): State<Color> =

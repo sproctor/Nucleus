@@ -9,6 +9,7 @@ import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.window.DecoratedWindow
 import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -24,16 +25,17 @@ fun MaterialDecoratedWindow(
     alwaysOnTop: Boolean = false,
     onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
     onKeyEvent: (KeyEvent) -> Boolean = { false },
+    titleBarStyle: TitleBarStyle? = null,
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val windowStyle = rememberMaterialWindowStyle(colorScheme)
-    val titleBarStyle = rememberMaterialTitleBarStyle(colorScheme)
+    val materialTitleBarStyle = rememberMaterialTitleBarStyle(colorScheme)
 
     NucleusDecoratedWindowTheme(
         isDark = colorScheme.isDark(),
         windowStyle = windowStyle,
-        titleBarStyle = titleBarStyle,
+        titleBarStyle = titleBarStyle ?: materialTitleBarStyle,
     ) {
         DecoratedWindow(
             onCloseRequest = onCloseRequest,

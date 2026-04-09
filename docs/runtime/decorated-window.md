@@ -409,6 +409,43 @@ NucleusDecoratedWindowTheme(
 }
 ```
 
+#### Custom Window Control Icon Colors
+
+On **Windows** and **Linux** (with `decorated-window-jni` only), you can override the color of the minimize, maximize, and close button icons. This is useful when using a dark title bar background where the default icon colors don't provide enough contrast.
+
+The close button hover/pressed state is never tinted — it keeps the native white-on-red appearance.
+
+```kotlin
+val myTitleBarStyle = TitleBarStyle(
+    colors = TitleBarColors(
+        background = Color(0xFF1E1E2E),
+        inactiveBackground = Color(0xFF2E2E3E),
+        content = Color.White,
+        border = Color.Transparent,
+        // Force white icons, green on hover
+        controlButtonIconColor = Color.White,
+        controlButtonIconHoverColor = Color.Green,
+    ),
+    metrics = TitleBarMetrics(),
+)
+```
+
+With `MaterialDecoratedWindow` (Material 3), pass the style via `titleBarStyle`:
+
+```kotlin
+MaterialDecoratedWindow(
+    onCloseRequest = ::exitApplication,
+    titleBarStyle = myTitleBarStyle,
+) {
+    MaterialTitleBar { state -> /* ... */ }
+    // ...
+}
+```
+
+!!! note
+    On macOS, the window controls are native AppKit traffic lights and cannot be tinted.
+    This feature has no effect with `decorated-window-jbr`.
+
 ### `DecoratedWindowStyle`
 
 Controls the window border (visible only on Linux):
@@ -432,6 +469,8 @@ Controls the title bar appearance:
 | `colors.fullscreenControlButtonsBackground` | Background for macOS fullscreen traffic lights |
 | `colors.iconButtonHoveredBackground` | Background for icon buttons on hover |
 | `colors.iconButtonPressedBackground` | Background for icon buttons on press |
+| `colors.controlButtonIconColor` | Tint color for window control button icons (min/max/close). `Color.Unspecified` = platform default. Only applies on Windows and Linux with `decorated-window-jni`. |
+| `colors.controlButtonIconHoverColor` | Tint color for window control button icons on hover. `Color.Unspecified` = uses `controlButtonIconColor`. Only applies on Windows and Linux with `decorated-window-jni`. |
 | `metrics.height` | Title bar height (default 40.dp) |
 | `metrics.gradientStartX` / `gradientEndX` | Gradient range (see below) |
 | `icons` | Custom `Painter` for close/minimize/maximize/restore buttons (null = platform default) |

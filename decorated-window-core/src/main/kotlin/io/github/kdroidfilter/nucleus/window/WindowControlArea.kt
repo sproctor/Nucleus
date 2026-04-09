@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -53,6 +55,7 @@ fun TitleBarScope.WindowControlArea(
             iconPressed = closePressed,
             contentDescription = "Close",
             style = style,
+            isCloseButton = true,
         )
 
         // In fullscreen: show maximize icon but click exits fullscreen
@@ -136,6 +139,7 @@ fun TitleBarScope.DialogCloseButton(
             iconPressed = closePressed,
             contentDescription = "Close",
             style = style,
+            isCloseButton = true,
         )
     }
 }
@@ -151,6 +155,7 @@ private fun TitleBarScope.ControlButton(
     iconPressed: Painter,
     contentDescription: String,
     style: TitleBarStyle,
+    isCloseButton: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -171,6 +176,7 @@ private fun TitleBarScope.ControlButton(
         var hovered by remember { mutableStateOf(false) }
         var pressed by remember { mutableStateOf(false) }
 
+        val isCloseInteracted = isCloseButton && (hovered || pressed)
         val currentIcon =
             when {
                 pressed && (state.isActive || isKde) -> iconPressed
@@ -178,9 +184,22 @@ private fun TitleBarScope.ControlButton(
                 else -> icon
             }
 
+        // Apply icon tint when controlButtonIconColor is set,
+        // but skip tinting for close button hover/pressed (icons have baked-in colors).
+        val iconTint = style.colors.controlButtonIconColor
+        val iconHoverTint = style.colors.controlButtonIconHoverColor
+        val colorFilter =
+            when {
+                isCloseInteracted -> null
+                (hovered || pressed) && iconHoverTint != Color.Unspecified -> ColorFilter.tint(iconHoverTint)
+                iconTint != Color.Unspecified -> ColorFilter.tint(iconTint)
+                else -> null
+            }
+
         Image(
             painter = currentIcon,
             contentDescription = contentDescription,
+            colorFilter = colorFilter,
             modifier =
                 Modifier
                     .onPointerEvent(PointerEventType.Enter) { hovered = true }

@@ -8,17 +8,19 @@ import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
 import io.github.kdroidfilter.nucleus.window.DecoratedWindowState
 import io.github.kdroidfilter.nucleus.window.TitleBar
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 
 @Suppress("FunctionNaming")
 @Composable
 fun DecoratedWindowScope.JewelTitleBar(
     modifier: Modifier = Modifier,
     gradientStartColor: Color = Color.Unspecified,
+    style: TitleBarStyle = LocalTitleBarStyle.current,
     controlButtonsDirection: ControlButtonsDirection = ControlButtonsDirection.Auto,
     backgroundContent: @Composable () -> Unit = {},
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
 ) {
-    val style = rememberJewelTitleBarStyle()
     TitleBar(
         modifier = modifier,
         gradientStartColor = gradientStartColor,
