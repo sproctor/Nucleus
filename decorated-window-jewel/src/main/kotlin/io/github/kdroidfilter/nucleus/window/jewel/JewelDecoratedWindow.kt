@@ -8,6 +8,7 @@ import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.window.DecoratedWindow
 import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 
 @Suppress("FunctionNaming", "LongParameterList")
@@ -24,15 +25,16 @@ fun JewelDecoratedWindow(
     alwaysOnTop: Boolean = false,
     onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
     onKeyEvent: (KeyEvent) -> Boolean = { false },
+    titleBarStyle: TitleBarStyle? = null,
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
     val windowStyle = rememberJewelWindowStyle()
-    val titleBarStyle = rememberJewelTitleBarStyle()
+    val jewelTitleBarStyle = rememberJewelTitleBarStyle()
 
     NucleusDecoratedWindowTheme(
         isDark = JewelTheme.isDark,
         windowStyle = windowStyle,
-        titleBarStyle = titleBarStyle,
+        titleBarStyle = titleBarStyle ?: jewelTitleBarStyle,
     ) {
         DecoratedWindow(
             onCloseRequest = onCloseRequest,

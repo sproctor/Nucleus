@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -148,7 +149,7 @@ fun TitleBarScope.WindowsDialogCloseButton(
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-@Suppress("FunctionNaming", "LongParameterList", "UnusedParameter")
+@Suppress("FunctionNaming", "LongParameterList", "UnusedParameter", "CyclomaticComplexMethod")
 @Composable
 private fun TitleBarScope.WindowsCaptionButton(
     onClick: () -> Unit,
@@ -164,19 +165,28 @@ private fun TitleBarScope.WindowsCaptionButton(
 
     val isDark = LocalIsDarkTheme.current
     val backgroundColor =
-        when {
-            pressed && isCloseButton -> WindowsCloseButtonPressed
-            pressed -> if (isDark) WindowsButtonPressedDark else WindowsButtonPressedLight
-            hovered && isCloseButton -> WindowsCloseButtonHovered
-            hovered -> if (isDark) WindowsButtonHoveredDark else WindowsButtonHoveredLight
-            else -> Color.Transparent
-        }
+        captionButtonBackground(
+            hovered = hovered,
+            pressed = pressed,
+            isCloseButton = isCloseButton,
+            isDark = isDark,
+            style = style,
+        )
 
+    val isCloseHovered = (hovered || pressed) && isCloseButton
     val currentIcon =
         when {
-            (hovered || pressed) && isCloseButton && iconHover != null -> iconHover
+            isCloseHovered && iconHover != null -> iconHover
             else -> icon
         }
+
+    val colorFilter =
+        captionButtonColorFilter(
+            hovered = hovered,
+            pressed = pressed,
+            isCloseHovered = isCloseHovered,
+            style = style,
+        )
 
     Box(
         modifier =
@@ -202,6 +212,48 @@ private fun TitleBarScope.WindowsCaptionButton(
         Image(
             painter = currentIcon,
             contentDescription = contentDescription,
+            colorFilter = colorFilter,
         )
+    }
+}
+
+private fun captionButtonBackground(
+    hovered: Boolean,
+    pressed: Boolean,
+    isCloseButton: Boolean,
+    isDark: Boolean,
+    style: TitleBarStyle,
+): Color {
+    val customHover = style.colors.iconButtonHoveredBackground
+    val customPressed = style.colors.iconButtonPressedBackground
+    val pressedColor =
+        customPressed.takeUnless { it == Color.Transparent }
+            ?: if (isDark) WindowsButtonPressedDark else WindowsButtonPressedLight
+    val hoveredColor =
+        customHover.takeUnless { it == Color.Transparent }
+            ?: if (isDark) WindowsButtonHoveredDark else WindowsButtonHoveredLight
+    return when {
+        pressed && isCloseButton -> WindowsCloseButtonPressed
+        pressed -> pressedColor
+        hovered && isCloseButton -> WindowsCloseButtonHovered
+        hovered -> hoveredColor
+        else -> Color.Transparent
+    }
+}
+
+private fun captionButtonColorFilter(
+    hovered: Boolean,
+    pressed: Boolean,
+    isCloseHovered: Boolean,
+    style: TitleBarStyle,
+): ColorFilter? {
+    val iconTint = style.colors.controlButtonIconColor
+    val iconHoverTint = style.colors.controlButtonIconHoverColor
+    return when {
+        isCloseHovered -> null
+        (hovered || pressed) && iconHoverTint != Color.Unspecified ->
+            ColorFilter.tint(iconHoverTint)
+        iconTint != Color.Unspecified -> ColorFilter.tint(iconTint)
+        else -> null
     }
 }
