@@ -40,6 +40,7 @@ SOURCES=(
     "$SCRIPT_DIR/nucleus_system_info_process.c"
     "$SCRIPT_DIR/nucleus_system_info_user.c"
     "$SCRIPT_DIR/nucleus_system_info_hardware.c"
+    "$SCRIPT_DIR/nucleus_system_info_gpu.c"
 )
 
 COMMON_FLAGS=(
@@ -48,6 +49,7 @@ COMMON_FLAGS=(
     -O2
     -fvisibility=hidden
     -Wl,--strip-all
+    -ldl -lm
 )
 
 ARCH=$(uname -m)

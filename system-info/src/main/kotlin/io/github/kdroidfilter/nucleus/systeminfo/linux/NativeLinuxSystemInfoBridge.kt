@@ -178,6 +178,38 @@ internal object NativeLinuxSystemInfoBridge {
 
     @JvmStatic external fun nativeProcessRoots(): Array<String>?
 
+    // GPU
+    @JvmStatic external fun nativeGpuCount(): Int
+
+    @JvmStatic external fun nativeGpuNames(): Array<String>?
+
+    @JvmStatic external fun nativeGpuVendorIds(): LongArray?
+
+    @JvmStatic external fun nativeGpuDeviceIds(): LongArray?
+
+    @JvmStatic external fun nativeGpuDedicatedVideoMemories(): LongArray?
+
+    @JvmStatic external fun nativeGpuDedicatedSystemMemories(): LongArray?
+
+    @JvmStatic external fun nativeGpuSharedSystemMemories(): LongArray?
+
+    @JvmStatic external fun nativeGpuDriverVersions(): Array<String>?
+
+    // GPU live metrics
+    @JvmStatic external fun nativeGpuTemperatures(): FloatArray?
+
+    @JvmStatic external fun nativeGpuUsages(): FloatArray?
+
+    @JvmStatic external fun nativeGpuMemoryUsed(): LongArray?
+
+    @JvmStatic external fun nativeGpuCoreClocks(): IntArray?
+
+    @JvmStatic external fun nativeGpuMemoryClocks(): IntArray?
+
+    @JvmStatic external fun nativeGpuFanSpeeds(): FloatArray?
+
+    @JvmStatic external fun nativeGpuPowerDraws(): FloatArray?
+
     // Single process by PID
     @JvmStatic external fun nativeProcessByPidName(pid: Long): String?
 

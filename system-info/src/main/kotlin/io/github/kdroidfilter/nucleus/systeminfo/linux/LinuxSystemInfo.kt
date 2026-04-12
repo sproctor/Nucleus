@@ -249,5 +249,49 @@ internal object LinuxSystemInfo : PlatformSystemInfo {
         )
     }
 
-    override fun gpus(): List<GpuInfo> = emptyList()
+    @Suppress("CyclomaticComplexMethod")
+    override fun gpus(): List<GpuInfo> {
+        if (!bridge.isLoaded) return emptyList()
+        val count = bridge.nativeGpuCount()
+        if (count <= 0) return emptyList()
+        val names = bridge.nativeGpuNames() ?: return emptyList()
+        val vendorIds = bridge.nativeGpuVendorIds() ?: return emptyList()
+        val deviceIds = bridge.nativeGpuDeviceIds() ?: return emptyList()
+        val dedicatedVideo = bridge.nativeGpuDedicatedVideoMemories() ?: return emptyList()
+        val dedicatedSystem = bridge.nativeGpuDedicatedSystemMemories() ?: return emptyList()
+        val sharedSystem = bridge.nativeGpuSharedSystemMemories() ?: return emptyList()
+        val driverVersions = bridge.nativeGpuDriverVersions() ?: return emptyList()
+        val temperatures = bridge.nativeGpuTemperatures()
+        val usages = bridge.nativeGpuUsages()
+        val memoryUsed = bridge.nativeGpuMemoryUsed()
+        val coreClocks = bridge.nativeGpuCoreClocks()
+        val memoryClocks = bridge.nativeGpuMemoryClocks()
+        val fanSpeeds = bridge.nativeGpuFanSpeeds()
+        val powerDraws = bridge.nativeGpuPowerDraws()
+        return (0 until count).map { i ->
+            val temp = temperatures?.getOrElse(i) { Float.NaN } ?: Float.NaN
+            val usage = usages?.getOrElse(i) { Float.NaN } ?: Float.NaN
+            val memUsed = memoryUsed?.getOrElse(i) { -1L } ?: -1L
+            val coreClock = coreClocks?.getOrElse(i) { -1 } ?: -1
+            val memClock = memoryClocks?.getOrElse(i) { -1 } ?: -1
+            val fan = fanSpeeds?.getOrElse(i) { Float.NaN } ?: Float.NaN
+            val power = powerDraws?.getOrElse(i) { Float.NaN } ?: Float.NaN
+            GpuInfo(
+                name = names.getOrElse(i) { "" },
+                vendorId = vendorIds.getOrElse(i) { 0L },
+                deviceId = deviceIds.getOrElse(i) { 0L },
+                dedicatedVideoMemory = dedicatedVideo.getOrElse(i) { 0L },
+                dedicatedSystemMemory = dedicatedSystem.getOrElse(i) { 0L },
+                sharedSystemMemory = sharedSystem.getOrElse(i) { 0L },
+                driverVersion = driverVersions.getOrElse(i) { "" }.ifEmpty { null },
+                temperature = if (temp.isNaN()) null else temp,
+                gpuUsage = if (usage.isNaN()) null else usage,
+                memoryUsed = if (memUsed < 0) null else memUsed,
+                coreClockMhz = if (coreClock < 0) null else coreClock,
+                memoryClockMhz = if (memClock < 0) null else memClock,
+                fanSpeedPercent = if (fan.isNaN()) null else fan,
+                powerDrawWatts = if (power.isNaN()) null else power,
+            )
+        }
+    }
 }
