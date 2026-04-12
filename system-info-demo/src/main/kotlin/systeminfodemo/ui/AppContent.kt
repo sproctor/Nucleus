@@ -2,7 +2,7 @@
 
 package systeminfodemo.ui
 
-import androidx.compose.foundation.VerticalScrollbar
+import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -256,12 +255,12 @@ fun AppContent() {
         Divider(Orientation.Vertical, Modifier.fillMaxHeight())
 
         // Content
-        Box(Modifier.fillMaxSize().background(JewelTheme.globalColors.toolwindowBackground)) {
-            val scrollState = rememberScrollState()
+        VerticallyScrollableContainer(
+            modifier = Modifier.fillMaxSize().background(JewelTheme.globalColors.toolwindowBackground),
+        ) {
             Column(
                 Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
+                    .fillMaxWidth()
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -269,10 +268,6 @@ fun AppContent() {
                 Spacer(Modifier.height(4.dp))
                 PanelContent(currentNav, state)
             }
-            VerticalScrollbar(
-                adapter = rememberScrollbarAdapter(scrollState),
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            )
         }
     }
 }
