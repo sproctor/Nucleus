@@ -23,7 +23,7 @@ Electron gave developers reach but asked them to accept a browser as a runtime, 
 
 ### Native on every OS
 
-On macOS, Nucleus speaks Cocoa. On Windows, Win32 and WinRT. On Linux, D-Bus and X11. Every OS integration — window decorations, notifications, taskbar, launchers, dark mode, accent colors, global hotkeys — talks directly to the platform. No abstraction layer pretending to be native. Pixel-perfect rendering on every display, every DPI, every OS.
+Your app doesn't emulate native — it *is* native. Window decorations, notifications, taskbar badges, dock menus, dark mode, accent colors, global hotkeys — everything behaves exactly as users expect on their OS. Not a web view wearing a disguise. A real desktop citizen, on every platform, on every screen.
 
 ### Performance that rivals C++ — with the simplicity of Kotlin
 
