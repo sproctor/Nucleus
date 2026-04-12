@@ -195,22 +195,18 @@ static long long read_number_property(io_service_t service, CFStringRef key) {
     return val;
 }
 
-// Read a value from PerformanceStatistics dictionary
-static int read_perf_stat_number(io_service_t service, const char *stat_key, long long *out) {
-    CFDictionaryRef stats = (CFDictionaryRef)IORegistryEntryCreateCFProperty(
-        service, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, 0);
-    if (!stats) return -1;
-    if (CFGetTypeID(stats) != CFDictionaryGetTypeID()) { CFRelease(stats); return -1; }
+// Read a number from a CFDictionary (used for PerformanceStatistics sub-keys)
+static int read_dict_number(CFDictionaryRef dict, const char *stat_key, long long *out) {
+    if (!dict) return -1;
     CFStringRef key = CFStringCreateWithCString(kCFAllocatorDefault, stat_key,
                                                  kCFStringEncodingUTF8);
     int found = -1;
-    CFNumberRef num = (CFNumberRef)CFDictionaryGetValue(stats, key);
+    CFNumberRef num = (CFNumberRef)CFDictionaryGetValue(dict, key);
     if (num && CFGetTypeID(num) == CFNumberGetTypeID()) {
         CFNumberGetValue(num, kCFNumberSInt64Type, out);
         found = 0;
     }
     CFRelease(key);
-    CFRelease(stats);
     return found;
 }
 
@@ -356,11 +352,25 @@ static void refresh_gpus(void) {
             g->device_id = find_parent_le32_property(service, CFSTR("device-id"));
         }
 
+        // Read ALL properties at once — IORegistryEntryCreateCFProperties returns
+        // live PerformanceStatistics, while IORegistryEntryCreateCFProperty (singular)
+        // returns stale/cached utilization values on macOS.
+        CFMutableDictionaryRef allProps = NULL;
+        IORegistryEntryCreateCFProperties(service, &allProps, kCFAllocatorDefault, 0);
+
+        CFDictionaryRef perfStats = NULL;
+        if (allProps) {
+            CFDictionaryRef ps = (CFDictionaryRef)CFDictionaryGetValue(allProps, CFSTR("PerformanceStatistics"));
+            if (ps && CFGetTypeID(ps) == CFDictionaryGetTypeID()) {
+                perfStats = ps;
+            }
+        }
+
         // ---- Static memory info ----
 
         // Shared system memory from PerformanceStatistics
         long long perf_val = 0;
-        if (read_perf_stat_number(service, "Alloc system memory", &perf_val) == 0 && perf_val > 0) {
+        if (read_dict_number(perfStats, "Alloc system memory", &perf_val) == 0 && perf_val > 0) {
             g->shared_system_memory = perf_val;
         }
 
@@ -378,7 +388,7 @@ static void refresh_gpus(void) {
 
         // Temperature: PerformanceStatistics first, SMC fallback
         long long temp_val = 0;
-        if (read_perf_stat_number(service, "Temperature(C)", &temp_val) == 0 && temp_val > 0) {
+        if (read_dict_number(perfStats, "Temperature(C)", &temp_val) == 0 && temp_val > 0) {
             g->temperature = (float)temp_val;
         } else {
             g->temperature = gpu_smc_temperature();
@@ -386,38 +396,40 @@ static void refresh_gpus(void) {
 
         // GPU utilization
         long long util_val = 0;
-        if (read_perf_stat_number(service, "Device Utilization %", &util_val) == 0) {
+        if (read_dict_number(perfStats, "Device Utilization %", &util_val) == 0) {
             g->gpu_usage = (float)util_val;
-        } else if (read_perf_stat_number(service, "GPU Activity(%)", &util_val) == 0) {
+        } else if (read_dict_number(perfStats, "GPU Activity(%)", &util_val) == 0) {
             g->gpu_usage = (float)util_val;
         }
 
         // Memory used (in-use system memory)
         long long mem_used = 0;
-        if (read_perf_stat_number(service, "In use system memory", &mem_used) == 0 && mem_used > 0) {
+        if (read_dict_number(perfStats, "In use system memory", &mem_used) == 0 && mem_used > 0) {
             g->memory_used = mem_used;
         }
 
         // Core clock (MHz)
         long long core_clock = 0;
-        if (read_perf_stat_number(service, "Core Clock(MHz)", &core_clock) == 0 && core_clock > 0) {
+        if (read_dict_number(perfStats, "Core Clock(MHz)", &core_clock) == 0 && core_clock > 0) {
             g->core_clock_mhz = (int)core_clock;
         }
 
         // Memory clock (MHz)
         long long mem_clock = 0;
-        if (read_perf_stat_number(service, "Memory Clock(MHz)", &mem_clock) == 0 && mem_clock > 0) {
+        if (read_dict_number(perfStats, "Memory Clock(MHz)", &mem_clock) == 0 && mem_clock > 0) {
             g->memory_clock_mhz = (int)mem_clock;
         }
 
         // Fan speed (%)
         long long fan = 0;
-        if (read_perf_stat_number(service, "Fan Speed(%)", &fan) == 0 && fan >= 0) {
+        if (read_dict_number(perfStats, "Fan Speed(%)", &fan) == 0 && fan >= 0) {
             g->fan_speed_pct = (float)fan;
         }
 
         // Power draw: SMC
         g->power_draw_watts = gpu_smc_power();
+
+        if (allProps) CFRelease(allProps);
 
         g_gpu_count++;
         IOObjectRelease(service);
