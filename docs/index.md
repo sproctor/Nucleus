@@ -30,7 +30,7 @@ On macOS, Nucleus speaks Cocoa. On Windows, it speaks Win32 and WinRT. On Linux,
 ### Performance at every level
 
 - **~0.5s cold start** with GraalVM native image, **~1.5s** with AOT cache (Project Leyden) — faster than most Electron apps even after they've been "optimized"
-- **100–150 MB RAM** as a native image vs. **300+ MB** for a typical Electron app doing the same job
+- **100–150 MB RAM** as a native image vs. **500 MB–1.5 GB** for a typical Electron app doing the same job
 - **No garbage collection pauses visible to the user** — the JVM's G1/ZGC collectors are decades ahead of anything in the browser runtime world
 - **Full JIT compilation** when running on the JVM — hot paths get optimized at runtime, something a static binary can never do
 
