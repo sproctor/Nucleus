@@ -122,9 +122,6 @@ graph TB
     inputs --> textbox["ToastTextBox"]
     inputs --> selbox["ToastSelectionBox"]
 
-    style TC fill:#0f3460,stroke:#16213e,color:#e0e0e0
-    style visual fill:#533483,stroke:#16213e,color:#e0e0e0
-    style actions fill:#533483,stroke:#16213e,color:#e0e0e0
 ```
 
 ### Data Types

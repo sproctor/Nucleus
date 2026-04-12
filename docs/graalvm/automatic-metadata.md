@@ -61,8 +61,6 @@ flowchart LR
     serial --> out
     callback --> out
 
-    style scan fill:#0f3460,stroke:#16213e,color:#e0e0e0
-    style out fill:#533483,stroke:#16213e,color:#e0e0e0
 ```
 
 ## Level 5 — Generic cross-platform metadata
@@ -94,10 +92,6 @@ flowchart TB
     -H:ConfigurationFileDirectories=...`"]
     NI --> bin["Native binary"]
 
-    style build fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
-    style merge fill:#0f3460,stroke:#16213e,color:#e0e0e0
-    style NI fill:#533483,stroke:#16213e,color:#e0e0e0
-    style bin fill:#e94560,stroke:#16213e,color:#e0e0e0
 ```
 
 All of this happens transparently — no manual steps required. The result is that **most applications compile and run as native images without any manual reflection configuration**.

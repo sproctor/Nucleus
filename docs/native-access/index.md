@@ -15,8 +15,6 @@ flowchart TB
     B --> C["Your JVM code calls it like normal Kotlin"]
 
     B@{ shape: rect }
-
-    style B fill:#0f3460,stroke:#16213e,color:#e0e0e0
 ```
 
 The plugin:

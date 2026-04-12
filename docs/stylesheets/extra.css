@@ -53,3 +53,9 @@
 .md-social {
   display: none;
 }
+
+/* Inline code readability in dark mode */
+[data-md-color-scheme="slate"] .md-typeset code {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}

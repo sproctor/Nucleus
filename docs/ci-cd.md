@@ -33,9 +33,6 @@ flowchart TB
     macos_sign --> publish["Publish — GitHub Release\n+ Update YML metadata"]
     msix --> publish
 
-    style tag fill:#e94560,stroke:#16213e,color:#e0e0e0
-    style build fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
-    style publish fill:#0f3460,stroke:#16213e,color:#e0e0e0
 ```
 
 ## `setup-nucleus` Action
