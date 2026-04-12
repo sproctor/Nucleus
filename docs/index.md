@@ -78,7 +78,7 @@ Nucleus integrates deeply with both: decorated windows with native window contro
 ### Perform like native code
 
 - **Blazing cold start** — Sub-second startup with GraalVM native image, near-instant with AOT cache — a single Gradle flag
-- **The world's most advanced JIT** — The HotSpot JVM optimizes your hot paths at runtime with decades of engineering behind it. No static binary can match sustained JVM throughput.
+- **The world's most advanced JIT** — The HotSpot JVM optimizes your hot paths at runtime with decades of engineering behind it. The result: performance approaching C++ and Rust levels, but with the simplicity and expressiveness of Kotlin.
 - **Lightweight** — 100–150 MB RAM as a native image. Your app, not a browser engine.
 - **GraalVM native image** — Compile your entire app ahead of time into a standalone binary. Nucleus resolves all reflection metadata transparently — zero manual config for most apps.
 
