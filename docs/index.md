@@ -23,7 +23,7 @@ Electron gave developers reach but asked them to accept a browser as a runtime, 
 
 ### Native without compromise
 
-Every pixel is rendered by Skia, the same engine behind Chrome and Android. But unlike Electron, there is no DOM, no JavaScript bridge, no web runtime overhead. Window decorations, notifications, taskbar integration, system tray, global hotkeys, dark mode detection, accent colors — everything talks directly to the OS through **JNI**, not through an abstraction layer pretending to be native.
+Every pixel is rendered by Skia, the same engine behind Chrome and Android. But unlike Electron, there is no DOM, no JavaScript bridge, no web runtime overhead. Window decorations, notifications, taskbar integration, system tray, global hotkeys, dark mode detection, accent colors — everything talks directly to the OS, not through an abstraction layer pretending to be native.
 
 On macOS, Nucleus speaks Cocoa. On Windows, it speaks Win32 and WinRT. On Linux, it speaks D-Bus and X11. Natively. In each case.
 
@@ -39,8 +39,8 @@ On macOS, Nucleus speaks Cocoa. On Windows, it speaks Win32 and WinRT. On Linux,
 Nucleus meets you where you are:
 
 - **Just ship an app?** — One Gradle DSL, 16 packaging formats, auto-update, code signing, notarization. Done.
-- **Need native OS integration?** — Runtime libraries for notifications, launchers, taskbar progress, system colors, energy management, dark mode — all cross-platform, all via JNI.
-- **Need to call a platform API directly?** — [Native Access](native-access/index.md) lets you write Kotlin/Native code and call it from the JVM with zero glue. No C, no JNI boilerplate, no build scripts.
+- **Need native OS integration?** — Runtime libraries for notifications, launchers, taskbar progress, system colors, energy management, dark mode — all cross-platform, with an intuitive Kotlin API.
+- **Need to call a platform API directly?** — [Native Access](native-access/index.md) lets you write Kotlin/Native code and call it from the JVM with zero glue. No C, no boilerplate, no build scripts.
 - **Need maximum performance?** — [GraalVM native image](graalvm/index.md) compiles your entire app ahead of time into a standalone binary. Instant startup, minimal RAM, no JRE bundled.
 
 ### The most advanced desktop UI stack in existence
@@ -84,8 +84,8 @@ Nucleus integrates deeply with both: decorated windows with native window contro
 
 ### Go deeper when you need to
 
-- **Native Access** — Call any platform API from Kotlin. Write Kotlin/Native, the plugin generates the bridge. No C, no JNI, no build scripts.
-- **30+ JNI runtime modules** — Notifications, launchers, dark mode, system colors, taskbar, energy, HiDPI — all via JNI, all cross-platform
+- **Native Access** — Call any platform API from Kotlin. Write Kotlin/Native, the plugin generates the bridge. No C, no boilerplate, no build scripts.
+- **30+ runtime modules** — Notifications, launchers, dark mode, system colors, taskbar, energy, HiDPI — intuitive APIs, all cross-platform
 - **CI/CD ready** — Reusable GitHub Actions, multi-platform matrix builds, universal macOS binaries, MSIX bundles
 
 ## Quick start
