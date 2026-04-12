@@ -65,7 +65,10 @@ nav:
           - Automatic Metadata: graalvm/automatic-metadata.md
           - Runtime Bootstrap: graalvm/runtime-bootstrap.md
           - Tasks & CI/CD: graalvm/tasks-ci.md
-      - Native Access: native-access.md
+      - Native Access:
+          - Overview: native-access/index.md
+          - Supported Types: native-access/types.md
+          - Usage & Patterns: native-access/usage.md
       - CI/CD: ci-cd.md
       - Runtime APIs:
           - Overview: runtime/index.md
