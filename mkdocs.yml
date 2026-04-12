@@ -82,6 +82,12 @@ nav:
               - Jewel Integration: runtime/decorated-window-jewel.md
               - Material 2: runtime/decorated-window-material2.md
               - Material 3: runtime/decorated-window-material3.md
+          - System Tray:
+              - Overview: runtime/system-tray/index.md
+              - Tray API: runtime/system-tray/tray-api.md
+              - Menu DSL: runtime/system-tray/menu-dsl.md
+              - TrayApp: runtime/system-tray/tray-app.md
+              - Utilities: runtime/system-tray/utilities.md
           - Notifications:
               - macOS: runtime/notification-macos.md
               - Windows: runtime/notification-windows.md
