@@ -8,21 +8,37 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.jewel.ui.component.Text
-import systeminfodemo.ui.BarChart
+import org.jetbrains.letsPlot.Stat
+import org.jetbrains.letsPlot.geom.geomBar
+import org.jetbrains.letsPlot.letsPlot
+import org.jetbrains.letsPlot.scale.scaleFillIdentity
+import org.jetbrains.letsPlot.scale.scaleYContinuous
+import org.jetbrains.letsPlot.tooltips.layerTooltips
+import org.jetbrains.letsPlot.compose.PlotPanel
 import systeminfodemo.ui.InfoRow
 import systeminfodemo.ui.LineChart
 import systeminfodemo.ui.ProgressBar
 import systeminfodemo.ui.SectionCard
+import systeminfodemo.ui.chartTheme
 import systeminfodemo.viewmodel.SystemInfoState
+
+private fun coreColor(usage: Float): String =
+    when {
+        usage < 30f -> "#5AB869"
+        usage < 70f -> "#D4A843"
+        else -> "#F75464"
+    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -60,14 +76,36 @@ fun CpuPanel(state: SystemInfoState) {
         }
     }
 
-    // Per-core bar chart full width
+    // Per-core bar chart with color-coded bars
     SectionCard("Per-Core Usage") {
         if (cpu != null && cpu.cpus.isNotEmpty()) {
-            BarChart(
-                xData = cpu.cpus.indices.map { it.toFloat() },
-                yData = cpu.cpus.map { it.cpuUsage },
-                barColor = Color(0xFF42A5F5),
+            val usages = cpu.cpus.map { it.cpuUsage }
+            val colors = remember(usages) { usages.map { coreColor(it) } }
+
+            val plotData = mapOf(
+                "core" to cpu.cpus.indices.map { "cpu$it" },
+                "usage" to usages,
+                "color" to colors,
             )
+
+            val figure = letsPlot(plotData) { x = "core"; y = "usage"; fill = "color" } +
+                geomBar(
+                    stat = Stat.identity,
+                    width = 0.75,
+                    alpha = 0.9,
+                    tooltips = layerTooltips()
+                        .line("@core")
+                        .format("usage", ".1f")
+                        .line("@usage%"),
+                ) +
+                scaleFillIdentity() +
+                scaleYContinuous(limits = Pair(0, 100), breaks = listOf(0, 25, 50, 75, 100)) +
+                chartTheme()
+
+            PlotPanel(
+                figure = figure,
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+            ) {}
         }
     }
 

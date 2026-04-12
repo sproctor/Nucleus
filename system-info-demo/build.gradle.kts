@@ -25,7 +25,13 @@ dependencies {
     implementation(libs.jna.jpms)
 
     implementation(libs.coroutines.core)
-    implementation("io.github.koalaplot:koalaplot-core:0.11.0")
+
+    // Lets-Plot charting
+    implementation("org.jetbrains.lets-plot:lets-plot-kotlin-kernel:4.13.0")
+    implementation("org.jetbrains.lets-plot:lets-plot-common:4.9.0")
+    implementation("org.jetbrains.lets-plot:canvas:4.9.0")
+    implementation("org.jetbrains.lets-plot:plot-raster:4.9.0")
+    implementation("org.jetbrains.lets-plot:lets-plot-compose-desktop:3.1.0")
 
     implementation(project(":graalvm-runtime"))
 }
