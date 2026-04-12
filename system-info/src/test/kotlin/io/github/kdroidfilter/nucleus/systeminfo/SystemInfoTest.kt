@@ -111,6 +111,8 @@ class SystemInfoTest {
         assertTrue(gpus.isNotEmpty(), "Should have at least one GPU")
         gpus.forEach { g ->
             println("GPU: ${g.name} vendor=0x${g.vendorId.toString(16)} shared=${g.sharedSystemMemory / 1024 / 1024}MB driver=${g.driverVersion}")
+            println("  temp=${g.temperature}°C usage=${g.gpuUsage}% memUsed=${g.memoryUsed?.let { it / 1024 / 1024 }}MB")
+            println("  coreClock=${g.coreClockMhz}MHz memClock=${g.memoryClockMhz}MHz fan=${g.fanSpeedPercent}% power=${g.powerDrawWatts}W")
         }
     }
 }

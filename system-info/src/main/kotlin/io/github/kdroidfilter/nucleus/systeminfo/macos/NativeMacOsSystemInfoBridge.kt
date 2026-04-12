@@ -219,4 +219,19 @@ internal object NativeMacOsSystemInfoBridge {
     @JvmStatic external fun nativeGpuSharedSystemMemories(): LongArray?
 
     @JvmStatic external fun nativeGpuDriverVersions(): Array<String>?
+
+    // GPU live metrics
+    @JvmStatic external fun nativeGpuTemperatures(): FloatArray?
+
+    @JvmStatic external fun nativeGpuUsages(): FloatArray?
+
+    @JvmStatic external fun nativeGpuMemoryUsed(): LongArray?
+
+    @JvmStatic external fun nativeGpuCoreClocks(): IntArray?
+
+    @JvmStatic external fun nativeGpuMemoryClocks(): IntArray?
+
+    @JvmStatic external fun nativeGpuFanSpeeds(): FloatArray?
+
+    @JvmStatic external fun nativeGpuPowerDraws(): FloatArray?
 }
