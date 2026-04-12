@@ -37,6 +37,8 @@ data class SystemInfoState(
     val processes: List<ProcessInfo> = emptyList(),
     val gpus: List<GpuInfo> = emptyList(),
     val cpuHistory: List<Float> = emptyList(),
+    val cpuTempHistory: List<Float> = emptyList(),
+    val coreTempHistory: Map<Int, List<Float>> = emptyMap(),
     val memoryHistory: List<Float> = emptyList(),
     val gpuUsageHistory: Map<Int, List<Float>> = emptyMap(),
     val gpuTempHistory: Map<Int, List<Float>> = emptyMap(),
@@ -76,6 +78,19 @@ object SystemInfoViewModel {
 
         val current = _state.value
         val cpuHist = (current.cpuHistory + (cpu?.globalCpuUsage ?: 0f)).takeLast(HISTORY_MAX_SIZE)
+
+        // CPU Temperatures
+        val cpuTemps = components.filter { it.label.contains("cpu", ignoreCase = true) && it.temperature != null }
+        val avgCpuTemp = if (cpuTemps.isNotEmpty()) cpuTemps.mapNotNull { it.temperature }.average().toFloat() else 0f
+        val cpuTempHist = (current.cpuTempHistory + avgCpuTemp).takeLast(HISTORY_MAX_SIZE)
+
+        val coreTempHist = current.coreTempHistory.toMutableMap()
+        cpuTemps.forEachIndexed { i, comp ->
+            comp.temperature?.let { temp ->
+                coreTempHist[i] = ((coreTempHist[i] ?: emptyList()) + temp).takeLast(HISTORY_MAX_SIZE)
+            }
+        }
+
         val memPercent =
             if (mem != null && mem.totalMemory > 0) {
                 mem.usedMemory.toFloat() / mem.totalMemory.toFloat() * 100f
@@ -109,6 +124,8 @@ object SystemInfoViewModel {
                 processes = procs,
                 gpus = gpus,
                 cpuHistory = cpuHist,
+                cpuTempHistory = cpuTempHist,
+                coreTempHistory = coreTempHist,
                 memoryHistory = memHist,
                 gpuUsageHistory = gpuUsageHist,
                 gpuTempHistory = gpuTempHist,

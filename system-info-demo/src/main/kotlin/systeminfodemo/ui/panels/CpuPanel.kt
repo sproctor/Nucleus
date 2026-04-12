@@ -29,7 +29,11 @@ import systeminfodemo.viewmodel.SystemInfoState
 fun CpuPanel(state: SystemInfoState) {
     val cpu = state.cpuInfo
 
-    // Top row: history + details side by side
+    // CPU Temperatures
+    val cpuTemps = state.components.filter { it.label.contains("cpu", ignoreCase = true) && it.temperature != null }
+    val avgTemp = if (cpuTemps.isNotEmpty()) cpuTemps.mapNotNull { it.temperature }.average().toFloat() else null
+
+    // Top row: usage history + details
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionCard("CPU Usage History", modifier = Modifier.weight(1f)) {
             if (state.cpuHistory.size >= 2) {
@@ -45,6 +49,14 @@ fun CpuPanel(state: SystemInfoState) {
             InfoRow("Physical Cores", cpu?.physicalCoreCount?.toString())
             InfoRow("Logical Cores", cpu?.cpus?.size?.toString())
             InfoRow("Global Usage", cpu?.let { "%.1f%%".format(it.globalCpuUsage) })
+            avgTemp?.let { InfoRow("Global Temperature", "%.1f\u00B0C".format(it)) }
+        }
+    }
+
+    // Temperature History
+    if (state.cpuTempHistory.size >= 2) {
+        SectionCard("CPU Temperature History") {
+            LineChart(data = state.cpuTempHistory, lineColor = Color(0xFFFF7043))
         }
     }
 
@@ -86,13 +98,27 @@ fun CpuPanel(state: SystemInfoState) {
                                 progress = c.cpuUsage / 100f,
                                 color = cpuColor(c.cpuUsage),
                             )
-                            Text(
-                                "${c.frequency} MHz",
-                                fontFamily = FontFamily.Monospace,
-                                color =
-                                    org.jetbrains.jewel.foundation.theme.JewelTheme.contentColor
-                                        .copy(alpha = 0.5f),
-                            )
+                            val coreTemp = cpuTemps.getOrNull(i)?.temperature
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    "${c.frequency} MHz",
+                                    fontFamily = FontFamily.Monospace,
+                                    color =
+                                        org.jetbrains.jewel.foundation.theme.JewelTheme.contentColor
+                                            .copy(alpha = 0.5f),
+                                )
+                                coreTemp?.let {
+                                    Text(
+                                        "%.1f\u00B0C".format(it),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = cpuTempColor(it),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -100,3 +126,10 @@ fun CpuPanel(state: SystemInfoState) {
         }
     }
 }
+
+internal fun cpuTempColor(temp: Float): Color =
+    when {
+        temp < 60f -> Color(0xFF5AB869)
+        temp < 80f -> Color(0xFFD4A843)
+        else -> Color(0xFFF75464)
+    }
