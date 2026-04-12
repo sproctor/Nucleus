@@ -67,24 +67,24 @@ nucleus.application {
 
 All available formats:
 
-| Format | Platform | Backend | Task Name |
-|--------|----------|---------|-----------|
-| `TargetFormat.Dmg` | macOS | electron-builder | `packageDmg` |
-| `TargetFormat.Pkg` | macOS | electron-builder | `packagePkg` |
-| `TargetFormat.Exe` | Windows | electron-builder | `packageExe` |
-| `TargetFormat.Msi` | Windows | electron-builder | `packageMsi` |
-| `TargetFormat.Nsis` | Windows | electron-builder | `packageNsis` |
-| `TargetFormat.NsisWeb` | Windows | electron-builder | `packageNsisWeb` |
-| `TargetFormat.Portable` | Windows | electron-builder | `packagePortable` |
-| `TargetFormat.AppX` | Windows | electron-builder | `packageAppX` |
-| `TargetFormat.Deb` | Linux | electron-builder | `packageDeb` |
-| `TargetFormat.Rpm` | Linux | electron-builder | `packageRpm` |
-| `TargetFormat.AppImage` | Linux | electron-builder | `packageAppImage` |
-| `TargetFormat.Snap` | Linux | electron-builder | `packageSnap` |
-| `TargetFormat.Flatpak` | Linux | electron-builder | `packageFlatpak` |
-| `TargetFormat.Zip` | All | electron-builder | `packageZip` |
-| `TargetFormat.Tar` | All | electron-builder | `packageTar` |
-| `TargetFormat.SevenZ` | All | electron-builder | `packageSevenZ` |
+| Format | Platform | Task Name | Notes |
+|--------|----------|-----------|-------|
+| `TargetFormat.Dmg` | macOS | `packageDmg` | |
+| `TargetFormat.Pkg` | macOS | `packagePkg` | |
+| `TargetFormat.Nsis` | Windows | `packageNsis` | NSIS installer (`.exe`) |
+| `TargetFormat.Exe` | Windows | `packageExe` | Alias for `Nsis` — same output |
+| `TargetFormat.NsisWeb` | Windows | `packageNsisWeb` | NSIS web installer |
+| `TargetFormat.Msi` | Windows | `packageMsi` | |
+| `TargetFormat.Portable` | Windows | `packagePortable` | |
+| `TargetFormat.AppX` | Windows | `packageAppX` | MSIX format |
+| `TargetFormat.Deb` | Linux | `packageDeb` | |
+| `TargetFormat.Rpm` | Linux | `packageRpm` | |
+| `TargetFormat.AppImage` | Linux | `packageAppImage` | |
+| `TargetFormat.Snap` | Linux | `packageSnap` | |
+| `TargetFormat.Flatpak` | Linux | `packageFlatpak` | |
+| `TargetFormat.Zip` | All | `packageZip` | |
+| `TargetFormat.Tar` | All | `packageTar` | |
+| `TargetFormat.SevenZ` | All | `packageSevenZ` | |
 
 Target all formats at once:
 

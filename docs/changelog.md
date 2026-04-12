@@ -325,7 +325,7 @@ nativeDistributions {
     - **L2 (Oracle Reachability Metadata Repository)** — Automatic resolution of metadata for all runtime classpath dependencies from the [Oracle GraalVM Reachability Metadata Repository](https://github.com/oracle/graalvm-reachability-metadata). Covers popular libraries like ktor, kotlinx.serialization, SLF4J, Logback, and many others. Enabled by default.
     - **L3 (plugin platform metadata)** — Platform-specific AWT/Java2D/font/security metadata for macOS, Windows, and Linux, shipped inside the Gradle plugin. Written to the build directory at compile time — no per-platform `when` block needed in your build script.
 
-    Users no longer need to copy thousands of reflection entries from the example app. Most applications will work without any manual reflection configuration. See [Centralized Reflection Metadata](graalvm-native-image.md#centralized-reflection-metadata).
+    Users no longer need to copy thousands of reflection entries from the example app. Most applications will work without any manual reflection configuration. See [Centralized Reflection Metadata](graalvm/index.md#centralized-reflection-metadata).
 
 - **`metadataRepository {}` DSL** — New configuration block in `graalvm {}` to control the Oracle Reachability Metadata Repository integration. Supports `enabled`, `version`, `excludedModules`, and `moduleToConfigVersion`. Enabled by default with version `0.10.6`.
 
@@ -359,7 +359,7 @@ nativeDistributions {
 
 ### Breaking Changes
 
-- **Sample app `reachability-metadata.json` files drastically reduced** — If you copied metadata from the example or jewel-sample apps, the source files are now nearly empty (framework entries moved to L1/L3). This is not a code-breaking change, but you should clean up your own metadata files — see the [migration guide](graalvm-native-image.md#migration-from-v15x).
+- **Sample app `reachability-metadata.json` files drastically reduced** — If you copied metadata from the example or jewel-sample apps, the source files are now nearly empty (framework entries moved to L1/L3). This is not a code-breaking change, but you should clean up your own metadata files — see the [migration guide](graalvm/index.md#migration-from-v15x).
 
 - **Removed old-format config files from samples** — `predefined-classes-config.json`, `proxy-config.json`, `resource-config.json`, and `serialization-config.json` have been removed. All configuration is consolidated in `reachability-metadata.json`.
 
@@ -377,7 +377,7 @@ nativeDistributions {
 
 ### Breaking Changes
 
-- **Remove release build type for GraalVM** — GraalVM native-image tasks no longer have `release` variants (`packageReleaseGraalvmNative`, etc.). ProGuard is redundant with native-image's closed-world dead code elimination and harmful because it can rename classes referenced in `reachability-metadata.json`. See [No Release Build Type](graalvm-native-image.md#no-release-build-type).
+- **Remove release build type for GraalVM** — GraalVM native-image tasks no longer have `release` variants (`packageReleaseGraalvmNative`, etc.). ProGuard is redundant with native-image's closed-world dead code elimination and harmful because it can rename classes referenced in `reachability-metadata.json`. See [No Release Build Type](graalvm/index.md#no-release-build-type).
 
 ---
 
@@ -387,7 +387,7 @@ nativeDistributions {
 
 ### New Features
 
-- **Automatic resource inclusion for GraalVM native-image** — `graalvm-runtime` now ships a `native-image.properties` that auto-includes all `.svg`, `.ttf`, `.otf` resources, `nucleus/native/*` JNI libraries, and `META-INF/services/*` descriptors via glob patterns. Projects no longer need to run the tracing agent just to discover icon and font resources — they are embedded in the native binary automatically. The tracing agent is still required for reflection, JNI, resource bundles, and non-standard resources. See [Automatic Resource Inclusion](graalvm-native-image.md#automatic-resource-inclusion).
+- **Automatic resource inclusion for GraalVM native-image** — `graalvm-runtime` now ships a `native-image.properties` that auto-includes all `.svg`, `.ttf`, `.otf` resources, `nucleus/native/*` JNI libraries, and `META-INF/services/*` descriptors via glob patterns. Projects no longer need to run the tracing agent just to discover icon and font resources — they are embedded in the native binary automatically. The tracing agent is still required for reflection, JNI, resource bundles, and non-standard resources. See [Automatic Resource Inclusion](graalvm/index.md#automatic-resource-inclusion).
 
 ---
 
@@ -729,7 +729,7 @@ No user-facing changes (tag only).
 
 ### New Features
 
-- **GraalVM Native Image support (experimental)** — Compile Compose Desktop apps into standalone native binaries with instant cold boot (~0.5 s), lower memory usage (~100–150 MB vs ~300–400 MB on JVM), and smaller bundles. New `graalvm {}` DSL block, `runWithNativeAgent` task for reflection metadata collection, and `packageGraalvmNative` / `packageGraalvmDeb` / `packageGraalvmDmg` / `packageGraalvmNsis` packaging tasks. Requires [BellSoft Liberica NIK 25](https://bell-sw.com/liberica-native-image-kit/). See [GraalVM Native Image](graalvm-native-image.md).
+- **GraalVM Native Image support (experimental)** — Compile Compose Desktop apps into standalone native binaries with instant cold boot (~0.5 s), lower memory usage (~100–150 MB vs ~300–400 MB on JVM), and smaller bundles. New `graalvm {}` DSL block, `runWithNativeAgent` task for reflection metadata collection, and `packageGraalvmNative` / `packageGraalvmDeb` / `packageGraalvmDmg` / `packageGraalvmNsis` packaging tasks. Requires [BellSoft Liberica NIK 25](https://bell-sw.com/liberica-native-image-kit/). See [GraalVM Native Image](graalvm/index.md).
 - **New `graalvm-runtime` module** (`nucleus.graalvm-runtime`) — Centralizes native-image bootstrap logic into a single `GraalVmInitializer.initialize()` call: Metal L&F, `java.home`/`java.library.path` setup, charset/fontmanager early init, Linux HiDPI detection, and GraalVM `@TargetClass` font substitutions for Windows and Linux.
 - **Decorated Window module split** — `decorated-window` split into `decorated-window-core`, `decorated-window-jbr` (JBR-based, same behavior as before), and `decorated-window-jni` (JBR-free, works with GraalVM). See [Migration Guide](#migration-guide-12x--13x) below.
 - **`decorated-window-jni` module** — New JNI-based implementation of `DecoratedWindow` that works without JetBrains Runtime, including support for Linux via native JNI bridge. Compatible with GraalVM Native Image.
