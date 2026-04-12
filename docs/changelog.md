@@ -1,5 +1,258 @@
 # Changelog
 
+## v1.10.0
+
+**Released: 2026-04-12**
+
+### New Modules
+
+- **System Info** (`nucleus.system-info`) — Cross-platform system information module with JNI native implementations for Linux, Windows, and macOS. Exposes CPU, memory, and GPU metrics in real-time.
+    - **GPU detection and live metrics** — Temperature, usage, VRAM, clock speeds, power draw, and fan speed on all platforms
+    - **macOS**: IOKit & SMC for GPU metrics, supports Apple Silicon and discrete GPUs
+    - **Windows**: DXGI for GPU enumeration, NVIDIA NVML + AMD ADL2 + Intel IGCL for live metrics, WMI thermal zone sensors, performance data for real-time CPU frequency
+    - **Linux**: NVIDIA NVML, AMD, and Intel GPU support
+    - Includes a demo application (`system-info-demo`) with lets-plot charting for CPU temperature history
+
+### Bug Fixes
+
+- **Fix `latest.yml` not generated for MSI and Portable formats** — Update YML generation was limited to NSIS; it now covers MSI and Portable installers as well
+- **Fix `releaseDate` precision in `latest.yml`** — Use millisecond precision to match the electron-builder format expected by the auto-updater
+
+---
+
+## v1.9.1
+
+**Released: 2026-04-10**
+
+### Bug Fixes
+
+- **Fix DMG background image corruption** — Preserve TIFF background byte-for-byte instead of re-encoding; adjust DMG window size to match the image rather than padding the image
+
+---
+
+## v1.9.0
+
+**Released: 2026-04-09**
+
+### New Features
+
+- **`controlButtonIconColor` / `controlButtonIconHoverColor`** — New styling properties on `DecoratedWindow` to customize the color of window control button icons (close, minimize, maximize) and their hover state
+- **`titleBarClickable`** — New property to fix click handling in macOS fullscreen mode, ensuring title bar buttons remain interactive
+
+### Bug Fixes
+
+- **Fix macOS resize lag in decorated windows** — Remove `presentsWithTransaction` which caused visible lag during window resize on macOS
+- **Fix fullscreen title bar clicks on non-notch macOS screens** — Title bar buttons were unresponsive in fullscreen on Macs without a notch
+- **Fix crashes on macOS < 26 during resize and drag** — Guard against Liquid Glass APIs unavailable on older macOS versions
+- **Fix DPI scaling for min/max window size on Windows** — Apply per-axis DPI scaling to `minSize`/`maxSize` constraints, and clean up resources on window dispose
+- **Fix stale lock files in SingleInstanceManager** — Detect and clean up orphaned lock files from previous crashed instances
+- **Fix DMG background image self-destruction** — Prevent the background image from being overwritten during the `dmg-assets` copy phase
+- **Fix AppImage + Maximum compression warning** — Remove invalid `Fast` compression level and warn when `Maximum` is used with AppImage (unsupported by `mksquashfs`)
+- **Remove unused `TitleBarIcons` API** — Clean up deprecated API from `decorated-window`
+
+---
+
+## v1.8.8
+
+**Released: 2026-03-31**
+
+### Bug Fixes
+
+- **Fix macOS RTL detection** — Use `NSLocale` instead of `NSApplication` for layout direction detection, which works correctly in headless and early-startup contexts
+
+---
+
+## v1.8.7
+
+**Released: 2026-03-30**
+
+### New Features
+
+- **Localized Window/Help menu titles** — macOS native menus now display localized titles based on the system locale, with a fix for GraalVM system locale initialization
+- **Linux native layout direction detection** — Detect RTL/LTR layout direction on Linux via Pango JNI, replacing the AWT `ComponentOrientation` approach that failed in native image builds
+
+### Bug Fixes
+
+- **Gracefully handle missing platform-specific native libraries** — Runtime modules no longer crash when a native library is unavailable for the current platform; they fall back silently
+
+---
+
+## v1.8.6
+
+**Released: 2026-03-30**
+
+### Bug Fixes
+
+- **Fix macOS input method crash in GraalVM native image** — Add missing reflection entries for macOS input method classes to platform metadata
+
+---
+
+## v1.8.5
+
+**Released: 2026-03-30**
+
+### Improvements
+
+- **CI: menu-macos native build steps** — Add menu-macos native library build and verification to all CI workflows
+
+---
+
+## v1.8.4
+
+**Released: 2026-03-30**
+
+### New Features
+
+- **Native Access documentation** — Comprehensive guide for the Nucleus Native Access API covering lifecycle details, supported types, and unsupported features
+
+### Bug Fixes
+
+- **Fix DMG background generation crash** — Check `ImageIO.write` return value to prevent `FileNotFoundException` when the image format is unsupported
+
+---
+
+## v1.8.3
+
+**Released: 2026-03-30**
+
+### Bug Fixes
+
+- **Fix artifact naming** — Revert example `packageName` to simple form for clean installer artifact names
+
+---
+
+## v1.8.0
+
+**Released: 2026-03-28**
+
+### New Modules
+
+- **Notification macOS** (`nucleus.notification-macos`) — Full UserNotifications API mapping via JNI. Supports rich notifications with title, subtitle, body, sound, badge, categories with actions, and delivery scheduling. Thread safety with EDT dispatch for delegate callbacks.
+
+- **Notification Linux** (`nucleus.notification-linux`) — Full freedesktop Desktop Notifications API mapping via JNI (D-Bus `org.freedesktop.Notifications`). Supports notification actions, icons, urgency levels, and expiration.
+
+- **Notification Windows** (`nucleus.notification-windows`) — Full Windows Toast Notifications API via JNI (WinRT). Rich toast templates with text, images, buttons, and audio.
+
+- **Launcher Linux** (`nucleus.launcher-linux`) — Full Unity Launcher API mapping via JNI (`com.canonical.Unity.LauncherEntry` + `com.canonical.dbusmenu`). Badge count, progress bar, urgency flag, and quicklist menus with D-Bus menu support. Compatible with GNOME, KDE Plasma, and other DEs.
+
+- **Launcher macOS** (`nucleus.launcher-macos`) — Dock menu API via JNI. Custom Dock context menu items with native callbacks. Requires `CRITICAL_ALERT` entitlement for certain notification features.
+
+- **Launcher Windows** (`nucleus.launcher-windows`) — Windows Launcher API via JNI (WinRT/COM). Badge notifications, Jump Lists (`ICustomDestinationList`), overlay icons, and thumbnail toolbar buttons (`ITaskbarList3`) on the taskbar.
+
+- **Freedesktop Icons** (`nucleus.freedesktop-icons`) — Type-safe constants for the freedesktop Icon Naming Specification. Shared dependency between `notification-linux` and `launcher-linux`.
+
+- **Global Hotkey** (`nucleus.global-hotkey`) — Cross-platform global keyboard shortcut registration.
+    - **Windows**: Low-level keyboard hook
+    - **macOS**: Carbon API (`RegisterEventHotKey`)
+    - **Linux**: X11 key grabbing + Wayland portal (`org.freedesktop.portal.GlobalShortcuts`)
+    - Thread-safe registration/unregistration with synchronized init
+
+- **Menu macOS** (`nucleus.menu-macos`) — Native macOS menu bar API via JNI. Includes GraalVM reachability metadata for JNI callbacks.
+
+- **SF Symbols** (`nucleus.sf-symbols`) — Apple SF Symbols integration module.
+
+### Bug Fixes
+
+- **Fix global hotkey UI freeze on Linux** — Make portal binding non-blocking to avoid freezing the UI thread on Wayland, then dispatch to `Dispatchers.IO`
+- **Fix `Dispatchers.Main` crash in example** — Add `coroutines-swing` dependency for desktop `Dispatchers.Main` support
+
+---
+
+## v1.7.2
+
+**Released: 2026-03-25**
+
+### New Features
+
+- **Webview, JNA, and SQLite JNI metadata** — Add missing GraalVM reachability metadata for webview, JNA, and SQLite JNI classes to L1
+- **`Companion.serializer()` metadata for `@Serializable` classes** — The static analyzer now emits reflection entries for kotlinx.serialization `Companion.serializer()` methods automatically
+
+### Bug Fixes
+
+- **Fix proxy entries in `cleanupGraalvmMetadata` task** — Handle proxy configuration entries that could cause the cleanup task to fail
+
+---
+
+## v1.7.1
+
+**Released: 2026-03-25**
+
+### New Features
+
+- **Expanded L1 library metadata** — Additional agent-captured entries for common libraries
+- **FileKit GraalVM metadata** — Add reachability metadata for FileKit along with complete JDK/JNA entries
+
+### Bug Fixes
+
+- **Fix configuration cache serialization for `nativeImageCompile`** — Resolve serialization errors when Gradle configuration cache is enabled by building native-image arguments at execution time
+
+---
+
+## v1.7.0
+
+**Released: 2026-03-24**
+
+### New Features
+
+- **Static bytecode analyzer for GraalVM reflection metadata** — New `AnalyzeStaticMetadataTask` that scans compiled bytecode to automatically detect classes requiring reflection, JNI, and resource configuration. Eliminates most manual metadata authoring:
+    - JNI callback detection — finds native methods and their parameter/return types
+    - Resource scanning — detects `getResource`/`getResourceAsStream` calls
+    - Class loading wrappers — identifies `Class.forName`, `MethodHandles.Lookup.findClass` patterns
+    - JNI superclass resolution — includes parent classes needed for field access
+    - Enriched class entries — adds non-native methods and fields to JNI class metadata
+
+- **`CleanupGraalvmMetadataTask`** — New Gradle task that removes entries from your manual `reachability-metadata.json` that are already covered by Nucleus library metadata (L1/L2/L3). Keeps manual config minimal.
+
+- **File association support for GraalVM native image on macOS** — Register file type associations in the native image `.app` bundle so macOS opens files with your application.
+
+- **macOS deployment target and SDK version patching** — Automatically patch the Mach-O deployment target and SDK version in GraalVM native image binaries for macOS Liquid Glass compatibility.
+
+- **Per-library L1 metadata** — Split the monolithic L1 metadata file into per-library files with conditional filtering, so only relevant metadata is included based on actual classpath dependencies.
+
+- **JNA GraalVM metadata** — Add core JNA JNI requirements to L1 metadata.
+
+- **AWT drag-and-drop and file open handler metadata** — Add GraalVM reachability metadata for AWT drag-and-drop classes and macOS file open handlers.
+
+- **Ktor CIO, SLF4J, and common JDK resource metadata** — Additional L1 entries for Ktor CIO engine, SLF4J, and commonly used JDK internal classes.
+
+### Bug Fixes
+
+- **Fix agent metadata duplication** — Deduplicate tracing agent output against Oracle Reachability Metadata Repository and static analysis results
+- **Fix configuration cache serialization in `runWithNativeAgent`** — Resolve Gradle serialization errors when configuration cache is enabled
+- **Fix Aqua LAF resource pattern** — Add glob pattern for Aqua Look-and-Feel resources to prevent agent duplication on macOS
+- **Fix unsupported class file version in `NativeMethodDetector`** — Handle newer class file versions gracefully instead of crashing
+- **Fix `JarResourceDetector` false positives** — Narrow path matching to avoid detecting unrelated resources
+
+### Breaking Changes
+
+- **Default GraalVM config directory changed** — The default directory for manual GraalVM metadata is now `graalvm/` instead of `resources/`. Existing projects should move their `reachability-metadata.json` to the new location.
+
+---
+
+## v1.6.5
+
+**Released: 2026-03-23**
+
+### New Features
+
+- **File association support for GraalVM native image on macOS** — Register file type associations (`CFBundleDocumentTypes`) in the GraalVM native image `.app` bundle
+
+### Bug Fixes
+
+- **Fix ktlint violations in `configureGraalvmApplication.kt`**
+
+---
+
+## v1.6.4
+
+**Released: 2026-03-23**
+
+### Bug Fixes
+
+- **Fix infinite recursion in fullscreen mouse event forwarding** — Prevent stack overflow when forwarding mouse events in decorated window fullscreen mode
+
+---
+
 ## v1.6.2
 
 **Released: 2026-03-22**
