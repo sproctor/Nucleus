@@ -17,45 +17,27 @@ Every technology eventually finds its mature form. Java evolved into **Kotlin**.
 
 Not an alternative. An evolution.
 
-Electron gave developers reach but asked them to accept a browser as a runtime, a DOM as a UI layer, and hundreds of megabytes as a baseline. Nucleus builds on the **JVM** — the most battle-tested runtime in history — and on **Compose Multiplatform** — the most advanced declarative UI toolkit available today — to deliver desktop applications that are natively compiled, natively integrated, and natively fast. No browser engine. No JavaScript bridge. No compromise.
+Electron gave developers reach but asked them to accept a browser as a runtime, a DOM as a UI layer, and hundreds of megabytes as a baseline. Nucleus builds on the **JVM** and on **Compose Multiplatform** to deliver desktop applications that are natively integrated, natively fast, and natively lightweight.
 
-## The Promise
+## Why Nucleus
 
-### Native without compromise
+### Native on every OS
 
-Every pixel is rendered by Skia, the same engine behind Chrome and Android. But unlike Electron, there is no DOM, no JavaScript bridge, no web runtime overhead. Window decorations, notifications, taskbar integration, system tray, global hotkeys, dark mode detection, accent colors — everything talks directly to the OS, not through an abstraction layer pretending to be native.
+On macOS, Nucleus speaks Cocoa. On Windows, Win32 and WinRT. On Linux, D-Bus and X11. Every OS integration — window decorations, notifications, taskbar, launchers, dark mode, accent colors, global hotkeys — talks directly to the platform. No abstraction layer pretending to be native. Pixel-perfect rendering on every display, every DPI, every OS.
 
-On macOS, Nucleus speaks Cocoa. On Windows, it speaks Win32 and WinRT. On Linux, it speaks D-Bus and X11. Natively. In each case.
+### Performance that rivals C++ — with the simplicity of Kotlin
 
-### Performance at every level
+The HotSpot JVM is the most advanced JIT compiler ever built. It optimizes your hot paths at runtime with decades of engineering behind it — delivering performance approaching C++ and Rust levels, but with the expressiveness of Kotlin. And unlike Electron's single-threaded event loop, the JVM gives you **true parallelism**: real threads, real cores, coroutines for structured concurrency, virtual threads for massive I/O.
 
-- **~0.5s cold start** with GraalVM native image, **~1.5s** with AOT cache (Project Leyden) — faster than most Electron apps even after they've been "optimized"
-- **100–150 MB RAM** as a native image vs. **500 MB–1.5 GB** for a typical Electron app doing the same job
-- **No garbage collection pauses visible to the user** — the JVM's G1/ZGC collectors are decades ahead of anything in the browser runtime world
-- **Full JIT compilation** when running on the JVM — hot paths get optimized at runtime, something a static binary can never do
+For maximum lightness, [GraalVM native image](graalvm/index.md) compiles your entire app into a standalone binary — **~0.5s cold start**, **100–150 MB RAM**, tiny bundle, no JRE needed. Compare that to **500 MB–1.5 GB** for a typical Electron app.
 
-### From high-level abstraction to bare metal
+### The most advanced desktop UI stack
 
-Nucleus meets you where you are:
+Compose Multiplatform is not "React Native for desktop". It is a **compiled, type-safe, GPU-accelerated UI toolkit** with hardware-accelerated Skia rendering, a reactive state model, and shared code across Android, iOS, desktop, and web.
 
-- **Just ship an app?** — One Gradle DSL, 16 packaging formats, auto-update, code signing, notarization. Done.
-- **Need native OS integration?** — Runtime libraries for notifications, launchers, taskbar progress, system colors, energy management, dark mode — all cross-platform, with an intuitive Kotlin API.
-- **Need to call a platform API directly?** — [Native Access](native-access/index.md) lets you write Kotlin/Native code and call it from the JVM with zero glue. No C, no boilerplate, no build scripts.
-- **Need maximum lightness?** — [GraalVM native image](graalvm/index.md) compiles your entire app into a standalone binary. Instant startup, minimal RAM, tiny bundle — no JRE needed.
+No frontend/backend split. No REST API between your UI and your logic. No serialization layer. Your UI calls your business logic directly, in the same language, in the same process. Separate your concerns with **modules**, not with network boundaries.
 
-### The most advanced desktop UI stack in existence
-
-Compose Multiplatform is not "React Native for desktop". It is a **compiled, type-safe, GPU-accelerated UI toolkit** built for desktop from the ground up:
-
-- A reactive state model that makes React look verbose
-- Hardware-accelerated rendering via Skia — animations at 120fps without thinking about it
-- Shared code across Android, iOS, desktop, and web — write once, render natively everywhere
-- **No frontend/backend split** — No REST API, no serialization layer, no JSON over HTTP between your UI and your logic. Your UI calls your business logic directly, in the same language, in the same process. Separate your concerns with **modules**, not with network boundaries.
-- **True parallelism** — Not just async callbacks like JavaScript. The JVM gives you real threads, real cores, real parallelism. Coroutines for structured concurrency, virtual threads for massive I/O, and the full power of every CPU core on the machine — your app uses the hardware, not a single-threaded event loop.
-
-And on top of Compose sits **[Jewel](https://github.com/JetBrains/jewel)** — the most advanced desktop UI framework in the world. Not a web framework adapted for desktop. A desktop framework, period. Jewel carries behind it the entire experience of JetBrains and its IDEs — IntelliJ IDEA, Android Studio, WebStorm — applications used daily by millions of developers and built with desktop in mind from day one. It is the same design system, the same component library, the same pixel-perfect attention to detail that powers the tools professionals trust most.
-
-Nucleus integrates deeply with both: decorated windows with native window controls, Material 2/3 color mapping, Jewel theme integration, and OS-level hooks that make your Compose app feel indistinguishable from a native one.
+And on top of Compose sits **[Jewel](https://github.com/JetBrains/jewel)** — the most advanced desktop UI framework in the world. Not a web framework adapted for desktop. A desktop framework, period. Jewel carries behind it the entire experience of JetBrains and its IDEs — IntelliJ IDEA, Android Studio, WebStorm — applications used daily by millions of developers, built with desktop in mind from day one. Nucleus integrates deeply with both Jewel and Material 2/3, plus native window controls and OS-level hooks.
 
 ## What Nucleus provides
 
@@ -67,26 +49,15 @@ Nucleus integrates deeply with both: decorated windows with native window contro
 - **Auto-update** — Your app checks for updates, downloads them, verifies integrity, and installs — all built-in
 - **Deep links & file associations** — Protocol handlers and file type registration on all platforms
 
-### Feel native on every OS
-
-- **Decorated windows** — Custom title bar with your own content, while the OS keeps its native window controls
-- **Notifications** — Native notification APIs on every platform, not browser-style popups
-- **Launchers** — Badge counts, progress bars, jump lists, dock menus, quicklists — what each OS does best
-- **System integration** — Dark mode, accent colors, high contrast, energy management, global hotkeys, taskbar progress, system info
-- **Pixel-perfect rendering** — Crisp on every display, every DPI, every platform
-
-### Perform like native code
-
-- **Blazing cold start** — Sub-second startup with GraalVM native image, near-instant with AOT cache — a single Gradle flag
-- **The world's most advanced JIT** — The HotSpot JVM optimizes your hot paths at runtime with decades of engineering behind it. The result: performance approaching C++ and Rust levels, but with the simplicity and expressiveness of Kotlin.
-- **Lightweight** — 100–150 MB RAM as a native image. Your app, not a browser engine.
-- **GraalVM native image** — Compile your entire app ahead of time into a standalone binary. Nucleus resolves all reflection metadata transparently — zero manual config for most apps.
-
 ### Go deeper when you need to
 
-- **Native Access** — Call any platform API from Kotlin. Write Kotlin/Native, the plugin generates the bridge. No C, no boilerplate, no build scripts.
-- **30+ runtime modules** — Notifications, launchers, dark mode, system colors, taskbar, energy, HiDPI — intuitive APIs, all cross-platform
-- **CI/CD ready** — Reusable GitHub Actions, multi-platform matrix builds, universal macOS binaries, MSIX bundles
+Nucleus meets you where you are:
+
+- **Just ship an app?** — One Gradle DSL, one command. Done.
+- **Need OS integration?** — 30+ runtime modules with intuitive Kotlin APIs: notifications, launchers, dark mode, system colors, taskbar progress, energy management, and more.
+- **Need a platform API no library covers?** — [Native Access](native-access/index.md) lets you write Kotlin/Native and call it from the JVM. No C, no boilerplate, no build scripts.
+- **Need maximum lightness?** — [GraalVM native image](graalvm/index.md) compiles your app into a standalone binary. Nucleus resolves all reflection metadata transparently.
+- **CI/CD ready** — Reusable GitHub Actions, multi-platform matrix builds, universal macOS binaries, MSIX bundles.
 
 ## Quick start
 
@@ -113,7 +84,7 @@ nucleus.application {
 
 ## Try the demo
 
-A pre-built demo application is available on the [GitHub Releases page](https://github.com/kdroidFilter/Nucleus/releases). Download the installer for your platform and see Nucleus in action.
+A pre-built demo is available on the [GitHub Releases page](https://github.com/kdroidFilter/Nucleus/releases).
 
 === "macOS"
     ```bash
@@ -132,7 +103,7 @@ A pre-built demo application is available on the [GitHub Releases page](https://
 
 What you'll see:
 
-- **AOT Cache** — Near-instant cold startup powered by JDK 25+
+- **Instant startup** — Near-instant cold boot powered by JDK 25+ AOT cache
 - **Decorated Window** — Custom title bar with native window controls, Material 3 themed
 - **Dark Mode Detection** — Toggle your OS theme and watch the app switch in real time
 - **Auto-Update** — Checks for updates on launch, downloads with progress tracking, installs & restarts in one click
