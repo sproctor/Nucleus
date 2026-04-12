@@ -11,11 +11,13 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-7F52FF?logo=kotlin&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 
-**Nucleus is the native desktop platform for the JVM** — a complete toolkit that turns Compose Desktop into a production-grade alternative to Electron, with none of the compromises.
+**Nucleus is the native desktop platform for the JVM** — a complete toolkit that makes Compose Desktop production-ready for macOS, Windows, and Linux.
 
-Electron brought cross-platform desktop apps to the masses, but at a cost: bloated bundles, sluggish performance, and a web runtime pretending to be native. Nucleus takes the opposite approach. It builds on the **JVM** — the most battle-tested runtime in history — and on **Compose Multiplatform** — the most advanced declarative UI framework available today — to deliver desktop applications that are truly native, truly fast, and truly lightweight.
+Every technology eventually finds its mature form. Java evolved into **Kotlin**. JavaScript evolved into **TypeScript**. Desktop development is going through the same shift: Electron was the pioneer — it proved that cross-platform desktop apps could work. **Nucleus + Compose** is what comes next.
 
-Where Electron ships a browser, Nucleus ships a compiled application. Where Electron emulates, Nucleus integrates. Where Electron is an atom, **Nucleus is its full power unleashed**.
+Not an alternative. An evolution.
+
+Electron gave developers reach but asked them to accept a browser as a runtime, a DOM as a UI layer, and hundreds of megabytes as a baseline. Nucleus builds on the **JVM** — the most battle-tested runtime in history — and on **Compose Multiplatform** — the most advanced declarative UI toolkit available today — to deliver desktop applications that are natively compiled, natively integrated, and natively fast. No browser engine. No JavaScript bridge. No compromise.
 
 ## The Promise
 
