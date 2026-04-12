@@ -72,31 +72,38 @@ nav:
       - CI/CD: ci-cd.md
       - Runtime APIs:
           - Overview: runtime/index.md
-          - App Metadata: runtime/app-metadata.md
-          - Executable Type: runtime/executable-type.md
-          - Single Instance: runtime/single-instance.md
-          - Deep Links: runtime/deep-links.md
-          - Decorated Window: runtime/decorated-window.md
-          - Decorated Window — Jewel: runtime/decorated-window-jewel.md
-          - Decorated Window — Material 2: runtime/decorated-window-material2.md
-          - Decorated Window — Material 3: runtime/decorated-window-material3.md
-          - Dark Mode Detector: runtime/darkmode-detector.md
-          - System Color: runtime/system-color.md
-          - Taskbar Progress: runtime/taskbar-progress.md
-          - Global Hotkey: runtime/global-hotkey.md
-          - Notification (macOS): runtime/notification-macos.md
-          - Notification (Windows): runtime/notification-windows.md
-          - Notification (Linux): runtime/notification-linux.md
-          - Launcher (macOS): runtime/launcher-macos.md
-          - Launcher (Windows): runtime/launcher-windows.md
-          - Launcher (Linux): runtime/launcher-linux.md
-          - Menu (macOS): runtime/menu-macos.md
-          - Freedesktop Icons: runtime/freedesktop-icons.md
-          - System Info: runtime/system-info.md
-          - Energy Manager: runtime/energy-manager.md
-          - Linux HiDPI: runtime/linux-hidpi.md
-          - Native SSL: runtime/native-ssl.md
-          - Native HTTP: runtime/native-http.md
+          - Application:
+              - App Metadata: runtime/app-metadata.md
+              - Executable Type: runtime/executable-type.md
+              - Single Instance: runtime/single-instance.md
+              - Deep Links: runtime/deep-links.md
+          - Decorated Window:
+              - Overview: runtime/decorated-window.md
+              - Jewel Integration: runtime/decorated-window-jewel.md
+              - Material 2: runtime/decorated-window-material2.md
+              - Material 3: runtime/decorated-window-material3.md
+          - Notifications:
+              - macOS: runtime/notification-macos.md
+              - Windows: runtime/notification-windows.md
+              - Linux: runtime/notification-linux.md
+          - Launcher:
+              - macOS: runtime/launcher-macos.md
+              - Windows: runtime/launcher-windows.md
+              - Linux: runtime/launcher-linux.md
+          - System:
+              - Dark Mode Detector: runtime/darkmode-detector.md
+              - System Color: runtime/system-color.md
+              - System Info: runtime/system-info.md
+              - Energy Manager: runtime/energy-manager.md
+              - Linux HiDPI: runtime/linux-hidpi.md
+          - Taskbar & Menus:
+              - Taskbar Progress: runtime/taskbar-progress.md
+              - Global Hotkey: runtime/global-hotkey.md
+              - Menu (macOS): runtime/menu-macos.md
+              - Freedesktop Icons: runtime/freedesktop-icons.md
+          - Networking:
+              - Native SSL: runtime/native-ssl.md
+              - Native HTTP: runtime/native-http.md
   - Comparison: comparison.md
   - Migration: migration.md
   - Changelog: changelog.md
