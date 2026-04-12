@@ -11,7 +11,7 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-7F52FF?logo=kotlin&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 
-**Nucleus is the native desktop platform for the JVM** — a complete toolkit that makes Compose Desktop production-ready for macOS, Windows, and Linux.
+**Nucleus is the native desktop platform for the JVM.** Combined with Compose Multiplatform, it forms the most complete, most performant, and most deeply integrated desktop application stack ever built — on any language, any runtime, any platform.
 
 Every technology eventually finds its mature form. Java evolved into **Kotlin**. JavaScript evolved into **TypeScript**. Desktop development is going through the same shift: Electron was the pioneer — it proved that cross-platform desktop apps could work. **Nucleus + Compose** is what comes next.
 
