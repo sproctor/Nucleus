@@ -1,6 +1,9 @@
 package systeminfodemo
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
 import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import systeminfodemo.ui.AppContent
@@ -18,7 +21,9 @@ fun main() {
             JewelDecoratedWindow(
                 onCloseRequest = { exitApplication() },
                 title = "Nucleus System Info",
+                state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
                 content = {
+                    window.minimumSize = java.awt.Dimension(1100, 480)
                     AppTitleBar()
                     AppContent()
                 },
