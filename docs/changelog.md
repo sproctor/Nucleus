@@ -18,6 +18,11 @@
 - **Fix `latest.yml` not generated for MSI and Portable formats** — Update YML generation was limited to NSIS; it now covers MSI and Portable installers as well
 - **Fix `releaseDate` precision in `latest.yml`** — Use millisecond precision to match the electron-builder format expected by the auto-updater
 
+### CI
+
+- **Add `system-info` native builds to CI** — Build, verify, and upload native artifacts for all platforms in `build-natives`, `pre-merge`, `publish-maven`, `publish-plugin`, `test-packaging`, and `test-graalvm` workflows
+- **Add MSVC setup step for Windows native builds** — Ensure Visual Studio compiler is available in CI for Windows JNI compilation
+
 ---
 
 ## v1.9.1
@@ -60,6 +65,10 @@
 
 - **Fix macOS RTL detection** — Use `NSLocale` instead of `NSApplication` for layout direction detection, which works correctly in headless and early-startup contexts
 
+### CI
+
+- **Add missing Linux native verification for `decorated-window-core`** — Ensure Linux `.so` files are verified in CI workflows
+
 ---
 
 ## v1.8.7
@@ -74,6 +83,10 @@
 ### Bug Fixes
 
 - **Gracefully handle missing platform-specific native libraries** — Runtime modules no longer crash when a native library is unavailable for the current platform; they fall back silently
+
+### CI
+
+- **Disable ktlint for `plugin-build`** — Exempt plugin-build from new ktlint rules to avoid false violations
 
 ---
 
@@ -121,6 +134,16 @@
 
 ---
 
+## v1.8.1
+
+**Released: 2026-03-30**
+
+### CI
+
+- **Add `global-hotkey` native artifacts to publish workflows** — Download global-hotkey native libraries and install `libglib2.0-dev` in plugin publish and Maven publish CI pipelines
+
+---
+
 ## v1.8.0
 
 **Released: 2026-03-28**
@@ -155,6 +178,10 @@
 
 - **Fix global hotkey UI freeze on Linux** — Make portal binding non-blocking to avoid freezing the UI thread on Wayland, then dispatch to `Dispatchers.IO`
 - **Fix `Dispatchers.Main` crash in example** — Add `coroutines-swing` dependency for desktop `Dispatchers.Main` support
+
+### CI
+
+- **Add `global-hotkey` native builds to CI** — Build, verify, and upload native artifacts for all platforms across all CI workflows
 
 ---
 
