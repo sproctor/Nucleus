@@ -3,21 +3,15 @@
 !!! note "Separate repository"
     System Tray is maintained in its own repository with its own release cycle: [**kdroidFilter/ComposeNativeTray**](https://github.com/kdroidFilter/ComposeNativeTray). The artifact is `io.github.kdroidfilter:composenativetray`.
 
-**ComposeNativeTray** is a **complete system tray framework** for Compose Desktop — the simplest and most powerful way to create system tray applications today, on any platform.
+**ComposeNativeTray** is not a library. It is a **complete framework for building system tray applications** with Compose Desktop — the most expressive and the most powerful way to own the system tray on macOS, Windows, and Linux.
 
-Native menus, reactive state, HiDPI icons, dark mode awareness, popup windows anchored to the tray, and a pure Compose DSL — on macOS, Windows, and Linux.
+Traditionally, building a tray application meant juggling platform-specific icon formats, managing menu state by hand, and hoping the result didn't look broken on half your users' machines. ComposeNativeTray erases all of that. Your tray icon is **drawn by Compose** — the same toolkit that renders your UI. Any `@Composable` becomes a tray icon: an `ImageVector`, a `Painter`, a resource, or a fully custom composable with gradients, badges, and animations. One icon definition. Every platform. Every DPI. Pixel-perfect.
 
-## Features
+And the menu isn't a static list of strings you rebuild on every change. It's a **reactive Compose DSL**. Change a `mutableStateOf` and the menu updates itself — labels, checkmarks, visibility, icons, nested submenus — all of it, instantly, without touching a single callback or rebuilding anything. The tray is part of your Compose state tree, just like the rest of your UI.
 
-- **Native platform menus** — Not a custom-drawn overlay. Real OS menus, with the look and behavior users expect.
-- **Any icon type** — `ImageVector`, `Painter`, `DrawableResource`, or any `@Composable`. Crisp on every display.
-- **Fully reactive** — Change state and the icon, labels, checkmarks, and menu structure all update instantly.
-- **Checkable items** — Native checkmark appearance on each platform.
-- **Nested submenus** — With optional icons, unlimited depth.
-- **Primary action** — Left-click callback with per-platform behavior.
-- **Dark mode awareness** — Automatic icon tinting based on the system theme.
-- **Tray position detection** — Position windows relative to the tray icon.
-- **TrayApp** — A full Compose popup window anchored to the tray icon, like macOS menu bar apps.
+But ComposeNativeTray goes further. **TrayApp** turns a tray icon into a full menu bar application — a Compose window that pops up right next to the tray icon, like the best macOS menu bar apps. Click the icon, a window appears with smooth animations. Click outside, it disappears. The entire window is a Compose canvas: dashboards, controls, media players, quick actions — anything you can build with Compose, anchored to the tray.
+
+Native menus rendered by the OS. Dark mode detection and automatic icon adaptation. Tray position detection for precise window placement. Left-click actions, right-click menus, checkable items, nested submenus with icons. Everything a system tray framework should be — and nothing you have to wire up yourself.
 
 ## Quick example
 
@@ -43,7 +37,7 @@ Tray(
 }
 ```
 
-The menu is fully reactive — change `isDarkMode` and the icon, label, and checkmark all update instantly. No manual menu rebuild.
+Change `isDarkMode` and the icon switches, the checkmark toggles, the label updates — all in one recomposition. No manual menu rebuild. No platform-specific code. No icon export pipeline.
 
 ## Installation
 
@@ -56,6 +50,6 @@ dependencies {
 ## Next steps
 
 - [Tray API](tray-api.md) — `Tray()` composable, icon types, primary actions, platform-specific icons
-- [Menu DSL](menu-dsl.md) — Items, checkable items, submenus, dividers, icons in menus
-- [TrayApp](tray-app.md) — Popup window anchored to the tray icon
+- [Menu DSL](menu-dsl.md) — Items, checkable items, submenus, dividers, reactive menus
+- [TrayApp](tray-app.md) — Popup Compose window anchored to the tray icon
 - [Utilities](utilities.md) — Tray position detection, dark mode detection
