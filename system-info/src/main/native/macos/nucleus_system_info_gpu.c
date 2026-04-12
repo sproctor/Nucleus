@@ -394,12 +394,23 @@ static void refresh_gpus(void) {
             g->temperature = gpu_smc_temperature();
         }
 
-        // GPU utilization
-        long long util_val = 0;
-        if (read_dict_number(perfStats, "Device Utilization %", &util_val) == 0) {
-            g->gpu_usage = (float)util_val;
-        } else if (read_dict_number(perfStats, "GPU Activity(%)", &util_val) == 0) {
-            g->gpu_usage = (float)util_val;
+        // GPU utilization — take the max of Device, Renderer, and Tiler utilization.
+        // Apple Silicon GPU works in bursts, so individual counters can read 0%
+        // even under sustained load. Callers should poll gpus() periodically and
+        // average the results for smooth readings (same pattern as Stats.app).
+        {
+            long long device_util = 0, renderer_util = 0, tiler_util = 0;
+            read_dict_number(perfStats, "Device Utilization %", &device_util);
+            read_dict_number(perfStats, "Renderer Utilization %", &renderer_util);
+            read_dict_number(perfStats, "Tiler Utilization %", &tiler_util);
+            // Also try the alternative key name
+            if (device_util == 0) {
+                read_dict_number(perfStats, "GPU Activity(%)", &device_util);
+            }
+            long long best = device_util;
+            if (renderer_util > best) best = renderer_util;
+            if (tiler_util > best) best = tiler_util;
+            g->gpu_usage = (float)best;
         }
 
         // Memory used (in-use system memory)
