@@ -6,6 +6,7 @@ import io.github.kdroidfilter.nucleus.systeminfo.macos.MacOsSystemInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MemoryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MotherboardInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.NetworkInterfaceInfo
@@ -48,4 +49,6 @@ object SystemInfo {
     fun processes(): List<ProcessInfo> = delegate?.processes() ?: emptyList()
 
     fun process(pid: Long): ProcessInfo? = delegate?.process(pid)
+
+    fun gpus(): List<GpuInfo> = delegate?.gpus() ?: emptyList()
 }

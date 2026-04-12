@@ -60,11 +60,23 @@ fun OverviewPanel(state: SystemInfoState) {
         }
     }
 
-    // System info + Storage
+    // GPU + System
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
+        if (state.gpus.isNotEmpty()) {
+            SectionCard("GPU", modifier = Modifier.weight(1f)) {
+                state.gpus.forEach { gpu ->
+                    InfoRow("Name", gpu.name)
+                    if (gpu.dedicatedVideoMemory > 0) {
+                        InfoRow("VRAM", formatBytes(gpu.dedicatedVideoMemory))
+                    }
+                    gpu.driverVersion?.let { InfoRow("Driver", it) }
+                }
+            }
+        }
+
         SectionCard("System", modifier = Modifier.weight(1f)) {
             InfoRow("OS", state.osInfo?.longOsVersion)
             InfoRow("Kernel", state.osInfo?.kernelVersion)
@@ -72,7 +84,13 @@ fun OverviewPanel(state: SystemInfoState) {
             InfoRow("Architecture", state.osInfo?.cpuArch)
             InfoRow("Uptime", state.osInfo?.let { formatDuration(it.uptime) })
         }
+    }
 
+    // Storage + Sensors/Network
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         SectionCard("Storage", modifier = Modifier.weight(1f)) {
             state.disks.forEach { disk ->
                 val used = disk.totalSpace - disk.availableSpace

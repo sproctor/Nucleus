@@ -6,6 +6,7 @@ import io.github.kdroidfilter.nucleus.systeminfo.SystemInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MemoryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MotherboardInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.NetworkInterfaceInfo
@@ -34,6 +35,7 @@ data class SystemInfoState(
     val motherboard: MotherboardInfo? = null,
     val product: ProductInfo? = null,
     val processes: List<ProcessInfo> = emptyList(),
+    val gpus: List<GpuInfo> = emptyList(),
     val cpuHistory: List<Float> = emptyList(),
     val memoryHistory: List<Float> = emptyList(),
 )
@@ -68,6 +70,7 @@ object SystemInfoViewModel {
         val mb = SystemInfo.motherboard()
         val product = SystemInfo.product()
         val procs = SystemInfo.processes()
+        val gpus = SystemInfo.gpus()
 
         val current = _state.value
         val cpuHist = (current.cpuHistory + (cpu?.globalCpuUsage ?: 0f)).takeLast(HISTORY_MAX_SIZE)
@@ -91,6 +94,7 @@ object SystemInfoViewModel {
                 motherboard = mb,
                 product = product,
                 processes = procs,
+                gpus = gpus,
                 cpuHistory = cpuHist,
                 memoryHistory = memHist,
             )

@@ -3,6 +3,7 @@ package io.github.kdroidfilter.nucleus.systeminfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MemoryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MotherboardInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.NetworkInterfaceInfo
@@ -36,4 +37,6 @@ internal interface PlatformSystemInfo {
     fun processes(): List<ProcessInfo>
 
     fun process(pid: Long): ProcessInfo?
+
+    fun gpus(): List<GpuInfo>
 }

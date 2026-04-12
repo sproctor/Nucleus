@@ -48,6 +48,7 @@ import org.jetbrains.jewel.ui.typography
 import org.jetbrains.skiko.hostOs
 import systeminfodemo.ui.panels.CpuPanel
 import systeminfodemo.ui.panels.DisksPanel
+import systeminfodemo.ui.panels.GpuPanel
 import systeminfodemo.ui.panels.HardwarePanel
 import systeminfodemo.ui.panels.MemoryPanel
 import systeminfodemo.ui.panels.NetworkPanel
@@ -62,6 +63,7 @@ enum class NavItem(
 ) {
     Overview("Overview"),
     Cpu("CPU"),
+    Gpu("GPU"),
     Memory("Memory"),
     Disks("Disks"),
     Network("Network"),
@@ -161,6 +163,26 @@ fun AppContent() {
                 val usage = state.cpuInfo?.globalCpuUsage ?: 0f
                 MiniProgressBar(usage / 100f, Color(0xFF5AB869))
                 Text("%.0f%%".format(usage), fontSize = 11.sp, color = JewelTheme.globalColors.text.info)
+            }
+
+            SidebarItem("GPU", currentNav == NavItem.Gpu, { currentNav = NavItem.Gpu }) {
+                val gpus = state.gpus
+                if (gpus.isNotEmpty()) {
+                    Text(
+                        gpus.first().name,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = JewelTheme.globalColors.text.info,
+                    )
+                    Text(
+                        "${gpus.size} adapter${if (gpus.size > 1) "s" else ""}",
+                        fontSize = 11.sp,
+                        color = JewelTheme.globalColors.text.info,
+                    )
+                } else {
+                    Text("No GPU", fontSize = 11.sp, color = JewelTheme.globalColors.text.info)
+                }
             }
 
             SidebarItem("Memory", currentNav == NavItem.Memory, { currentNav = NavItem.Memory }) {
@@ -265,6 +287,7 @@ private fun PanelContent(
     when (nav) {
         NavItem.Overview -> OverviewPanel(state)
         NavItem.Cpu -> CpuPanel(state)
+        NavItem.Gpu -> GpuPanel(state)
         NavItem.Memory -> MemoryPanel(state)
         NavItem.Disks -> DisksPanel(state)
         NavItem.Network -> NetworkPanel(state)

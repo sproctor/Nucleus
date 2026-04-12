@@ -5,6 +5,7 @@ import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MemoryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MotherboardInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.NetworkInterfaceInfo
@@ -247,4 +248,6 @@ internal object LinuxSystemInfo : PlatformSystemInfo {
             root = bridge.nativeProcessByPidRoot(pid)?.ifEmpty { null },
         )
     }
+
+    override fun gpus(): List<GpuInfo> = emptyList()
 }

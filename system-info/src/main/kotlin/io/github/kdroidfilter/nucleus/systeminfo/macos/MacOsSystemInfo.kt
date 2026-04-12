@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.systeminfo.PlatformSystemInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MemoryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.MotherboardInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.NetworkInterfaceInfo
@@ -37,4 +38,6 @@ internal object MacOsSystemInfo : PlatformSystemInfo {
     override fun processes(): List<ProcessInfo> = emptyList()
 
     override fun process(pid: Long): ProcessInfo? = null
+
+    override fun gpus(): List<GpuInfo> = emptyList()
 }
