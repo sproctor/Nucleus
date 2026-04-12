@@ -41,7 +41,7 @@ Nucleus meets you where you are:
 - **Just ship an app?** — One Gradle DSL, 16 packaging formats, auto-update, code signing, notarization. Done.
 - **Need native OS integration?** — Runtime libraries for notifications, launchers, taskbar progress, system colors, energy management, dark mode — all cross-platform, with an intuitive Kotlin API.
 - **Need to call a platform API directly?** — [Native Access](native-access/index.md) lets you write Kotlin/Native code and call it from the JVM with zero glue. No C, no boilerplate, no build scripts.
-- **Need maximum performance?** — [GraalVM native image](graalvm/index.md) compiles your entire app ahead of time into a standalone binary. Instant startup, minimal RAM, no JRE bundled.
+- **Need maximum lightness?** — [GraalVM native image](graalvm/index.md) compiles your entire app into a standalone binary. Instant startup, minimal RAM, tiny bundle — no JRE needed.
 
 ### The most advanced desktop UI stack in existence
 
