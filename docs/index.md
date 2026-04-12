@@ -43,16 +43,17 @@ Nucleus meets you where you are:
 - **Need to call a platform API directly?** — [Native Access](native-access/index.md) lets you write Kotlin/Native code and call it from the JVM with zero glue. No C, no JNI boilerplate, no build scripts.
 - **Need maximum performance?** — [GraalVM native image](graalvm/index.md) compiles your entire app ahead of time into a standalone binary. Instant startup, minimal RAM, no JRE bundled.
 
-### The most advanced UI framework
+### The most advanced desktop UI stack in existence
 
-Compose Multiplatform is not "React Native for desktop". It is a **compiled, type-safe, GPU-accelerated UI toolkit** with:
+Compose Multiplatform is not "React Native for desktop". It is a **compiled, type-safe, GPU-accelerated UI toolkit** built for desktop from the ground up:
 
 - A reactive state model that makes React look verbose
 - Hardware-accelerated rendering via Skia — animations at 120fps without thinking about it
-- A component model that scales from a button to a full IDE (JetBrains builds their entire product line with it)
 - Shared code across Android, iOS, desktop, and web — write once, render natively everywhere
 
-Nucleus extends this foundation with decorated windows, platform-accurate window controls, Material 2/3 and Jewel (IntelliJ theme) integration, and deep OS hooks that make your Compose app feel indistinguishable from a native one.
+And on top of Compose sits **[Jewel](https://github.com/JetBrains/jewel)** — the most advanced desktop UI framework in the world. Not a web framework adapted for desktop. A desktop framework, period. Jewel carries behind it the entire experience of JetBrains and its IDEs — IntelliJ IDEA, Android Studio, Fleet — applications used daily by millions of developers and built with desktop in mind from day one. It is the same design system, the same component library, the same pixel-perfect attention to detail that powers the tools professionals trust most.
+
+Nucleus integrates deeply with both: decorated windows with native window controls, Material 2/3 color mapping, Jewel theme integration, and OS-level hooks that make your Compose app feel indistinguishable from a native one.
 
 ## What Nucleus provides
 
