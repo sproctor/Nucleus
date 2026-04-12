@@ -2,7 +2,6 @@
 
 package systeminfodemo.ui
 
-import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +42,7 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.Orientation
 import org.jetbrains.jewel.ui.component.Divider
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
 import org.jetbrains.jewel.ui.typography
 import org.jetbrains.skiko.hostOs
 import systeminfodemo.ui.panels.CpuPanel

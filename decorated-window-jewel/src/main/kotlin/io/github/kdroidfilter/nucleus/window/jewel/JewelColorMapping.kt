@@ -32,7 +32,8 @@ internal fun rememberJewelWindowStyle(): DecoratedWindowStyle {
     // window frame adapts to both light and dark themes without a jarring white outline.
     val borderColor =
         if (isLinux) {
-            JewelTheme.globalColors.borders.normal.copy(alpha = 0.6f)
+            JewelTheme.globalColors.borders.normal
+                .copy(alpha = 0.6f)
         } else {
             JewelTheme.globalColors.borders.normal
         }

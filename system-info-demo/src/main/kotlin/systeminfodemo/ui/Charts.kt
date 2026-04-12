@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import org.jetbrains.letsPlot.Stat
+import org.jetbrains.letsPlot.compose.PlotPanel
 import org.jetbrains.letsPlot.geom.geomArea
 import org.jetbrains.letsPlot.geom.geomBar
 import org.jetbrains.letsPlot.geom.geomLine
@@ -27,32 +28,33 @@ import org.jetbrains.letsPlot.themes.theme
 import org.jetbrains.letsPlot.themes.themeNone
 import org.jetbrains.letsPlot.tooltips.layerTooltips
 import org.jetbrains.letsPlot.tooltips.tooltipsNone
-import org.jetbrains.letsPlot.compose.PlotPanel
 
 internal fun Color.toHex(): String {
     val argb = toArgb()
     return "#%06X".format(argb and 0xFFFFFF)
 }
 
-internal fun chartTheme(gridColor: String = "#333333") = themeNone() + theme(
-    plotBackground = elementRect(fill = "transparent", color = "transparent"),
-    panelBackground = elementRect(fill = "transparent"),
-    panelGrid = elementBlank(),
-    panelGridMajorY = elementLine(color = gridColor, size = 0.3),
-    axisTextY = elementText(color = "#888888", size = 9),
-    axisTextX = elementBlank(),
-    axisTicksX = elementBlank(),
-    axisTicksY = elementBlank(),
-    axisLineX = elementBlank(),
-    axisLineY = elementBlank(),
-    axisTitleX = elementBlank(),
-    axisTitleY = elementBlank(),
-    legendBackground = elementBlank(),
-    legendText = elementBlank(),
-    legendTitle = elementBlank(),
-    legendKey = elementBlank(),
-    plotMargin = listOf(4, 8, 4, 0),
-)
+internal fun chartTheme(gridColor: String = "#333333") =
+    themeNone() +
+        theme(
+            plotBackground = elementRect(fill = "transparent", color = "transparent"),
+            panelBackground = elementRect(fill = "transparent"),
+            panelGrid = elementBlank(),
+            panelGridMajorY = elementLine(color = gridColor, size = 0.3),
+            axisTextY = elementText(color = "#888888", size = 9),
+            axisTextX = elementBlank(),
+            axisTicksX = elementBlank(),
+            axisTicksY = elementBlank(),
+            axisLineX = elementBlank(),
+            axisLineY = elementBlank(),
+            axisTitleX = elementBlank(),
+            axisTitleY = elementBlank(),
+            legendBackground = elementBlank(),
+            legendText = elementBlank(),
+            legendTitle = elementBlank(),
+            legendKey = elementBlank(),
+            plotMargin = listOf(4, 8, 4, 0),
+        )
 
 @Composable
 fun LineChart(
@@ -68,39 +70,45 @@ fun LineChart(
     val lastIndex = data.size - 1
     val lastValue = data.last()
 
-    val plotData = mapOf(
-        "x" to data.indices.toList(),
-        "y" to data,
-    )
+    val plotData =
+        mapOf(
+            "x" to data.indices.toList(),
+            "y" to data,
+        )
 
-    val figure = letsPlot(plotData) { x = "x"; y = "y" } +
-        // Filled area under the curve
-        geomArea(
-            fill = fadedHex,
-            tooltips = tooltipsNone,
-        ) +
-        // Main line
-        geomLine(
-            color = hex,
-            size = 1.8,
-            tooltips = layerTooltips()
-                .format("y", ".1f")
-                .line("@y%"),
-        ) +
-        // Latest value dot
-        geomPoint(
-            x = lastIndex,
-            y = lastValue,
-            color = dotHex,
-            fill = hex,
-            size = 4.0,
-            shape = 21,
-            stroke = 1.5,
-            tooltips = tooltipsNone,
-        ) +
-        scaleYContinuous(limits = Pair(0, 100), breaks = listOf(0, 25, 50, 75, 100)) +
-        scaleXContinuous(limits = Pair(0, lastIndex.coerceAtLeast(1))) +
-        chartTheme()
+    val figure =
+        letsPlot(plotData) {
+            x = "x"
+            y = "y"
+        } +
+            // Filled area under the curve
+            geomArea(
+                fill = fadedHex,
+                tooltips = tooltipsNone,
+            ) +
+            // Main line
+            geomLine(
+                color = hex,
+                size = 1.8,
+                tooltips =
+                    layerTooltips()
+                        .format("y", ".1f")
+                        .line("@y%"),
+            ) +
+            // Latest value dot
+            geomPoint(
+                x = lastIndex,
+                y = lastValue,
+                color = dotHex,
+                fill = hex,
+                size = 4.0,
+                shape = 21,
+                stroke = 1.5,
+                tooltips = tooltipsNone,
+            ) +
+            scaleYContinuous(limits = Pair(0, 100), breaks = listOf(0, 25, 50, 75, 100)) +
+            scaleXContinuous(limits = Pair(0, lastIndex.coerceAtLeast(1))) +
+            chartTheme()
 
     PlotPanel(
         figure = figure,
@@ -119,25 +127,31 @@ fun BarChart(
     if (xData.isEmpty()) return
     val hex = remember(barColor) { barColor.toHex() }
 
-    val plotData = mapOf(
-        "x" to xData.map { it.toInt() },
-        "y" to yData,
-    )
+    val plotData =
+        mapOf(
+            "x" to xData.map { it.toInt() },
+            "y" to yData,
+        )
 
-    val figure = letsPlot(plotData) { x = "x"; y = "y" } +
-        geomBar(
-            stat = Stat.identity,
-            fill = hex,
-            color = hex,
-            width = 0.75,
-            alpha = 0.85,
-            tooltips = layerTooltips()
-                .format("y", ".1f")
-                .line("#@x: @y%"),
-        ) +
-        scaleFillIdentity() +
-        scaleYContinuous(limits = Pair(0, maxY)) +
-        chartTheme()
+    val figure =
+        letsPlot(plotData) {
+            x = "x"
+            y = "y"
+        } +
+            geomBar(
+                stat = Stat.identity,
+                fill = hex,
+                color = hex,
+                width = 0.75,
+                alpha = 0.85,
+                tooltips =
+                    layerTooltips()
+                        .format("y", ".1f")
+                        .line("#@x: @y%"),
+            ) +
+            scaleFillIdentity() +
+            scaleYContinuous(limits = Pair(0, maxY)) +
+            chartTheme()
 
     PlotPanel(
         figure = figure,

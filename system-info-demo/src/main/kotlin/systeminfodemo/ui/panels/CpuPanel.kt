@@ -20,12 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.letsPlot.Stat
+import org.jetbrains.letsPlot.compose.PlotPanel
 import org.jetbrains.letsPlot.geom.geomBar
 import org.jetbrains.letsPlot.letsPlot
 import org.jetbrains.letsPlot.scale.scaleFillIdentity
 import org.jetbrains.letsPlot.scale.scaleYContinuous
 import org.jetbrains.letsPlot.tooltips.layerTooltips
-import org.jetbrains.letsPlot.compose.PlotPanel
 import systeminfodemo.ui.InfoRow
 import systeminfodemo.ui.LineChart
 import systeminfodemo.ui.ProgressBar
@@ -82,25 +82,32 @@ fun CpuPanel(state: SystemInfoState) {
             val usages = cpu.cpus.map { it.cpuUsage }
             val colors = remember(usages) { usages.map { coreColor(it) } }
 
-            val plotData = mapOf(
-                "core" to cpu.cpus.indices.map { "cpu$it" },
-                "usage" to usages,
-                "color" to colors,
-            )
+            val plotData =
+                mapOf(
+                    "core" to cpu.cpus.indices.map { "cpu$it" },
+                    "usage" to usages,
+                    "color" to colors,
+                )
 
-            val figure = letsPlot(plotData) { x = "core"; y = "usage"; fill = "color" } +
-                geomBar(
-                    stat = Stat.identity,
-                    width = 0.75,
-                    alpha = 0.9,
-                    tooltips = layerTooltips()
-                        .line("@core")
-                        .format("usage", ".1f")
-                        .line("@usage%"),
-                ) +
-                scaleFillIdentity() +
-                scaleYContinuous(limits = Pair(0, 100), breaks = listOf(0, 25, 50, 75, 100)) +
-                chartTheme()
+            val figure =
+                letsPlot(plotData) {
+                    x = "core"
+                    y = "usage"
+                    fill = "color"
+                } +
+                    geomBar(
+                        stat = Stat.identity,
+                        width = 0.75,
+                        alpha = 0.9,
+                        tooltips =
+                            layerTooltips()
+                                .line("@core")
+                                .format("usage", ".1f")
+                                .line("@usage%"),
+                    ) +
+                    scaleFillIdentity() +
+                    scaleYContinuous(limits = Pair(0, 100), breaks = listOf(0, 25, 50, 75, 100)) +
+                    chartTheme()
 
             PlotPanel(
                 figure = figure,

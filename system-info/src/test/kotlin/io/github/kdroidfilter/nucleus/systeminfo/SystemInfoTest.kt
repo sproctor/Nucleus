@@ -7,7 +7,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class SystemInfoTest {
-
     @Test
     fun `system info is available on current platform`() {
         assertTrue(SystemInfo.isAvailable(), "SystemInfo should be available on the current OS")
@@ -56,7 +55,9 @@ class SystemInfoTest {
         val disks = SystemInfo.disks()
         assertTrue(disks.isNotEmpty(), "Should have at least one disk")
         disks.forEach {
-            println("Disk: ${it.mountPoint} (${it.fileSystem}) ${it.totalSpace / 1024 / 1024 / 1024}GB kind=${it.kind} removable=${it.isRemovable}")
+            println(
+                "Disk: ${it.mountPoint} (${it.fileSystem}) ${it.totalSpace / 1024 / 1024 / 1024}GB kind=${it.kind} removable=${it.isRemovable}",
+            )
         }
     }
 
@@ -112,9 +113,17 @@ class SystemInfoTest {
         val gpus = SystemInfo.gpus()
         assertTrue(gpus.isNotEmpty(), "Should have at least one GPU")
         gpus.forEach { g ->
-            println("GPU: ${g.name} vendor=0x${g.vendorId.toString(16)} shared=${g.sharedSystemMemory / 1024 / 1024}MB driver=${g.driverVersion}")
-            println("  temp=${g.temperature}°C usage=${g.gpuUsage}% memUsed=${g.memoryUsed?.let { it / 1024 / 1024 }}MB")
-            println("  coreClock=${g.coreClockMhz}MHz memClock=${g.memoryClockMhz}MHz fan=${g.fanSpeedPercent}% power=${g.powerDrawWatts}W")
+            println(
+                "GPU: ${g.name} vendor=0x${g.vendorId.toString(
+                    16,
+                )} shared=${g.sharedSystemMemory / 1024 / 1024}MB driver=${g.driverVersion}",
+            )
+            println(
+                "  temp=${g.temperature}°C usage=${g.gpuUsage}% memUsed=${g.memoryUsed?.let { it / 1024 / 1024 }}MB",
+            )
+            println(
+                "  coreClock=${g.coreClockMhz}MHz memClock=${g.memoryClockMhz}MHz fan=${g.fanSpeedPercent}% power=${g.powerDrawWatts}W",
+            )
         }
     }
 }

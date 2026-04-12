@@ -63,7 +63,10 @@ fun main() {
                 onCloseRequest = { exitApplication() },
                 title = "Jewel standalone sample",
                 icon = icon,
-                state = androidx.compose.ui.window.rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                state =
+                    androidx.compose.ui.window.rememberWindowState(
+                        position = WindowPosition.Aligned(Alignment.Center),
+                    ),
                 onKeyEvent = { keyEvent ->
                     processKeyShortcuts(keyEvent = keyEvent, onNavigateTo = MainViewModel::onNavigateTo)
                 },
