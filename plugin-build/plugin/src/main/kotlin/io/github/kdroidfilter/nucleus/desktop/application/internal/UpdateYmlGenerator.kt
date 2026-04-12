@@ -48,7 +48,9 @@ internal object UpdateYmlGenerator {
             return
         }
 
-        val releaseDate = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+        val releaseDate = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .withZone(java.time.ZoneOffset.UTC)
+            .format(Instant.now())
 
         val filesEntries = buildString {
             for (file in installerFiles) {
