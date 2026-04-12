@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.github.kdroidfilter.nucleus.systeminfo
 
 import kotlin.test.Test

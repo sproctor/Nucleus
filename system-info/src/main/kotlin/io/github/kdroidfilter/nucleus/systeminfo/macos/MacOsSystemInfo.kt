@@ -249,7 +249,7 @@ internal object MacOsSystemInfo : PlatformSystemInfo {
         )
     }
 
-    @Suppress("CyclomaticComplexity")
+    @Suppress("CyclomaticComplexMethod")
     override fun gpus(): List<GpuInfo> {
         if (!bridge.isLoaded) return emptyList()
         val count = bridge.nativeGpuCount()
