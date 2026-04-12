@@ -37,7 +37,7 @@ Compose Multiplatform is not "React Native for desktop". It is a **compiled, typ
 
 No frontend/backend split. No REST API between your UI and your logic. No serialization layer. Your UI calls your business logic directly, in the same language, in the same process. Separate your concerns with **modules**, not with network boundaries.
 
-And on top of Compose sits **[Jewel](https://github.com/JetBrains/jewel)** — the most advanced desktop UI framework in the world. Not a web framework adapted for desktop. A desktop framework, period. Jewel carries behind it the entire experience of JetBrains and its IDEs — IntelliJ IDEA, Android Studio, WebStorm — applications used daily by millions of developers, built with desktop in mind from day one. Nucleus integrates deeply with both Jewel and Material 2/3, plus native window controls and OS-level hooks.
+And on top of Compose sits **[Jewel](https://github.com/JetBrains/intellij-community/tree/master/platform/jewel#readme)** — the most advanced desktop UI framework in the world. Not a web framework adapted for desktop. A desktop framework, period. Jewel carries behind it the entire experience of JetBrains and its IDEs — IntelliJ IDEA, Android Studio, WebStorm — applications used daily by millions of developers, built with desktop in mind from day one. Nucleus integrates deeply with both Jewel and Material 2/3, plus native window controls and OS-level hooks.
 
 ## What Nucleus provides
 

@@ -25,7 +25,7 @@ Java evolved into Kotlin. JavaScript evolved into TypeScript. Desktop developmen
 
 **Maximum lightness** — GraalVM native image compiles your entire app into a standalone binary. ~0.5s cold start, 100–150 MB RAM, tiny bundle. Compare that to 500 MB–1.5 GB for a typical Electron app.
 
-**The most advanced desktop UI** — Compose Multiplatform with Skia GPU rendering, reactive state, and shared code across platforms. No frontend/backend split — your UI calls your logic directly. On top sits [Jewel](https://github.com/JetBrains/jewel), the desktop UI framework behind JetBrains IDEs.
+**The most advanced desktop UI** — Compose Multiplatform with Skia GPU rendering, reactive state, and shared code across platforms. No frontend/backend split — your UI calls your logic directly. On top sits [Jewel](https://github.com/JetBrains/intellij-community/tree/master/platform/jewel#readme), the desktop UI framework behind JetBrains IDEs.
 
 ---
 
