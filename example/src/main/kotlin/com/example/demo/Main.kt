@@ -185,6 +185,7 @@ fun main(args: Array<String>) {
                         val tabs =
                             buildList {
                                 addAll(listOf("Nucleus", "Gallery", "Taskbar"))
+                                add("Notifications (Common)")
                                 if (Platform.Current == Platform.MacOS ||
                                     Platform.Current == Platform.Linux ||
                                     Platform.Current == Platform.Windows
@@ -313,6 +314,7 @@ fun main(args: Array<String>) {
 
                         when (selectedTab) {
                             "Nucleus" -> NucleusContent()
+                            "Notifications (Common)" -> CommonNotificationsScreen()
                             "Gallery" -> {
                                 val currentDensity = LocalDensity.current
                                 CompositionLocalProvider(

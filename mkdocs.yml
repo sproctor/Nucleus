@@ -89,6 +89,7 @@ nav:
               - TrayApp: runtime/system-tray/tray-app.md
               - Utilities: runtime/system-tray/utilities.md
           - Notifications:
+              - Common: runtime/notification-common.md
               - macOS: runtime/notification-macos.md
               - Windows: runtime/notification-windows.md
               - Linux: runtime/notification-linux.md
