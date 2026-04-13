@@ -32,14 +32,16 @@ data class LinuxButtonLayout(
 
     companion object {
         /** Default layout: close on the right (GNOME default). */
-        val Default = LinuxButtonLayout(
-            buttons = listOf(
-                LinuxTitleBarButton.CLOSE,
-                LinuxTitleBarButton.MAXIMIZE,
-                LinuxTitleBarButton.MINIMIZE,
-            ),
-            controlsOnRight = true,
-        )
+        val Default =
+            LinuxButtonLayout(
+                buttons =
+                    listOf(
+                        LinuxTitleBarButton.CLOSE,
+                        LinuxTitleBarButton.MAXIMIZE,
+                        LinuxTitleBarButton.MINIMIZE,
+                    ),
+                controlsOnRight = true,
+            )
 
         /**
          * Reads the current system button layout (one-shot).
@@ -62,27 +64,26 @@ data class LinuxButtonLayout(
          */
         internal fun parse(raw: String): LinuxButtonLayout {
             val colonIndex = raw.indexOf(':')
-            val (left, right) = if (colonIndex >= 0) {
-                raw.substring(0, colonIndex) to raw.substring(colonIndex + 1)
-            } else {
-                "" to raw
-            }
+            val (left, right) =
+                if (colonIndex >= 0) {
+                    raw.substring(0, colonIndex) to raw.substring(colonIndex + 1)
+                } else {
+                    "" to raw
+                }
 
             val leftButtons = parseButtons(left)
             val rightButtons = parseButtons(right)
 
-            // The side with "close" is the control buttons side
-            val controlsOnRight = LinuxTitleBarButton.CLOSE in rightButtons ||
-                LinuxTitleBarButton.CLOSE !in leftButtons
+            val controlsOnRight =
+                LinuxTitleBarButton.CLOSE in rightButtons ||
+                    LinuxTitleBarButton.CLOSE !in leftButtons
 
             return if (controlsOnRight) {
-                // Right side: reverse to get edge-first order (close = rightmost = emitted first)
                 LinuxButtonLayout(
                     buttons = rightButtons.reversed(),
                     controlsOnRight = true,
                 )
             } else {
-                // Left side: already edge-first (close = leftmost = emitted first)
                 LinuxButtonLayout(
                     buttons = leftButtons,
                     controlsOnRight = false,
@@ -91,13 +92,14 @@ data class LinuxButtonLayout(
         }
 
         private fun parseButtons(side: String): List<LinuxTitleBarButton> =
-            side.split(',')
+            side
+                .split(',')
                 .mapNotNull { token ->
                     when (token.trim()) {
                         "close" -> LinuxTitleBarButton.CLOSE
                         "minimize" -> LinuxTitleBarButton.MINIMIZE
                         "maximize" -> LinuxTitleBarButton.MAXIMIZE
-                        else -> null // skip unknown tokens like "appmenu"
+                        else -> null
                     }
                 }
     }
@@ -134,9 +136,10 @@ fun rememberLinuxButtonLayout(): LinuxButtonLayout {
     val layoutState = remember { mutableStateOf(LinuxButtonLayout.readSystem()) }
 
     DisposableEffect(Unit) {
-        val listener = Consumer<String> { raw ->
-            layoutState.value = LinuxButtonLayout.parse(raw)
-        }
+        val listener =
+            Consumer<String> { raw ->
+                layoutState.value = LinuxButtonLayout.parse(raw)
+            }
         LinuxButtonLayoutObserver.registerListener(listener)
         onDispose {
             LinuxButtonLayoutObserver.removeListener(listener)
