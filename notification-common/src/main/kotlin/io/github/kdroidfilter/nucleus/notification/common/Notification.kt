@@ -23,6 +23,7 @@ class Notification internal constructor(
 }
 
 /** An action button on a notification. */
+@ConsistentCopyVisibility
 data class NotificationButton internal constructor(
     val title: String,
     val onClick: () -> Unit,

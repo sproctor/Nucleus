@@ -268,77 +268,6 @@ static HRESULT createSeparatorLink(IShellLinkW **ppLink) {
 }
 
 // ============================================================================
-// Shortcut creation for unpackaged apps
-// ============================================================================
-
-static HRESULT createShortcut(const std::wstring &aumid, const std::wstring &appName) {
-    WCHAR exePath[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-
-    WCHAR appDataPath[MAX_PATH]{};
-    DWORD written = GetEnvironmentVariableW(L"APPDATA", appDataPath, MAX_PATH);
-    if (written == 0) return E_FAIL;
-
-    std::wstring lnkPath = std::wstring(appDataPath) +
-        L"\\Microsoft\\Windows\\Start Menu\\Programs\\" + appName + L".lnk";
-
-    ComPtr<IShellLinkW> shellLink;
-    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&shellLink));
-    if (FAILED(hr)) return hr;
-
-    ComPtr<IPersistFile> persistFile;
-    hr = shellLink.As(&persistFile);
-    if (FAILED(hr)) return hr;
-
-    bool needsCreate = true;
-    if (SUCCEEDED(persistFile->Load(lnkPath.c_str(), STGM_READWRITE))) {
-        ComPtr<IPropertyStore> propStore;
-        if (SUCCEEDED(shellLink.As(&propStore))) {
-            PROPVARIANT pv;
-            PropVariantInit(&pv);
-            if (SUCCEEDED(propStore->GetValue(PKEY_AppUserModel_ID, &pv))) {
-                if (pv.vt == VT_LPWSTR && pv.pwszVal && aumid == pv.pwszVal) {
-                    needsCreate = false;
-                }
-                PropVariantClear(&pv);
-            }
-        }
-    }
-
-    if (!needsCreate) return S_OK;
-
-    hr = shellLink->SetPath(exePath);
-    if (FAILED(hr)) return hr;
-    hr = shellLink->SetArguments(L"");
-    if (FAILED(hr)) return hr;
-
-    std::wstring exeDir(exePath);
-    size_t lastSlash = exeDir.find_last_of(L'\\');
-    if (lastSlash != std::wstring::npos) exeDir = exeDir.substr(0, lastSlash);
-    hr = shellLink->SetWorkingDirectory(exeDir.c_str());
-    if (FAILED(hr)) return hr;
-
-    ComPtr<IPropertyStore> propStore;
-    hr = shellLink.As(&propStore);
-    if (FAILED(hr)) return hr;
-
-    PROPVARIANT appIdPropVar;
-    hr = InitPropVariantFromString(aumid.c_str(), &appIdPropVar);
-    if (FAILED(hr)) return hr;
-
-    hr = propStore->SetValue(PKEY_AppUserModel_ID, appIdPropVar);
-    PropVariantClear(&appIdPropVar);
-    if (FAILED(hr)) return hr;
-
-    hr = propStore->Commit();
-    if (FAILED(hr)) return hr;
-
-    hr = persistFile->Save(lnkPath.c_str(), TRUE);
-    return hr;
-}
-
-// ============================================================================
 // Badge XML helper
 // ============================================================================
 
@@ -400,13 +329,6 @@ Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsBadgeBridge_na
 
     if (!g_isAppx && !g_aumid.empty()) {
         SetCurrentProcessExplicitAppUserModelID(g_aumid.c_str());
-
-        std::wstring appName = g_aumid;
-        size_t lastDot = appName.find_last_of(L'.');
-        if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
-            appName = appName.substr(lastDot + 1);
-        }
-        createShortcut(g_aumid, appName);
     }
 
     // Get BadgeUpdateManager
@@ -500,14 +422,6 @@ Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge
     hr = SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
     if (FAILED(hr)) return errorString(env, "SetCurrentProcessExplicitAppUserModelID failed", hr);
 
-    // Create Start Menu shortcut with AUMID (required for unpackaged apps)
-    std::wstring appName = aumid;
-    size_t lastDot = appName.find_last_of(L'.');
-    if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
-        appName = appName.substr(lastDot + 1);
-    }
-    createShortcut(aumid, appName);
-
     return nullptr;
 }
 
@@ -534,14 +448,6 @@ Java_io_github_kdroidfilter_nucleus_launcher_windows_NativeWindowsJumpListBridge
 
     if (!isAppx && !aumid.empty()) {
         SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
-
-        // Create Start Menu shortcut with AUMID (required for unpackaged apps)
-        std::wstring appName = aumid;
-        size_t lastDot = appName.find_last_of(L'.');
-        if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
-            appName = appName.substr(lastDot + 1);
-        }
-        createShortcut(aumid, appName);
 
         hr = g_jumpList->SetAppID(aumid.c_str());
         if (FAILED(hr)) {

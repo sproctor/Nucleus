@@ -110,6 +110,13 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             taskNameObject = "appProperties",
         ) {
             appId.set(resolvedAppIdProvider())
+            val resolvedAppName = app.nativeDistributions.appName
+                ?: app.nativeDistributions.packageName
+                ?: project.name
+            appName.set(resolvedAppName)
+            // AUMID must match the electron-builder appId (used in NSIS/MSI shortcut properties)
+            val resolvedAumid = app.nativeDistributions.packageName?.let { "com.app.$it" }
+            resolvedAumid?.let { appAumid.set(it) }
             app.nativeDistributions.packageVersion?.let { appVersion.set(it) }
             app.nativeDistributions.vendor?.let { appVendor.set(it) }
             app.nativeDistributions.description?.let { appDescription.set(it) }

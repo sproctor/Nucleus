@@ -48,7 +48,7 @@ object WindowsJumpListManager {
             return false
         }
         if (ExecutableRuntime.isAppX()) return true
-        val resolved = aumid ?: NucleusApp.appId
+        val resolved = aumid ?: NucleusApp.aumid
         val error = NativeWindowsJumpListBridge.nativeSetProcessAppId(resolved)
         lastError = error
         if (error != null) {
@@ -165,7 +165,7 @@ object WindowsJumpListManager {
 
     private fun resolveAumid(isAppx: Boolean): String {
         if (isAppx) return ""
-        return NucleusApp.appId
+        return NucleusApp.aumid
     }
 
     // -1 = no icon (use app icon), 0 = stock, 1 = file, 2 = resource

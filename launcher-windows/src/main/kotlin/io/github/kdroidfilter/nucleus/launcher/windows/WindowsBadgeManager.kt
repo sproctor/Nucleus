@@ -124,7 +124,7 @@ object WindowsBadgeManager {
     ): String {
         if (explicit != null) return explicit
         if (isAppx) return ""
-        return NucleusApp.appId
+        return NucleusApp.aumid
     }
 
     private fun ensureReady(): Boolean {

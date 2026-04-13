@@ -143,7 +143,7 @@ internal class MacOsDispatcher private constructor() : PlatformDispatcher {
         }
 
         return if (sendError != null) {
-            NotificationResult.Failure(sendError!!)
+            NotificationResult.Failure(sendError)
         } else {
             NotificationResult.Success(NotificationHandle(identifier, this))
         }

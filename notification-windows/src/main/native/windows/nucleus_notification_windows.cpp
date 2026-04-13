@@ -4,7 +4,6 @@
  * JNI bridge for Windows Toast Notifications via WinRT/WRL.
  *
  * Uses Microsoft WRL (Windows Runtime Library) for proper COM event handling.
- * Creates Start Menu shortcuts with AUMID for unpackaged apps.
  *
  * Prerequisites: Windows 10 SDK, MSVC (C++17).
  */
@@ -147,82 +146,168 @@ static std::wstring toWString(JNIEnv *env, jstring jstr) {
 }
 
 // ============================================================================
-// Shortcut creation for unpackaged apps
+// Shortcut policy constants (mirrors WinToastLibC)
 // ============================================================================
 
-static HRESULT createShortcut(const std::wstring &aumid, const std::wstring &appName) {
-    // Get executable path
-    WCHAR exePath[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+static const int SHORTCUT_POLICY_IGNORE = 0;
+static const int SHORTCUT_POLICY_REQUIRE_NO_CREATE = 1;
+static const int SHORTCUT_POLICY_REQUIRE_CREATE = 2;
 
-    // Build shortcut path: %APPDATA%\Microsoft\Windows\Start Menu\Programs\{appName}.lnk
-    WCHAR appDataPath[MAX_PATH]{};
-    DWORD written = GetEnvironmentVariableW(L"APPDATA", appDataPath, MAX_PATH);
-    if (written == 0) return E_FAIL;
+// ============================================================================
+// Shortcut management (WinToastLibC approach)
+// ============================================================================
 
-    std::wstring lnkPath = std::wstring(appDataPath) +
-        L"\\Microsoft\\Windows\\Start Menu\\Programs\\" + appName + L".lnk";
+static void buildShellLinkPath(const WCHAR *startMenuRoot, const std::wstring &appName, WCHAR *path, DWORD pathLen) {
+    StringCchCopyW(path, pathLen, startMenuRoot);
+    StringCchCatW(path, pathLen, L"\\Programs\\");
+    StringCchCatW(path, pathLen, appName.c_str());
+    StringCchCatW(path, pathLen, L".lnk");
+}
 
-    // Check if shortcut already exists with correct AUMID
+// Find existing shortcut in user or system-wide Start Menu
+static bool findExistingShellLink(const std::wstring &appName, WCHAR *outPath, DWORD pathLen) {
+    // 1. User Start Menu (%APPDATA%\Microsoft\Windows\Start Menu)
+    WCHAR userStartMenu[MAX_PATH]{};
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_STARTMENU, nullptr, 0, userStartMenu))) {
+        buildShellLinkPath(userStartMenu, appName, outPath, pathLen);
+        if (GetFileAttributesW(outPath) != INVALID_FILE_ATTRIBUTES) return true;
+    }
+    // 2. System-wide Start Menu (C:\ProgramData\Microsoft\Windows\Start Menu)
+    WCHAR commonStartMenu[MAX_PATH]{};
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_COMMON_STARTMENU, nullptr, 0, commonStartMenu))) {
+        buildShellLinkPath(commonStartMenu, appName, outPath, pathLen);
+        if (GetFileAttributesW(outPath) != INVALID_FILE_ATTRIBUTES) return true;
+    }
+    return false;
+}
+
+// Default path for creating new shortcuts (user Start Menu)
+static void defaultShellLinkPath(const std::wstring &appName, WCHAR *path, DWORD pathLen) {
+    WCHAR userStartMenu[MAX_PATH]{};
+    SHGetFolderPathW(nullptr, CSIDL_STARTMENU, nullptr, 0, userStartMenu);
+    buildShellLinkPath(userStartMenu, appName, path, pathLen);
+}
+
+static HRESULT validateShellLinkAt(const WCHAR *path, const std::wstring &aumid, int policy, bool &wasChanged) {
     ComPtr<IShellLinkW> shellLink;
-    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&shellLink));
+    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&shellLink));
     if (FAILED(hr)) return hr;
 
     ComPtr<IPersistFile> persistFile;
     hr = shellLink.As(&persistFile);
     if (FAILED(hr)) return hr;
 
-    // Try to load existing shortcut
-    bool needsCreate = true;
-    if (SUCCEEDED(persistFile->Load(lnkPath.c_str(), STGM_READWRITE))) {
-        ComPtr<IPropertyStore> propStore;
-        if (SUCCEEDED(shellLink.As(&propStore))) {
-            PROPVARIANT pv;
-            PropVariantInit(&pv);
-            if (SUCCEEDED(propStore->GetValue(PKEY_AppUserModel_ID, &pv))) {
-                if (pv.vt == VT_LPWSTR && pv.pwszVal && aumid == pv.pwszVal) {
-                    needsCreate = false; // Already exists with correct AUMID
-                }
-                PropVariantClear(&pv);
-            }
-        }
+    // Try read-write first, fall back to read-only (system-wide shortcuts may be admin-protected)
+    bool readOnly = false;
+    hr = persistFile->Load(path, STGM_READWRITE);
+    if (FAILED(hr)) {
+        hr = persistFile->Load(path, STGM_READ);
+        if (FAILED(hr)) return hr;
+        readOnly = true;
     }
 
-    if (!needsCreate) return S_OK;
-
-    // Create/update shortcut
-    hr = shellLink->SetPath(exePath);
+    ComPtr<IPropertyStore> propertyStore;
+    hr = shellLink.As(&propertyStore);
     if (FAILED(hr)) return hr;
 
-    hr = shellLink->SetArguments(L"");
-    if (FAILED(hr)) return hr;
+    PROPVARIANT appIdPropVar;
+    PropVariantInit(&appIdPropVar);
+    hr = propertyStore->GetValue(PKEY_AppUserModel_ID, &appIdPropVar);
+    if (FAILED(hr)) { PropVariantClear(&appIdPropVar); return hr; }
 
-    // Extract parent directory for working dir
+    wasChanged = false;
+    WCHAR existingAumi[MAX_PATH]{};
+    hr = PropVariantToString(appIdPropVar, existingAumi, MAX_PATH);
+    if (SUCCEEDED(hr) && aumid == existingAumi) {
+        // AUMID matches — shortcut is valid as-is
+        PropVariantClear(&appIdPropVar);
+        return S_OK;
+    }
+
+    // AUMID mismatch — try to update if allowed and writable
+    if (readOnly || policy != SHORTCUT_POLICY_REQUIRE_CREATE) {
+        PropVariantClear(&appIdPropVar);
+        // Read-only but exists → still usable, don't fail
+        return readOnly ? S_OK : E_FAIL;
+    }
+
+    wasChanged = true;
+    PropVariantClear(&appIdPropVar);
+    hr = InitPropVariantFromString(aumid.c_str(), &appIdPropVar);
+    if (SUCCEEDED(hr)) {
+        hr = propertyStore->SetValue(PKEY_AppUserModel_ID, appIdPropVar);
+        if (SUCCEEDED(hr)) {
+            hr = propertyStore->Commit();
+            if (SUCCEEDED(hr)) hr = persistFile->Save(path, TRUE);
+        }
+    }
+    PropVariantClear(&appIdPropVar);
+    return hr;
+}
+
+// Validate existing shortcut — searches user then system-wide Start Menu
+static HRESULT validateShellLink(const std::wstring &appName, const std::wstring &aumid, int policy, bool &wasChanged) {
+    WCHAR path[MAX_PATH]{};
+    if (!findExistingShellLink(appName, path, MAX_PATH)) return E_FAIL;
+    return validateShellLinkAt(path, aumid, policy, wasChanged);
+}
+
+static HRESULT createShellLink(const std::wstring &appName, const std::wstring &aumid) {
+    WCHAR exePath[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+    WCHAR slPath[MAX_PATH]{};
+    defaultShellLinkPath(appName, slPath, MAX_PATH);
+
     std::wstring exeDir(exePath);
     size_t lastSlash = exeDir.find_last_of(L'\\');
     if (lastSlash != std::wstring::npos) exeDir = exeDir.substr(0, lastSlash);
+
+    ComPtr<IShellLinkW> shellLink;
+    HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&shellLink));
+    if (FAILED(hr)) return hr;
+
+    hr = shellLink->SetPath(exePath);
+    if (FAILED(hr)) return hr;
+    hr = shellLink->SetArguments(L"");
+    if (FAILED(hr)) return hr;
     hr = shellLink->SetWorkingDirectory(exeDir.c_str());
     if (FAILED(hr)) return hr;
 
-    // Set AUMID property
-    ComPtr<IPropertyStore> propStore;
-    hr = shellLink.As(&propStore);
+    ComPtr<IPropertyStore> propertyStore;
+    hr = shellLink.As(&propertyStore);
     if (FAILED(hr)) return hr;
 
     PROPVARIANT appIdPropVar;
     hr = InitPropVariantFromString(aumid.c_str(), &appIdPropVar);
     if (FAILED(hr)) return hr;
 
-    hr = propStore->SetValue(PKEY_AppUserModel_ID, appIdPropVar);
+    hr = propertyStore->SetValue(PKEY_AppUserModel_ID, appIdPropVar);
     PropVariantClear(&appIdPropVar);
     if (FAILED(hr)) return hr;
 
-    hr = propStore->Commit();
+    hr = propertyStore->Commit();
     if (FAILED(hr)) return hr;
 
-    hr = persistFile->Save(lnkPath.c_str(), TRUE);
-    return hr;
+    ComPtr<IPersistFile> persistFile;
+    hr = shellLink.As(&persistFile);
+    if (FAILED(hr)) return hr;
+
+    return persistFile->Save(slPath, TRUE);
+}
+
+static int ensureShortcut(const std::wstring &appName, const std::wstring &aumid, int policy) {
+    if (policy == SHORTCUT_POLICY_IGNORE) return 0;
+
+    bool wasChanged = false;
+    HRESULT hr = validateShellLink(appName, aumid, policy, wasChanged);
+    if (SUCCEEDED(hr)) return wasChanged ? 1 : 0;
+
+    if (policy == SHORTCUT_POLICY_REQUIRE_CREATE) {
+        hr = createShellLink(appName, aumid);
+        return SUCCEEDED(hr) ? 2 : -1;
+    }
+    return -1;
 }
 
 // ============================================================================
@@ -309,7 +394,8 @@ extern "C" {
 
 JNIEXPORT jboolean JNICALL
 Java_io_github_kdroidfilter_nucleus_notification_windows_NativeWindowsNotificationBridge_nativeInitialize(
-    JNIEnv *env, jclass clazz, jstring jAumid, jboolean jIsAppx
+    JNIEnv *env, jclass clazz, jstring jAumid, jboolean jIsAppx,
+    jstring jAppName, jint jShortcutPolicy
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
     if (g_initialized) return JNI_TRUE;
@@ -323,17 +409,15 @@ Java_io_github_kdroidfilter_nucleus_notification_windows_NativeWindowsNotificati
     g_isAppx = (bool)jIsAppx;
 
     if (!g_isAppx && !g_aumid.empty()) {
-        // For unpackaged apps: set process AUMID and create Start Menu shortcut
-        SetCurrentProcessExplicitAppUserModelID(g_aumid.c_str());
+        std::wstring appName = toWString(env, jAppName);
+        int policy = (int)jShortcutPolicy;
 
-        // Extract app name from AUMID (last segment after '.')
-        std::wstring appName = g_aumid;
-        size_t lastDot = appName.find_last_of(L'.');
-        if (lastDot != std::wstring::npos && lastDot + 1 < appName.length()) {
-            appName = appName.substr(lastDot + 1);
+        if (!appName.empty() && policy != SHORTCUT_POLICY_IGNORE) {
+            // Best-effort: don't fail init if shortcut is missing in REQUIRE_NO_CREATE mode
+            ensureShortcut(appName, g_aumid, policy);
         }
 
-        createShortcut(g_aumid, appName);
+        SetCurrentProcessExplicitAppUserModelID(g_aumid.c_str());
     }
 
     // Get toast notification manager

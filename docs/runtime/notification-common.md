@@ -182,6 +182,7 @@ How each parameter maps to platform-specific APIs:
 
 ### Windows
 
+- **Installed app required**: Notifications require a Start Menu shortcut (`.lnk`) with the AUMID property. This is created by the installer (e.g. `./gradlew packageDistributionForCurrentOS`). When running via `./gradlew run`, notifications work only if the app has been installed before (the shortcut already exists). A warning is logged otherwise.
 - **Initialization**: `WindowsNotificationCenter.initialize()` is called automatically on the first `send()`. Call `NotificationManager.initialize()` explicitly for early setup.
 - **Tag/Group**: Each notification gets a unique tag (`n1`, `n2`, ...) under the `"ncm"` group.
 - **Images**: `largeImage` maps to a hero image at the top of the toast. `smallIcon` maps to the app logo override (displayed left of the text). Both accept `file:///` URIs and HTTP URLs.

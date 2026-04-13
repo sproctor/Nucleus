@@ -177,7 +177,7 @@ fun main(args: Array<String>) {
                 ) {
                     // Set minimum window size (DPI-scaled automatically by JNI module)
                     LaunchedEffect(Unit) {
-                        window.minimumSize = java.awt.Dimension(640, 480)
+                        window.minimumSize = java.awt.Dimension(1000, 480)
                     }
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
