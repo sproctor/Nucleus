@@ -7,6 +7,16 @@
                 {
                     "name": "nativeIsRTL",
                     "parameterTypes": []
+                },
+                {
+                    "name": "nativeGetButtonLayout",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "onButtonLayoutChanged",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         }
