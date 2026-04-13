@@ -177,7 +177,7 @@ fun main(args: Array<String>) {
                 ) {
                     // Set minimum window size (DPI-scaled automatically by JNI module)
                     LaunchedEffect(Unit) {
-                        window.minimumSize = java.awt.Dimension(640, 480)
+                        window.minimumSize = java.awt.Dimension(1000, 480)
                     }
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
@@ -185,6 +185,7 @@ fun main(args: Array<String>) {
                         val tabs =
                             buildList {
                                 addAll(listOf("Nucleus", "Gallery", "Taskbar"))
+                                add("Notifications (Common)")
                                 if (Platform.Current == Platform.MacOS ||
                                     Platform.Current == Platform.Linux ||
                                     Platform.Current == Platform.Windows
@@ -313,6 +314,7 @@ fun main(args: Array<String>) {
 
                         when (selectedTab) {
                             "Nucleus" -> NucleusContent()
+                            "Notifications (Common)" -> CommonNotificationsScreen()
                             "Gallery" -> {
                                 val currentDensity = LocalDensity.current
                                 CompositionLocalProvider(

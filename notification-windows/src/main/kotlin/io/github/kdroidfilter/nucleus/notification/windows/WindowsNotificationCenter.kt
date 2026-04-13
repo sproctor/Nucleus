@@ -20,6 +20,21 @@ import java.util.logging.Logger
  *
  * Thread-safe singleton.
  */
+/**
+ * Controls how the library handles Start Menu shortcuts with AUMID.
+ * Mirrors WinToastLib's ShortcutPolicy.
+ */
+enum class ShortcutPolicy(internal val nativeValue: Int) {
+    /** Don't check, create, or modify any shortcut. */
+    IGNORE(0),
+
+    /** Require a matching shortcut to exist, but never create or modify one. */
+    REQUIRE_NO_CREATE(1),
+
+    /** Create or update the shortcut if needed (default). */
+    REQUIRE_CREATE(2),
+}
+
 object WindowsNotificationCenter {
     private val logger = Logger.getLogger(WindowsNotificationCenter::class.java.simpleName)
     private var initialized = false
@@ -35,26 +50,55 @@ object WindowsNotificationCenter {
      * - **Unpackaged apps**: pass `null` to auto-derive from [NucleusApp.appId],
      *   or provide an explicit AUMID string.
      *
-     * The native code calls `SetCurrentProcessExplicitAppUserModelID` for
-     * unpackaged apps so that Windows can identify the process.
+     * For unpackaged apps, the library ensures a Start Menu shortcut exists with
+     * the AUMID property set (required for toast notifications). The [shortcutPolicy]
+     * controls this behavior:
+     * - [ShortcutPolicy.REQUIRE_CREATE] (default): creates or updates the shortcut
+     * - [ShortcutPolicy.REQUIRE_NO_CREATE]: requires existing shortcut, never modifies
+     * - [ShortcutPolicy.IGNORE]: skips shortcut handling entirely
      *
      * @param aumid Explicit AUMID override, or `null` to auto-resolve.
+     * @param appName The application display name used for the shortcut filename.
+     *   Defaults to [NucleusApp.appName] or the last segment of the AUMID.
+     * @param shortcutPolicy How to handle the Start Menu shortcut.
+     *   Default: auto — [ShortcutPolicy.REQUIRE_CREATE] for installed apps,
+     *   [ShortcutPolicy.REQUIRE_NO_CREATE] for dev mode.
      * @return true if initialization succeeded.
      */
-    fun initialize(aumid: String? = null): Boolean {
+    fun initialize(
+        aumid: String? = null,
+        appName: String? = null,
+        shortcutPolicy: ShortcutPolicy = defaultShortcutPolicy(),
+    ): Boolean {
         if (!isAvailable) {
             logger.warning("Windows notification native library not available")
             return false
         }
         val isAppx = ExecutableRuntime.isAppX()
         val resolvedAumid = resolveAumid(aumid, isAppx)
-        logger.fine("Initializing with AUMID: '${resolvedAumid.ifEmpty { "<package-identity>" }}' isAppx=$isAppx")
-        initialized = NativeWindowsNotificationBridge.nativeInitialize(resolvedAumid, isAppx)
+        val resolvedAppName = resolveAppName(appName, resolvedAumid)
+        logger.fine("Initializing with AUMID='${resolvedAumid.ifEmpty { "<package-identity>" }}' appName='$resolvedAppName' isAppx=$isAppx policy=$shortcutPolicy")
+
+        if (shortcutPolicy == ShortcutPolicy.REQUIRE_NO_CREATE && ExecutableRuntime.isDev()) {
+            logger.warning(
+                "Notifications require an installed app with a Start Menu shortcut. " +
+                    "Install the app once (e.g. ./gradlew packageDistributionForCurrentOS) " +
+                    "and notifications will work even in dev mode.",
+            )
+        }
+
+        initialized = NativeWindowsNotificationBridge.nativeInitialize(
+            resolvedAumid, isAppx, resolvedAppName, shortcutPolicy.nativeValue,
+        )
         if (!initialized) {
             logger.warning("Failed to initialize Windows notification subsystem (AUMID='$resolvedAumid')")
         }
         return initialized
     }
+
+    private fun defaultShortcutPolicy(): ShortcutPolicy =
+        if (ExecutableRuntime.isDev()) ShortcutPolicy.REQUIRE_NO_CREATE
+        else ShortcutPolicy.REQUIRE_CREATE
 
     // -- Show --
 
@@ -271,8 +315,20 @@ object WindowsNotificationCenter {
         // APPX: empty AUMID — Windows uses the MSIX package identity
         if (isAppx) return ""
 
-        // Unpackaged apps: derive AUMID from NucleusApp metadata
-        return NucleusApp.appId
+        // Unpackaged apps: use AUMID from NucleusApp (matches electron-builder appId)
+        return NucleusApp.aumid
+    }
+
+    private fun resolveAppName(
+        explicit: String?,
+        aumid: String,
+    ): String {
+        if (!explicit.isNullOrEmpty()) return explicit
+        // Use the app display name injected by the Nucleus plugin
+        NucleusApp.appName?.let { return it }
+        // Fallback: last segment of the AUMID (e.g. "com.example.MyApp" -> "MyApp")
+        val lastDot = aumid.lastIndexOf('.')
+        return if (lastDot >= 0 && lastDot + 1 < aumid.length) aumid.substring(lastDot + 1) else aumid
     }
 
     private fun ensureReady(callback: ((String?) -> Unit)?): Boolean {

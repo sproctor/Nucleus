@@ -52,6 +52,8 @@ internal object NativeWindowsNotificationBridge {
     external fun nativeInitialize(
         aumid: String,
         isAppx: Boolean,
+        appName: String,
+        shortcutPolicy: Int,
     ): Boolean
 
     /**

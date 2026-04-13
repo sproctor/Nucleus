@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.core.runtime
 
+import java.net.JarURLConnection
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -13,7 +14,8 @@ import java.util.logging.Logger
  * (`~/.cache/nucleus/native/` on macOS/Linux, `%LOCALAPPDATA%/nucleus/native/` on Windows)
  * so that subsequent launches skip the extraction I/O entirely.
  *
- * The cache is invalidated per-library when the JAR resource size changes.
+ * The cache is invalidated per-library using a fingerprint derived from the
+ * JAR entry CRC-32 and size (read from ZIP headers — zero I/O cost).
  */
 object NativeLibraryLoader {
     private val logger = Logger.getLogger(NativeLibraryLoader::class.java.simpleName)
@@ -64,36 +66,51 @@ object NativeLibraryLoader {
             val fileName = mapLibraryFileName(libraryName, platform)
             val resourcePath = "$resourcePrefix/${platform.resourceDir}/$fileName"
 
-            val stream =
-                callerClass.getResourceAsStream(resourcePath) ?: run {
+            val resourceUrl =
+                callerClass.getResource(resourcePath) ?: run {
                     logger.fine("Native library not available on this platform: $resourcePath")
                     return false
                 }
 
-            val cachedLib =
-                stream.use { input ->
-                    val cacheDir = resolveCacheDir().resolve(platform.resourceDir)
-                    Files.createDirectories(cacheDir)
-                    val target = cacheDir.resolve(fileName)
+            // Read fingerprint from JAR entry metadata (CRC-32 + size from ZIP header, no I/O)
+            val fingerprint = resolveFingerprint(resourceUrl)
 
-                    val resourceSize = input.available().toLong()
-                    if (Files.exists(target) && isCacheValid(target, resourceSize)) {
-                        return@use target
-                    }
+            val cacheDir = resolveCacheDir().resolve(platform.resourceDir)
+            Files.createDirectories(cacheDir)
+            val target = cacheDir.resolve(fileName)
+            val fingerprintFile = cacheDir.resolve("$fileName.fingerprint")
 
-                    // Write to a temp file first, then atomically move to avoid partial reads
-                    val tmp = Files.createTempFile(cacheDir, libraryName, ".tmp")
+            if (Files.exists(target) && isCacheValid(fingerprintFile, fingerprint)) {
+                System.load(target.toAbsolutePath().toString())
+                loadedLibraries += libraryName
+                return true
+            }
+
+            // Cache miss — extract from JAR into a temp file
+            val tmp = Files.createTempFile(cacheDir, libraryName, ".tmp")
+            resourceUrl.openStream().use { input ->
+                Files.copy(input, tmp, StandardCopyOption.REPLACE_EXISTING)
+            }
+
+            // Try to move into the canonical cache location.
+            // On Windows the target may be locked by another process that loaded
+            // the previous version — in that case, load directly from the temp file.
+            val loadPath =
+                try {
                     try {
-                        Files.copy(input, tmp, StandardCopyOption.REPLACE_EXISTING)
                         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
                     } catch (_: Exception) {
-                        // ATOMIC_MOVE not supported on all filesystems
                         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING)
                     }
+                    writeFingerprint(fingerprintFile, fingerprint)
                     target
+                } catch (_: Exception) {
+                    // Target locked — load from temp, clean up on next launch
+                    logger.fine("Cache file locked, loading from temp: $tmp")
+                    tmp
                 }
 
-            System.load(cachedLib.toAbsolutePath().toString())
+            System.load(loadPath.toAbsolutePath().toString())
             loadedLibraries += libraryName
             return true
         } catch (e: Exception) {
@@ -102,16 +119,40 @@ object NativeLibraryLoader {
         }
     }
 
+    /**
+     * Builds a fingerprint string from JAR entry metadata.
+     * For `jar:` URLs the CRC-32 and size come straight from the ZIP central directory.
+     * For `file:` URLs (IDE dev mode) we use file size and last-modified timestamp.
+     */
+    private fun resolveFingerprint(resourceUrl: java.net.URL): String {
+        val connection = resourceUrl.openConnection()
+        if (connection is JarURLConnection) {
+            val entry = connection.jarEntry
+            return "${entry.crc}:${entry.size}"
+        }
+        // file: URL fallback (running from IDE classes dir)
+        return "${connection.contentLengthLong}:${connection.lastModified}"
+    }
+
     private fun isCacheValid(
-        cachedFile: Path,
-        resourceSize: Long,
-    ): Boolean {
-        // If the resource stream doesn't report size (available() == 0), skip validation
-        if (resourceSize <= 0) return true
-        return try {
-            Files.size(cachedFile) == resourceSize
+        fingerprintFile: Path,
+        currentFingerprint: String,
+    ): Boolean =
+        try {
+            Files.exists(fingerprintFile) &&
+                Files.readString(fingerprintFile).trim() == currentFingerprint
         } catch (_: Exception) {
             false
+        }
+
+    private fun writeFingerprint(
+        fingerprintFile: Path,
+        fingerprint: String,
+    ) {
+        try {
+            Files.writeString(fingerprintFile, fingerprint)
+        } catch (_: Exception) {
+            // Non-critical — worst case we re-extract next time
         }
     }
 

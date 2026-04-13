@@ -18,11 +18,15 @@ public object NucleusApp {
     private const val PROP_APP_VERSION = "nucleus.app.version"
     private const val PROP_APP_VENDOR = "nucleus.app.vendor"
     private const val PROP_APP_DESCRIPTION = "nucleus.app.description"
+    private const val PROP_APP_NAME = "nucleus.app.name"
+    private const val PROP_APP_AUMID = "nucleus.app.aumid"
 
     private const val RES_APP_ID = "app.id"
     private const val RES_APP_VERSION = "app.version"
     private const val RES_APP_VENDOR = "app.vendor"
     private const val RES_APP_DESCRIPTION = "app.description"
+    private const val RES_APP_NAME = "app.name"
+    private const val RES_APP_AUMID = "app.aumid"
 
     private val resourceProps: Properties? by lazy { loadResource() }
 
@@ -51,6 +55,23 @@ public object NucleusApp {
     @JvmStatic
     public val description: String? by lazy {
         resolve(PROP_APP_DESCRIPTION, RES_APP_DESCRIPTION)
+    }
+
+    /** The application display name (e.g. "Nucleus Demo"), or `null` if not configured. */
+    @JvmStatic
+    public val appName: String? by lazy {
+        resolve(PROP_APP_NAME, RES_APP_NAME)
+    }
+
+    /**
+     * The Windows Application User Model ID (AUMID).
+     * Matches the electron-builder `appId` (e.g. "com.app.NucleusDemo").
+     * Used for toast notifications, badge updates, and jump lists.
+     * Falls back to [appId] if not explicitly configured.
+     */
+    @JvmStatic
+    public val aumid: String by lazy {
+        resolve(PROP_APP_AUMID, RES_APP_AUMID) ?: appId
     }
 
     /** `true` if the Nucleus plugin injected metadata (via system property or classpath resource). */

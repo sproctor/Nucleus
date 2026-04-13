@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":decorated-window-jni"))
     implementation(project(":energy-manager"))
     implementation(project(":taskbar-progress"))
+    implementation(project(":notification-common"))
     implementation(project(":notification-macos"))
     implementation(project(":notification-linux"))
     implementation(project(":notification-windows"))

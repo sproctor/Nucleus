@@ -33,8 +33,15 @@ WindowsNotificationCenter.showSimple(
 
 !!! tip "AUMID handling"
     - **APPX/MSIX**: the AUMID is resolved automatically from the package identity.
-    - **Unpackaged apps (EXE, MSI, dev)**: the library derives the AUMID from `NucleusApp.appId`, registers it on the process via `SetCurrentProcessExplicitAppUserModelID`, and creates a Start Menu shortcut with the AUMID property.
+    - **Unpackaged apps (EXE, MSI, dev)**: the library derives the AUMID from `NucleusApp.appId` and registers it on the process via `SetCurrentProcessExplicitAppUserModelID`.
     - You can also pass an explicit AUMID: `initialize(aumid = "MyCompany.MyApp")`.
+
+!!! warning "Installed app required"
+    Notifications on unpackaged apps require a Start Menu shortcut (`.lnk`) with the AUMID property set. Without it, toasts may not appear or persist in Action Center.
+
+    This shortcut is created by the installer (e.g. `./gradlew packageDistributionForCurrentOS`). When running via `./gradlew run`, notifications will work **only if the app has been installed before** (even a different version), since the shortcut already exists.
+
+    This is similar to macOS, where notifications require a packaged `.app` bundle.
 
 ## API Reference
 
@@ -347,7 +354,7 @@ WindowsNotificationCenter.addListener(object : ToastNotificationListener {
 
 Ships pre-built Windows DLLs (x64 + ARM64). No macOS or Linux native — `isAvailable` returns `false` on other platforms and all methods are no-op.
 
-- `nucleus_notification_windows.dll` — linked against `ole32`, `runtimeobject`, `shell32`, `shlwapi`, `user32`, `advapi32`, `propsys`
+- `nucleus_notification_windows.dll` — linked against `ole32`, `runtimeobject`, `shell32`, `user32`, `advapi32`
 - Requires Windows 10 (build 10240+)
 - Headers and progress bars require Creators Update (build 15063+)
 - Uses WRL `Callback<>` for COM event handlers
