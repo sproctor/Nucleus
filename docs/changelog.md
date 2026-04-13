@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.11.0
+
+**Released: 2026-04-13**
+
+### New Features
+
+- **GNOME titlebar button layout support** — Decorated windows on Linux now read the system `button-layout` GSettings key to determine which buttons to show (close, minimize, maximize) and on which side (left or right). The layout updates reactively when the user changes it in GNOME Tweaks or via `gsettings set`. Falls back to the default layout on KDE and other desktop environments.
+
+### Documentation
+
+- **GraalVM status updated to alpha** — GraalVM Native Image support is now labeled "alpha" instead of "experimental", reflecting the improved out-of-the-box experience with centralized reachability metadata
+
+---
+
 ## v1.10.0
 
 **Released: 2026-04-12**
