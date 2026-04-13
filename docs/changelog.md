@@ -4,13 +4,32 @@
 
 **Released: 2026-04-13**
 
+### New Modules
+
+- **Notification Common** (`nucleus.notification-common`) — Unified cross-platform notification API for Linux, Windows, and macOS behind a single DSL. Supports per-notification callbacks, up to 5 action buttons, image attachments, and dismiss handling.
+
 ### New Features
 
-- **GNOME titlebar button layout support** — Decorated windows on Linux now read the system `button-layout` GSettings key to determine which buttons to show (close, minimize, maximize) and on which side (left or right). The layout updates reactively when the user changes it in GNOME Tweaks or via `gsettings set`. Falls back to the default layout on KDE and other desktop environments.
+- **Reactive GNOME titlebar button layout** — Decorated windows on Linux now read `org.gnome.desktop.wm.preferences` → `button-layout` via GSettings (`libgio` dlopen) to determine which buttons to show and on which side. The layout updates reactively when the user changes it in GNOME Tweaks or via `gsettings set`. Falls back to the default layout on KDE and other desktop environments. New `rememberLinuxButtonLayout()` composable for direct access.
+- **GraalVM reachability metadata for FileKit and dbus-java** — Apps using FileKit on Linux no longer need manual reachability entries for xdg-desktop-portal file dialogs. Includes new dbus-java conditional library metadata and Linux JDK internals (`UnixSystem`, `NativePRNG$NonBlocking`, `CollationData`).
+- **Windows notification shortcut policies** — New `ShortcutPolicy` enum on `WindowsNotificationCenter` for finer control over Start Menu shortcut creation behavior.
+- **`NucleusApp.appName` and `NucleusApp.aumid` properties** — Expose application name and AUMID for better configuration handling.
+
+### Bug Fixes
+
+- **Fix macOS multicolor accent color** — `system-color` now returns `null` when macOS is set to multicolor mode instead of incorrectly returning the default blue.
+- **Fix incremental build issues in GraalVM tasks** — Disable state tracking on shared output directory modifications to prevent stale builds.
+- **Fix nullable safety in JVM application tasks** — Simplify runtime classpath and `JavaExec` argument handling by removing unnecessary optional chaining.
+
+### Improvements
+
+- **Faster native library loading** — `NativeLibraryLoader` now uses CRC-32-based fingerprints for cache validation, eliminating unnecessary I/O during checks.
 
 ### Documentation
 
-- **GraalVM status updated to alpha** — GraalVM Native Image support is now labeled "alpha" instead of "experimental", reflecting the improved out-of-the-box experience with centralized reachability metadata
+- **GraalVM status updated to alpha** — GraalVM Native Image support is now labeled "alpha" instead of "experimental", reflecting the improved out-of-the-box experience with centralized reachability metadata.
+- **New System Tray documentation** — Full documentation section for ComposeNativeTray with screenshots and demo GIFs.
+- **Landing page rewrite** — Repositioned Nucleus as a native Electron successor with bold performance comparisons.
 
 ---
 
