@@ -962,11 +962,11 @@ private fun JvmApplicationContext.configureRunTask(
                 val je = it as JavaExec
                 val patchedJava = getOrCreatePatchedJvm(javaHome, minVersion, sdkVersion, je.logger)
                 val cmd = mutableListOf(patchedJava)
-                je.jvmArgs?.let { cmd.addAll(it) }
+                je.jvmArgs.let { cmd.addAll(it) }
                 cmd.add("-cp")
                 cmd.add(je.classpath.asPath)
                 cmd.add(je.mainClass.get())
-                je.args?.let { cmd.addAll(it) }
+                je.args.let { cmd.addAll(it) }
                 val exitCode =
                     ProcessBuilder(cmd)
                         .inheritIO()

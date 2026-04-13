@@ -163,7 +163,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                 // Deduplicate: remove entries already provided by library JARs (L1),
                 // plugin platform metadata (L3), Oracle repo (L2), static analysis,
                 // and native-image.properties resource patterns.
-                val runtimeClasspath = classpath?.files ?: emptySet()
+                val runtimeClasspath = classpath.files
 
                 // Collect extra metadata directories: Oracle repo (L2), static analysis, library metadata (L1)
                 val extraDirs = mutableListOf<File>()
@@ -1290,6 +1290,10 @@ private fun JvmApplicationContext.configureLinuxGraalvmPackaging(
             dependsOn(nativeImageCompile)
             from(nativeCompileDir.map { it.file(imageName.get()) })
             into(outputDir)
+            // Gradle snapshots the output directory for incremental build tracking.
+            // strip(1) creates temporary files in the same directory, causing
+            // NoSuchFileException if this task runs in parallel with stripSoLibs.
+            doNotTrackState("Shared output directory is modified by strip tasks")
         }
 
     val copyAwtSoLibs =
