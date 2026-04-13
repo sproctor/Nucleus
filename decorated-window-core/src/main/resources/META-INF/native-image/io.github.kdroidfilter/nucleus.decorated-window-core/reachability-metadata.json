@@ -11,6 +11,12 @@
                 {
                     "name": "nativeGetButtonLayout",
                     "parameterTypes": []
+                },
+                {
+                    "name": "onButtonLayoutChanged",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
                 }
             ]
         }

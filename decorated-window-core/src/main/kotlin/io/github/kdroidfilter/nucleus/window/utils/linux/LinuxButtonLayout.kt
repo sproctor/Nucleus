@@ -1,6 +1,11 @@
 package io.github.kdroidfilter.nucleus.window.utils.linux
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import io.github.kdroidfilter.nucleus.window.NativeLayoutDirectionBridge
+import java.util.function.Consumer
 
 /**
  * Represents a titlebar button type from the GNOME `button-layout` GSettings key.
@@ -37,17 +42,16 @@ data class LinuxButtonLayout(
         )
 
         /**
-         * Reads and caches the system button layout.
+         * Reads the current system button layout (one-shot).
          * Falls back to [Default] if GSettings is unavailable.
          */
-        val System: LinuxButtonLayout by lazy {
+        fun readSystem(): LinuxButtonLayout =
             try {
                 val raw = NativeLayoutDirectionBridge.nativeGetButtonLayout()
                 if (raw != null) parse(raw) else Default
             } catch (_: UnsatisfiedLinkError) {
                 Default
             }
-        }
 
         /**
          * Parses a GNOME `button-layout` string like `"appmenu:minimize,maximize,close"`
@@ -97,4 +101,47 @@ data class LinuxButtonLayout(
                     }
                 }
     }
+}
+
+/**
+ * Singleton that starts the GSettings observer and keeps the button layout
+ * up to date. Accessed from `WindowControlArea` to render the correct buttons.
+ */
+internal object LinuxButtonLayoutObserver {
+    init {
+        try {
+            NativeLayoutDirectionBridge.nativeStartButtonLayoutObserving()
+        } catch (_: UnsatisfiedLinkError) {
+            // Native lib not available — monitoring won't work, layout stays at initial value
+        }
+    }
+
+    fun registerListener(listener: Consumer<String>) {
+        NativeLayoutDirectionBridge.registerButtonLayoutListener(listener)
+    }
+
+    fun removeListener(listener: Consumer<String>) {
+        NativeLayoutDirectionBridge.removeButtonLayoutListener(listener)
+    }
+}
+
+/**
+ * Composable that returns the current system button layout,
+ * updating automatically when the user changes it in GNOME Tweaks.
+ */
+@Composable
+fun rememberLinuxButtonLayout(): LinuxButtonLayout {
+    val layoutState = remember { mutableStateOf(LinuxButtonLayout.readSystem()) }
+
+    DisposableEffect(Unit) {
+        val listener = Consumer<String> { raw ->
+            layoutState.value = LinuxButtonLayout.parse(raw)
+        }
+        LinuxButtonLayoutObserver.registerListener(listener)
+        onDispose {
+            LinuxButtonLayoutObserver.removeListener(listener)
+        }
+    }
+
+    return layoutState.value
 }

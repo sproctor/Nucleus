@@ -29,7 +29,7 @@ fun kdePaddingForButtonLayout(): PaddingValues {
     if (LinuxDesktopEnvironment.Current != LinuxDesktopEnvironment.KDE) {
         return PaddingValues(0.dp)
     }
-    return if (LinuxButtonLayout.System.controlsOnRight) {
+    return if (LinuxButtonLayout.readSystem().controlsOnRight) {
         PaddingValues(end = 4.dp)
     } else {
         PaddingValues(start = 4.dp)

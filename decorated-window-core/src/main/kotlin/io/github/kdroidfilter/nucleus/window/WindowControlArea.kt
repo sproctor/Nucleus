@@ -25,9 +25,9 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
-import io.github.kdroidfilter.nucleus.window.utils.linux.LinuxButtonLayout
 import io.github.kdroidfilter.nucleus.window.utils.linux.LinuxTitleBarButton
 import io.github.kdroidfilter.nucleus.window.utils.linux.linuxTitleBarIcons
+import io.github.kdroidfilter.nucleus.window.utils.linux.rememberLinuxButtonLayout
 import java.awt.Frame
 import java.awt.event.WindowEvent
 
@@ -44,7 +44,7 @@ fun TitleBarScope.WindowControlArea(
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LocalControlButtonsDirection.current) {
         val icons = linuxTitleBarIcons()
-        val layout = LinuxButtonLayout.System
+        val layout = rememberLinuxButtonLayout()
         val buttonAlignment = if (layout.controlsOnRight) Alignment.End else Alignment.Start
 
         for (button in layout.buttons) {
