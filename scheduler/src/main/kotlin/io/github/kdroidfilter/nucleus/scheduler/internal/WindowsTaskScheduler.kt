@@ -5,9 +5,12 @@ import io.github.kdroidfilter.nucleus.scheduler.ExistingTaskPolicy
 import io.github.kdroidfilter.nucleus.scheduler.TaskInfo
 import io.github.kdroidfilter.nucleus.scheduler.TaskRequest
 import io.github.kdroidfilter.nucleus.scheduler.TaskState
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -132,7 +135,11 @@ internal object WindowsTaskScheduler : PlatformScheduler {
     ): Boolean {
         val execPath = executablePath ?: return false
         val startTime = LocalDateTime.now().plusSeconds(delaySeconds)
-        val dateStr = "%02d/%02d/%04d".format(startTime.monthValue, startTime.dayOfMonth, startTime.year)
+        val instant = startTime.atZone(ZoneId.systemDefault()).toInstant()
+
+        // Use the system's short date format so schtasks accepts it regardless of locale
+        val dateStr = (DateFormat.getDateInstance(DateFormat.SHORT) as SimpleDateFormat)
+            .format(Date.from(instant))
         val timeStr = "%02d:%02d".format(startTime.hour, startTime.minute)
 
         // Delete any previous retry task for this ID
@@ -334,17 +341,37 @@ internal object WindowsTaskScheduler : PlatformScheduler {
     private fun parseCsvLine(line: String): List<String> =
         line.split(",").map { it.trim().removeSurrounding("\"") }
 
+    /**
+     * Parses a locale-dependent date/time string from `schtasks` output.
+     *
+     * Tries the system's own SHORT and MEDIUM date-time formats first (matching
+     * the locale `schtasks` uses), then falls back to well-known patterns.
+     */
     @Suppress("TooGenericExceptionCaught")
     private fun tryParseDateTime(text: String): Long? {
-        val formatters = listOf(
+        // Try system locale formats first — these match what schtasks produces
+        val systemFormats = listOf(
+            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM),
+            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT),
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM),
+        )
+        for (fmt in systemFormats) {
+            try {
+                return fmt.parse(text)?.time
+            } catch (_: Exception) {
+                // Try next format
+            }
+        }
+
+        // Fallback to hardcoded patterns for edge cases
+        val fallbackFormatters = listOf(
             DateTimeFormatter.ofPattern("M/d/yyyy h:mm:ss a"),   // en-US
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"),  // fr-FR, pt-BR
             DateTimeFormatter.ofPattern("d/MM/yyyy HH:mm:ss"),   // fr-FR single-digit day
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),  // ISO-like
-            DateTimeFormatter.ofPattern("M/d/yyyy HH:mm:ss"),    // en-US 24h
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"),  // de-DE
         )
-        for (fmt in formatters) {
+        for (fmt in fallbackFormatters) {
             try {
                 val parsed = LocalDateTime.parse(text, fmt)
                 return parsed.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
