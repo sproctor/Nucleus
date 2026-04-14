@@ -1,0 +1,54 @@
+{
+    "reflection": [
+        {
+            "type": "io.github.kdroidfilter.nucleus.scheduler.internal.WindowsTaskSchedulerJni",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "nativeCreatePeriodicTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String", "int"]
+                },
+                {
+                    "name": "nativeCreateDailyTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String", "int", "int"]
+                },
+                {
+                    "name": "nativeCreateWeeklyTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String", "int", "int", "int"]
+                },
+                {
+                    "name": "nativeCreateLogonTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeCreateOnceTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeDeleteTask",
+                    "parameterTypes": ["java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeDeleteFolder",
+                    "parameterTypes": ["java.lang.String"]
+                },
+                {
+                    "name": "nativeTaskExists",
+                    "parameterTypes": ["java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeGetTaskState",
+                    "parameterTypes": ["java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeGetTaskNextRunTime",
+                    "parameterTypes": ["java.lang.String", "java.lang.String"]
+                },
+                {
+                    "name": "nativeGetTaskNames",
+                    "parameterTypes": ["java.lang.String"]
+                }
+            ]
+        }
+    ]
+}

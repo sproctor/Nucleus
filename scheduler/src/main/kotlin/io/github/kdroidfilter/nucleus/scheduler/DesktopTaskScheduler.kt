@@ -26,7 +26,7 @@ public object DesktopTaskScheduler {
     private val delegate: PlatformScheduler =
         when (Platform.Current) {
             Platform.Linux -> LinuxSystemdScheduler
-            Platform.Windows -> WindowsTaskScheduler
+            Platform.Windows -> if (WindowsTaskScheduler.isAvailable) WindowsTaskScheduler else NoopScheduler
             Platform.MacOS -> MacOSLaunchdScheduler
             else -> NoopScheduler
         }

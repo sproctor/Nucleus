@@ -5,57 +5,50 @@ import io.github.kdroidfilter.nucleus.scheduler.ExistingTaskPolicy
 import io.github.kdroidfilter.nucleus.scheduler.TaskInfo
 import io.github.kdroidfilter.nucleus.scheduler.TaskRequest
 import io.github.kdroidfilter.nucleus.scheduler.TaskState
-import java.text.DateFormat
-import java.text.SimpleDateFormat
 import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
-import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 import java.util.logging.Logger
-import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * Windows implementation using the Task Scheduler via `schtasks.exe`.
+ * Windows implementation using the Task Scheduler 2.0 COM API via JNI.
  *
  * Tasks are created under a `\Nucleus\{appId}\` folder in the Windows Task Scheduler.
  * Each task invokes the application executable with `--nucleus-scheduler-run {taskId}`.
  *
- * Task listing uses [TaskMetadataStore] as the source of truth for registered task IDs
- * (cross-referenced with `schtasks /Query` for existence), because `schtasks.exe` output
- * field names are locale-dependent and unreliable to parse across languages.
+ * Requires `nucleus_scheduler.dll` — if the native library is not loaded, all operations
+ * return failure (the scheduler is effectively unavailable).
  */
 @Suppress("TooManyFunctions")
 internal object WindowsTaskScheduler : PlatformScheduler {
     private val logger = Logger.getLogger(WindowsTaskScheduler::class.java.name)
     private const val SCHEDULER_ARG = "--nucleus-scheduler-run"
-    private const val COMMAND_TIMEOUT_SECONDS = 10L
     private const val TASK_FOLDER = "Nucleus"
+
+    val isAvailable: Boolean get() = WindowsTaskSchedulerJni.isLoaded
 
     private val appId: String
         get() = NucleusApp.appId
 
     private val executablePath: String?
-        get() =
-            ProcessHandle
-                .current()
-                .info()
-                .command()
-                .orElse(null)
+        get() = ProcessHandle.current().info().command().orElse(null)
 
     // -- Task naming ----------------------------------------------------------
 
-    private fun taskPath(taskId: String): String = "\\$TASK_FOLDER\\$appId\\$taskId"
+    private fun folderPath(): String = "\\$TASK_FOLDER\\$appId"
 
-    private fun retryTaskPath(taskId: String): String = "\\$TASK_FOLDER\\$appId\\$taskId-retry"
+    private fun retryTaskName(taskId: String): String = "$taskId-retry"
+
+    private fun arguments(taskId: String): String = "$SCHEDULER_ARG $taskId"
 
     // -- PlatformScheduler implementation -------------------------------------
 
     override fun enqueue(request: TaskRequest): Boolean {
+        if (!isAvailable) {
+            logger.warning("Native library not loaded — task '${request.taskId}' not scheduled")
+            return false
+        }
+
         if (request.existingTaskPolicy == ExistingTaskPolicy.KEEP && isScheduled(request.taskId)) {
-            // Task already exists — ensure metadata is registered so getAllTaskIds() finds it
             TaskMetadataStore.save(appId, request.taskId, request.inputData)
             return true
         }
@@ -66,58 +59,59 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             return false
         }
 
-        // If replacing, delete the existing task first
         if (request.existingTaskPolicy == ExistingTaskPolicy.REPLACE && isScheduled(request.taskId)) {
-            deleteSchtask(taskPath(request.taskId))
+            deleteTask(request.taskId)
         }
 
-        val args = buildCreateArgs(request, execPath)
-        if (args == null) {
-            logger.warning("Cannot build schtasks arguments for task '${request.taskId}'")
+        val error = createTask(request, execPath)
+        if (error != null) {
+            logger.warning("Failed to create task '${request.taskId}': $error")
             return false
         }
 
-        val created = schtasks(*args.toTypedArray())
-        if (created) {
-            // Register in metadata store so getAllTaskIds() can find this task.
-            // On Linux, systemd unit files serve as the registry; on Windows we use metadata.
-            TaskMetadataStore.save(appId, request.taskId, request.inputData)
-        }
-        return created
+        TaskMetadataStore.save(appId, request.taskId, request.inputData)
+        return true
     }
 
     override fun cancel(taskId: String): Boolean {
-        if (!isScheduled(taskId)) return false
-        val result = deleteSchtask(taskPath(taskId))
-        // Also clean up any pending retry task
-        deleteSchtask(retryTaskPath(taskId))
+        if (!isAvailable || !isScheduled(taskId)) return false
+        val result = deleteTask(taskId)
+        deleteTask(retryTaskName(taskId)) // Clean up retry task
         if (result) TaskMetadataStore.delete(appId, taskId)
         return result
     }
 
     override fun cancelAll() {
+        if (!isAvailable) return
         getAllTaskIds().forEach { taskId ->
-            val deleted = deleteSchtask(taskPath(taskId))
-            deleteSchtask(retryTaskPath(taskId))
+            val deleted = deleteTask(taskId)
+            deleteTask(retryTaskName(taskId))
             if (deleted) TaskMetadataStore.delete(appId, taskId)
         }
-        // Delete the app folder itself (will fail silently if not empty or missing)
-        deleteSchtask("\\$TASK_FOLDER\\$appId")
+        // Delete the app folder (fails silently if not empty or missing)
+        val error = WindowsTaskSchedulerJni.nativeDeleteFolder(folderPath())
+        if (error != null) {
+            logger.fine("Could not delete folder '${folderPath()}': $error")
+        }
     }
 
-    override fun isScheduled(taskId: String): Boolean =
-        schtasks("/Query", "/TN", taskPath(taskId))
+    override fun isScheduled(taskId: String): Boolean {
+        if (!isAvailable) return false
+        return WindowsTaskSchedulerJni.nativeTaskExists(folderPath(), taskId)
+    }
 
     override fun getTaskInfo(taskId: String): TaskInfo? {
-        if (!isScheduled(taskId)) return null
+        if (!isAvailable || !isScheduled(taskId)) return null
 
-        val xmlInfo = queryTaskXml(taskId)
+        val rawState = WindowsTaskSchedulerJni.nativeGetTaskState(folderPath(), taskId)
+        val state = mapTaskState(rawState)
+        val nextRunMs = WindowsTaskSchedulerJni.nativeGetTaskNextRunTime(folderPath(), taskId)
 
         return TaskInfo(
             taskId = taskId,
-            state = xmlInfo?.state ?: TaskState.SCHEDULED,
+            state = state,
             lastRunMs = TaskMetadataStore.getLastRunMs(appId, taskId),
-            nextRunMs = xmlInfo?.nextRunMs,
+            nextRunMs = if (nextRunMs > 0) nextRunMs else null,
             runCount = TaskMetadataStore.getRunCount(appId, taskId),
             lastResult = TaskMetadataStore.getLastResult(appId, taskId),
         )
@@ -128,263 +122,189 @@ internal object WindowsTaskScheduler : PlatformScheduler {
 
     // -- Retry support --------------------------------------------------------
 
-    /**
-     * Schedules a one-shot retry task that fires after [delaySeconds].
-     */
-    fun scheduleRetry(
-        taskId: String,
-        delaySeconds: Long,
-    ): Boolean {
+    fun scheduleRetry(taskId: String, delaySeconds: Long): Boolean {
+        if (!isAvailable) return false
         val execPath = executablePath ?: return false
         val startTime = LocalDateTime.now().plusSeconds(delaySeconds)
-        val instant = startTime.atZone(ZoneId.systemDefault()).toInstant()
+        val startBoundary = startTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
-        // Use the system's short date format so schtasks accepts it regardless of locale
-        val dateStr = (DateFormat.getDateInstance(DateFormat.SHORT) as SimpleDateFormat)
-            .format(Date.from(instant))
-        val timeStr = "%02d:%02d".format(startTime.hour, startTime.minute)
+        // Delete any previous retry task
+        deleteTask(retryTaskName(taskId))
 
-        // Delete any previous retry task for this ID
-        deleteSchtask(retryTaskPath(taskId))
-
-        return schtasks(
-            "/Create",
-            "/TN", retryTaskPath(taskId),
-            "/TR", "\"$execPath\" $SCHEDULER_ARG \"$taskId\"",
-            "/SC", "ONCE",
-            "/SD", dateStr,
-            "/ST", timeStr,
-            "/RL", "LIMITED",
-            "/IT",
-            "/Z", // Auto-delete after execution
-            "/F",
+        val error = WindowsTaskSchedulerJni.nativeCreateOnceTask(
+            folderPath = folderPath(),
+            taskName = retryTaskName(taskId),
+            exePath = execPath,
+            arguments = arguments(taskId),
+            startBoundary = startBoundary,
         )
+        if (error != null) {
+            logger.warning("Failed to schedule retry for '$taskId': $error")
+            return false
+        }
+        return true
     }
 
-    // -- schtasks argument building -------------------------------------------
+    // -- Task creation --------------------------------------------------------
 
-    private fun buildCreateArgs(request: TaskRequest, execPath: String): List<String>? {
-        val args = mutableListOf(
-            "/Create",
-            "/TN", taskPath(request.taskId),
-            "/TR", "\"$execPath\" $SCHEDULER_ARG \"${request.taskId}\"",
-            "/RL", "LIMITED",
-            "/IT", // Only run when user is logged on interactively
-            "/F",
-        )
+    private fun createTask(request: TaskRequest, execPath: String): String? {
+        val folder = folderPath()
+        val name = request.taskId
+        val args = arguments(request.taskId)
 
-        when (request.type) {
+        return when (request.type) {
             TaskRequest.Type.PERIODIC -> {
-                val minutes = request.interval!!.inWholeMinutes
-                args.addAll(listOf("/SC", "MINUTE", "/MO", minutes.toString()))
+                val minutes = request.interval!!.inWholeMinutes.toInt()
+                WindowsTaskSchedulerJni.nativeCreatePeriodicTask(
+                    folder, name, execPath, args, minutes,
+                )
             }
 
             TaskRequest.Type.CALENDAR -> {
-                val scheduleArgs = convertCronToSchtasks(request.cronExpression!!.expression)
-                if (scheduleArgs == null) {
-                    logger.warning(
-                        "Unsupported cron expression '${request.cronExpression}' — " +
-                            "cannot map to schtasks schedule",
-                    )
-                    return null
+                val schedule = parseCronExpression(request.cronExpression!!.expression)
+                if (schedule == null) {
+                    "Unsupported cron expression '${request.cronExpression}'"
+                } else {
+                    when (schedule) {
+                        is CronSchedule.Hourly -> WindowsTaskSchedulerJni.nativeCreatePeriodicTask(
+                            folder, name, execPath, args, 60,
+                        )
+                        is CronSchedule.Daily -> WindowsTaskSchedulerJni.nativeCreateDailyTask(
+                            folder, name, execPath, args, schedule.hour, schedule.minute,
+                        )
+                        is CronSchedule.Weekly -> WindowsTaskSchedulerJni.nativeCreateWeeklyTask(
+                            folder, name, execPath, args,
+                            schedule.daysOfWeek, schedule.hour, schedule.minute,
+                        )
+                    }
                 }
-                args.addAll(scheduleArgs)
             }
 
             TaskRequest.Type.ON_BOOT -> {
-                args.addAll(listOf("/SC", "ONLOGON"))
+                WindowsTaskSchedulerJni.nativeCreateLogonTask(
+                    folder, name, execPath, args,
+                )
             }
         }
-
-        return args
     }
 
-    // -- Cron-to-schtasks conversion ------------------------------------------
+    // -- Cron expression parsing ----------------------------------------------
 
     /**
-     * Converts a systemd OnCalendar expression to schtasks /SC arguments.
+     * Parses a systemd OnCalendar expression into a [CronSchedule]
+     * that maps directly to a Task Scheduler trigger type.
      *
      * Supported patterns:
-     * - `*-*-* HH:MM:00`            → /SC DAILY /ST HH:MM
-     * - `*-*-* *:00:00`             → /SC HOURLY
-     * - `Mon *-*-* HH:MM:00`        → /SC WEEKLY /D MON /ST HH:MM
-     * - `Mon..Fri *-*-* HH:MM:00`   → /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST HH:MM
+     * - `*-*-* HH:MM:00`            → [CronSchedule.Daily]
+     * - `*-*-* *:00:00`             → [CronSchedule.Hourly]
+     * - `Mon *-*-* HH:MM:00`        → [CronSchedule.Weekly] (single day)
+     * - `Mon..Fri *-*-* HH:MM:00`   → [CronSchedule.Weekly] (day range)
      *
-     * Returns null for unsupported expressions.
+     * Returns `null` for unsupported expressions.
      */
     @Suppress("CyclomaticComplexity")
-    internal fun convertCronToSchtasks(expression: String): List<String>? {
+    internal fun parseCronExpression(expression: String): CronSchedule? {
         val trimmed = expression.trim()
 
-        // Pattern: every hour — *-*-* *:00:00
+        // Hourly: *-*-* *:00:00
         if (trimmed == "*-*-* *:00:00") {
-            return listOf("/SC", "HOURLY")
+            return CronSchedule.Hourly
         }
 
-        // Pattern: day range (Mon..Fri) with time
-        val rangeMatch = Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""").matchEntire(trimmed)
+        // Day range: Mon..Fri *-*-* HH:MM:00
+        val rangeMatch =
+            Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
+                .matchEntire(trimmed)
         if (rangeMatch != null) {
             val (startDay, endDay, hour, minute) = rangeMatch.destructured
-            val days = expandDayRange(startDay, endDay) ?: return null
-            return listOf("/SC", "WEEKLY", "/D", days, "/ST", "$hour:$minute")
+            val bitmask = expandDayRangeBitmask(startDay, endDay) ?: return null
+            return CronSchedule.Weekly(bitmask, hour.toInt(), minute.toInt())
         }
 
-        // Pattern: specific weekday with time — Mon *-*-* HH:MM:00
-        val weekdayMatch = Regex("""^(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""").matchEntire(trimmed)
+        // Single weekday: Mon *-*-* HH:MM:00
+        val weekdayMatch =
+            Regex("""^(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
+                .matchEntire(trimmed)
         if (weekdayMatch != null) {
             val (day, hour, minute) = weekdayMatch.destructured
-            val schtasksDay = day.uppercase()
-            return listOf("/SC", "WEEKLY", "/D", schtasksDay, "/ST", "$hour:$minute")
+            val bit = DAY_BITS[day.uppercase()] ?: return null
+            return CronSchedule.Weekly(bit, hour.toInt(), minute.toInt())
         }
 
-        // Pattern: daily at specific time — *-*-* HH:MM:00
-        val dailyMatch = Regex("""^\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""").matchEntire(trimmed)
+        // Daily: *-*-* HH:MM:00
+        val dailyMatch =
+            Regex("""^\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
+                .matchEntire(trimmed)
         if (dailyMatch != null) {
             val (hour, minute) = dailyMatch.destructured
-            return listOf("/SC", "DAILY", "/ST", "$hour:$minute")
+            return CronSchedule.Daily(hour.toInt(), minute.toInt())
         }
 
         return null
     }
 
-    private val orderedDays = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    // -- Day-of-week helpers --------------------------------------------------
 
-    private fun expandDayRange(start: String, end: String): String? {
-        val startIdx = orderedDays.indexOf(start.uppercase())
-        val endIdx = orderedDays.indexOf(end.uppercase())
-        if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) return null
-        return orderedDays.subList(startIdx, endIdx + 1).joinToString(",")
-    }
-
-    // -- schtasks helpers -----------------------------------------------------
-
-    private fun deleteSchtask(path: String): Boolean =
-        schtasks("/Delete", "/TN", path, "/F")
-
-    @Suppress("TooGenericExceptionCaught")
-    private fun schtasks(vararg args: String): Boolean =
-        try {
-            val process =
-                ProcessBuilder("schtasks.exe", *args)
-                    .redirectErrorStream(true)
-                    .start()
-            // Drain output for logging
-            val output = process.inputStream.bufferedReader().readText().trim()
-            val exited = process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroyForcibly()
-                logger.warning("schtasks ${args.joinToString(" ")} timed out")
-                false
-            } else {
-                val success = process.exitValue() == 0
-                if (!success) {
-                    logger.warning("schtasks ${args.joinToString(" ")} exit=${process.exitValue()}: $output")
-                }
-                success
-            }
-        } catch (e: Exception) {
-            logger.log(Level.WARNING, "schtasks ${args.joinToString(" ")} failed", e)
-            false
-        }
-
-    @Suppress("TooGenericExceptionCaught")
-    private fun schtasksQuery(vararg args: String): String? =
-        try {
-            val process =
-                ProcessBuilder("schtasks.exe", *args)
-                    .redirectErrorStream(true)
-                    .start()
-            val output =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim()
-            val exited = process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroyForcibly()
-                null
-            } else if (process.exitValue() == 0) {
-                output
-            } else {
-                null
-            }
-        } catch (_: Exception) {
-            null
-        }
-
-    // -- Introspection --------------------------------------------------------
-
-    /**
-     * Lists all registered task IDs by cross-referencing the metadata store
-     * (locale-independent) with actual Task Scheduler presence.
-     */
-    private fun getAllTaskIds(): List<String> =
-        TaskMetadataStore.listTaskIds(appId).filter { isScheduled(it) }
-
-    private data class SchtasksXmlInfo(
-        val state: TaskState,
-        val nextRunMs: Long?,
+    private val DAY_BITS = mapOf(
+        "SUN" to WindowsTaskSchedulerJni.SUNDAY,
+        "MON" to WindowsTaskSchedulerJni.MONDAY,
+        "TUE" to WindowsTaskSchedulerJni.TUESDAY,
+        "WED" to WindowsTaskSchedulerJni.WEDNESDAY,
+        "THU" to WindowsTaskSchedulerJni.THURSDAY,
+        "FRI" to WindowsTaskSchedulerJni.FRIDAY,
+        "SAT" to WindowsTaskSchedulerJni.SATURDAY,
     )
 
-    /**
-     * Queries task info via `schtasks /Query /FO XML` which produces
-     * locale-independent ISO 8601 dates and English status strings.
-     */
-    @Suppress("TooGenericExceptionCaught")
-    private fun queryTaskXml(taskId: String): SchtasksXmlInfo? {
-        val output = schtasksQuery(
-            "/Query", "/TN", taskPath(taskId), "/FO", "XML",
-        ) ?: return null
+    private val ORDERED_DAYS = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
-        return try {
-            val doc = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(output.byteInputStream())
-
-            val nextRunStr = doc.getElementsByTagName("NextRunTime")
-                .let { if (it.length > 0) it.item(0).textContent else null }
-
-            val statusStr = doc.getElementsByTagName("Status")
-                .let { if (it.length > 0) it.item(0).textContent else null }
-
-            val state = parseTaskState(statusStr)
-            val nextRunMs = parseXmlDateTime(nextRunStr)
-
-            SchtasksXmlInfo(state = state, nextRunMs = nextRunMs)
-        } catch (e: Exception) {
-            logger.log(Level.FINE, "Failed to parse schtasks XML for '$taskId'", e)
-            null
-        }
+    private fun expandDayRangeBitmask(start: String, end: String): Int? {
+        val startIdx = ORDERED_DAYS.indexOf(start.uppercase())
+        val endIdx = ORDERED_DAYS.indexOf(end.uppercase())
+        if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) return null
+        return ORDERED_DAYS.subList(startIdx, endIdx + 1).sumOf { DAY_BITS[it]!! }
     }
 
-    /**
-     * Maps the schtasks XML `<Status>` element to [TaskState].
-     * XML output always uses English status strings regardless of locale.
-     */
-    private fun parseTaskState(status: String?): TaskState =
-        when (status) {
-            "Running" -> TaskState.RUNNING
-            "Disabled" -> TaskState.INACTIVE
-            "Ready", "Queued" -> TaskState.SCHEDULED
+    // -- Task state mapping ---------------------------------------------------
+
+    private fun mapTaskState(rawState: Int): TaskState =
+        when (rawState) {
+            WindowsTaskSchedulerJni.TASK_STATE_RUNNING -> TaskState.RUNNING
+            WindowsTaskSchedulerJni.TASK_STATE_DISABLED -> TaskState.INACTIVE
+            WindowsTaskSchedulerJni.TASK_STATE_READY,
+            WindowsTaskSchedulerJni.TASK_STATE_QUEUED,
+            -> TaskState.SCHEDULED
             else -> TaskState.SCHEDULED
         }
 
-    /**
-     * Parses an ISO 8601 date/time from schtasks XML output (e.g. `2026-04-15T14:30:00`).
-     */
-    private fun parseXmlDateTime(text: String?): Long? {
-        if (text.isNullOrBlank() || text == "N/A") return null
-        return try {
-            ZonedDateTime.parse(text, DateTimeFormatter.ISO_DATE_TIME)
-                .toInstant().toEpochMilli()
-        } catch (_: Exception) {
-            try {
-                // schtasks sometimes omits timezone — treat as local
-                LocalDateTime.parse(text, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            } catch (_: Exception) {
-                null
-            }
+    // -- Helpers --------------------------------------------------------------
+
+    private fun deleteTask(taskName: String): Boolean {
+        val error = WindowsTaskSchedulerJni.nativeDeleteTask(folderPath(), taskName)
+        if (error != null) {
+            logger.fine("Could not delete task '$taskName': $error")
+            return false
         }
+        return true
     }
+
+    /**
+     * Lists all task IDs using COM folder enumeration cross-referenced with
+     * the metadata store. The metadata store remains the authority for tasks
+     * that belong to *this* app (the folder may contain retry tasks too).
+     */
+    private fun getAllTaskIds(): List<String> {
+        val comNames = WindowsTaskSchedulerJni.nativeGetTaskNames(folderPath())
+            ?.toSet() ?: emptySet()
+        // Use metadata store IDs, filtered by actual COM presence
+        return TaskMetadataStore.listTaskIds(appId).filter { it in comNames }
+    }
+}
+
+/**
+ * Parsed cron schedule that maps directly to a Task Scheduler trigger.
+ */
+internal sealed class CronSchedule {
+    data object Hourly : CronSchedule()
+    data class Daily(val hour: Int, val minute: Int) : CronSchedule()
+    data class Weekly(val daysOfWeek: Int, val hour: Int, val minute: Int) : CronSchedule()
 }
