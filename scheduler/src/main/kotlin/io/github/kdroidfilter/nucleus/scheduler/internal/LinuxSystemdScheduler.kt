@@ -24,6 +24,9 @@ internal object LinuxSystemdScheduler : PlatformScheduler {
 
     internal const val UNIT_PREFIX = "nucleus"
     private const val USEC_PER_MS = 1000L
+    private const val BOOT_DELAY_FRACTION = 10L
+    private const val MIN_BOOT_DELAY_SECONDS = 60L
+    private const val MAX_BOOT_DELAY_SECONDS = 300L
 
     private val systemdUserDir: File
         get() {
@@ -204,8 +207,11 @@ internal object LinuxSystemdScheduler : PlatformScheduler {
                 TaskRequest.Type.PERIODIC -> {
                     val seconds = request.interval!!.inWholeSeconds
                     appendLine("OnUnitActiveSec=${seconds}s")
-                    // Also trigger shortly after boot so the first run doesn't wait a full interval
-                    appendLine("OnBootSec=60s")
+                    // Trigger after boot so the first run doesn't wait a full interval.
+                    // Use 10% of the interval, clamped to [60s, 300s].
+                    val bootDelaySec = (seconds / BOOT_DELAY_FRACTION)
+                        .coerceIn(MIN_BOOT_DELAY_SECONDS, MAX_BOOT_DELAY_SECONDS)
+                    appendLine("OnBootSec=${bootDelaySec}s")
                 }
                 TaskRequest.Type.CALENDAR -> {
                     appendLine("OnCalendar=${request.cronExpression!!.expression}")

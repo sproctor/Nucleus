@@ -65,6 +65,11 @@ public object DesktopBootReceiver {
 
         val context = TaskMetadataStore.loadContext(appId, taskId)
 
+        // Clean up any one-shot retry plist from a previous retry trigger
+        if (Platform.Current == Platform.MacOS) {
+            MacOSLaunchdScheduler.cleanupRetryPlist(taskId)
+        }
+
         val result =
             runBlocking {
                 try {

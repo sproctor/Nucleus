@@ -126,11 +126,7 @@ scheduler.enqueue(TaskRequest.calendar("custom", CronExpression.custom("*-*-01 0
 Run once at user login:
 
 ```kotlin
-// Runs every login
 scheduler.enqueue(TaskRequest.onBoot("login-sync"))
-
-// Runs once, then auto-disables
-scheduler.enqueue(TaskRequest.onBoot("migration", runOnce = true))
 ```
 
 ### Input data
@@ -258,7 +254,7 @@ Created via factory methods:
 |---------|-----------|-------------|
 | `periodic(taskId, interval, configure)` | interval: `Duration` (min 15 min) | Repeats at a fixed interval. |
 | `calendar(taskId, expression, configure)` | expression: `CronExpression` | Fires on a calendar schedule. |
-| `onBoot(taskId, runOnce, configure)` | runOnce: `Boolean` (default `false`) | Runs at user login. |
+| `onBoot(taskId, configure)` | — | Runs at user login. |
 
 Builder DSL:
 

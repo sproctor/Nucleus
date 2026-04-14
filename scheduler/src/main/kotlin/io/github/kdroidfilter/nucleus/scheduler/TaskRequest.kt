@@ -14,7 +14,6 @@ public class TaskRequest private constructor(
     internal val type: Type,
     internal val interval: Duration?,
     internal val cronExpression: CronExpression?,
-    internal val runOnce: Boolean,
     internal val inputData: Map<String, String>,
     internal val retryPolicy: RetryPolicy?,
     internal val existingTaskPolicy: ExistingTaskPolicy,
@@ -72,7 +71,7 @@ public class TaskRequest private constructor(
                 type = Type.PERIODIC,
                 interval = interval,
                 cronExpression = null,
-                runOnce = false,
+
                 inputData = builder.data.toMap(),
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,
@@ -97,7 +96,7 @@ public class TaskRequest private constructor(
                 type = Type.CALENDAR,
                 interval = null,
                 cronExpression = expression,
-                runOnce = false,
+
                 inputData = builder.data.toMap(),
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,
@@ -108,12 +107,10 @@ public class TaskRequest private constructor(
          * A task that runs at system/user login.
          *
          * @param taskId unique identifier matching a [TaskRegistry] entry
-         * @param runOnce if true, the task auto-disables after its first successful run
          * @param configure optional DSL block
          */
         public fun onBoot(
             taskId: String,
-            runOnce: Boolean = false,
             configure: Builder.() -> Unit = {},
         ): TaskRequest {
             val builder = Builder().apply(configure)
@@ -122,7 +119,6 @@ public class TaskRequest private constructor(
                 type = Type.ON_BOOT,
                 interval = null,
                 cronExpression = null,
-                runOnce = runOnce,
                 inputData = builder.data.toMap(),
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,

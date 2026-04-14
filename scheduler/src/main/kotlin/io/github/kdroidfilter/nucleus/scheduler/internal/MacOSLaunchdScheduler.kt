@@ -77,7 +77,13 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
         TaskMetadataStore.save(appId, request.taskId, request.inputData)
 
         // Generate plist
-        val plistContent = buildPlist(request, execPath)
+        val plistContent =
+            try {
+                buildPlist(request, execPath)
+            } catch (e: IllegalArgumentException) {
+                logger.warning("Task '${request.taskId}' not scheduled: ${e.message}")
+                return false
+            }
         val file = plistFile(request.taskId)
         file.writeText(plistContent)
 
@@ -130,7 +136,11 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
     // -- Retry support --------------------------------------------------------
 
     /**
-     * Schedules a one-shot retry agent that fires after [delaySeconds].
+     * Schedules a one-shot retry that fires after [delaySeconds].
+     *
+     * Uses a background thread to wait for the delay, then loads a RunAtLoad-only
+     * plist that fires immediately. The retry plist is cleaned up after execution
+     * by [cleanupRetryPlist].
      */
     fun scheduleRetry(
         taskId: String,
@@ -156,19 +166,47 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             appendLine("    <string>$SCHEDULER_ARG</string>")
             appendLine("    <string>$taskId</string>")
             appendLine("  </array>")
-            // StartInterval for a one-shot: use launchd's delay, auto-remove on completion
-            appendLine("  <key>StartInterval</key>")
-            appendLine("  <integer>$delaySeconds</integer>")
             appendLine("  <key>RunAtLoad</key>")
             appendLine("  <true/>")
+            appendLine("  <key>KeepAlive</key>")
+            appendLine("  <false/>")
+            appendLine("  <key>ProcessType</key>")
+            appendLine("  <string>Background</string>")
             appendLine("</dict>")
             appendLine("</plist>")
         }
 
         launchAgentsDir.mkdirs()
         retryFile.writeText(plist)
-        return launchctl("load", retryFile.absolutePath)
+
+        // Delay the load so the retry fires after the requested wait
+        val thread = Thread({
+            try {
+                Thread.sleep(delaySeconds * MILLIS_PER_SECOND)
+                launchctl("load", retryFile.absolutePath)
+            } catch (_: InterruptedException) {
+                logger.warning("Retry delay interrupted for task '$taskId'")
+            }
+        }, "nucleus-retry-$taskId")
+        thread.isDaemon = true
+        thread.start()
+
+        return true
     }
+
+    /**
+     * Removes the retry plist for a task after it has executed.
+     * Called by [DesktopBootReceiver] after a retry run completes.
+     */
+    fun cleanupRetryPlist(taskId: String) {
+        val retryFile = retryPlistFile(taskId)
+        if (retryFile.exists()) {
+            launchctl("unload", retryFile.absolutePath)
+            retryFile.delete()
+        }
+    }
+
+    private const val MILLIS_PER_SECOND = 1000L
 
     // -- Plist generation -----------------------------------------------------
 
@@ -295,13 +333,13 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             return
         }
 
-        // Unsupported expression — log warning and fall back to hourly
-        logger.warning("Unsupported cron expression '$expression' — falling back to hourly schedule")
-        sb.appendLine("  <key>StartCalendarInterval</key>")
-        sb.appendLine("  <dict>")
-        sb.appendLine("    <key>Minute</key>")
-        sb.appendLine("    <integer>0</integer>")
-        sb.appendLine("  </dict>")
+        // Unsupported expression — fail explicitly instead of silently degrading
+        throw IllegalArgumentException(
+            "Unsupported cron expression '$expression' for macOS launchd. " +
+                "Supported patterns: '*-*-* HH:MM:00', '*-*-* *:00:00', " +
+                "'Mon *-*-* HH:MM:00', 'Mon..Fri *-*-* HH:MM:00'. " +
+                "Use CronExpression factory methods instead of CronExpression.custom()."
+        )
     }
 
     // -- Day mapping (launchd uses 0=Sunday, 1=Monday, ..., 6=Saturday) -------
