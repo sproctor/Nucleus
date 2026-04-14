@@ -9,10 +9,18 @@ import java.io.File
  */
 internal object LaunchAgentPlistGenerator {
 
-    fun generate(agent: LaunchAgentDefinition, destDir: File) {
+    fun generate(agent: LaunchAgentDefinition, destDir: File, packageName: String) {
         destDir.mkdirs()
-        val plist = buildPlistXml(agent)
-        File(destDir, agent.plistFileName).writeText(plist)
+        val resolvedAgent = resolveDefaults(agent, packageName)
+        val plist = buildPlistXml(resolvedAgent)
+        File(destDir, resolvedAgent.plistFileName).writeText(plist)
+    }
+
+    private fun resolveDefaults(agent: LaunchAgentDefinition, packageName: String): LaunchAgentDefinition {
+        if (agent.bundleProgram != null) return agent
+        // Auto-resolve bundleProgram from packageName
+        agent.bundleProgram("Contents/MacOS/$packageName")
+        return agent
     }
 
     @Suppress("NestedBlockDepth")

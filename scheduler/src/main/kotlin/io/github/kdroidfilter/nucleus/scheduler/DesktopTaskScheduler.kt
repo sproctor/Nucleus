@@ -1,11 +1,13 @@
 package io.github.kdroidfilter.nucleus.scheduler
 
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.scheduler.internal.LinuxSystemdScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.MacOSLaunchdScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.NoopScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.PlatformScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.WindowsTaskScheduler
+import java.util.logging.Logger
 
 /**
  * Schedules background tasks with the OS so they run even when the app is closed.
@@ -19,6 +21,8 @@ import io.github.kdroidfilter.nucleus.scheduler.internal.WindowsTaskScheduler
  * ```
  */
 public object DesktopTaskScheduler {
+    private val logger = Logger.getLogger(DesktopTaskScheduler::class.java.name)
+
     private val delegate: PlatformScheduler =
         when (Platform.Current) {
             Platform.Linux -> LinuxSystemdScheduler
@@ -52,7 +56,16 @@ public object DesktopTaskScheduler {
      * @return `true` if the task was successfully scheduled (or already existed)
      */
     @JvmStatic
-    public fun enqueue(request: TaskRequest): Boolean = delegate.enqueue(request)
+    public fun enqueue(request: TaskRequest): Boolean {
+        if (ExecutableRuntime.isPkg()) {
+            logger.severe(
+                "DesktopTaskScheduler is not supported in sandboxed Mac App Store builds (.pkg). " +
+                    "Use the service-management-macos module with SMAppService instead."
+            )
+            return false
+        }
+        return delegate.enqueue(request)
+    }
 
     /**
      * Cancels a scheduled task.

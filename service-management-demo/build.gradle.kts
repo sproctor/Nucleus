@@ -51,7 +51,6 @@ nucleus.application {
 
             launchAgents {
                 agent("io.github.kdroidfilter.nucleus.servicemanagement.demo.notifier") {
-                    bundleProgram("Contents/MacOS/ServiceManagementDemo")
                     arguments("--notify")
                     startInterval(900)
                 }

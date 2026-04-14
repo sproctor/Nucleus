@@ -32,7 +32,7 @@ import java.awt.EventQueue
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-private const val AGENT_PLIST = "io.github.kdroidfilter.nucleus.servicemanagement.demo.notifier.plist"
+private const val AGENT_LABEL = "io.github.kdroidfilter.nucleus.servicemanagement.demo.notifier"
 
 fun main(args: Array<String>) {
     if ("--notify" in args) {
@@ -114,7 +114,7 @@ fun App() {
             title = "Background Notification Agent",
             description = "Registers a launch agent that sends a notification every 15 minutes, " +
                 "even when the app is closed.",
-            service = AppService.Agent(AGENT_PLIST),
+            service = AppService.Agent(AGENT_LABEL),
             onLog = ::appendLog,
             onLogSafe = ::appendLogSafe,
         )

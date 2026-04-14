@@ -634,7 +634,7 @@ abstract class AbstractJPackageTask
             if (launchAgentDefs.isNotEmpty()) {
                 val destDir = appDir.resolve("Contents/Library/LaunchAgents")
                 for (agent in launchAgentDefs) {
-                    LaunchAgentPlistGenerator.generate(agent, destDir)
+                    LaunchAgentPlistGenerator.generate(agent, destDir, packageName.get())
                 }
             }
 

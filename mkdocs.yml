@@ -108,6 +108,9 @@ nav:
               - Global Hotkey: runtime/global-hotkey.md
               - Menu (macOS): runtime/menu-macos.md
               - Freedesktop Icons: runtime/freedesktop-icons.md
+          - Scheduling:
+              - Scheduler: runtime/scheduler.md
+              - Service Management (macOS): runtime/service-management-macos.md
           - Networking:
               - Native SSL: runtime/native-ssl.md
               - Native HTTP: runtime/native-http.md
