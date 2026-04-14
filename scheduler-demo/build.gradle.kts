@@ -1,3 +1,5 @@
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SigningAlgorithm
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -52,6 +54,33 @@ nucleus.application {
     nativeDistributions {
         packageName = "SchedulerDemo"
         packageVersion = "1.0.0"
+        targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb, TargetFormat.AppX)
+
+        windows {
+            signing {
+                enabled = true
+                certificateFile.set(rootProject.file("example/packaging/KDroidFilter.pfx"))
+                certificatePassword = "ChangeMe-Temp123!"
+                algorithm = SigningAlgorithm.Sha256
+                timestampServer = "http://timestamp.digicert.com"
+            }
+
+            nsis {
+                perMachine = false
+                createDesktopShortcut = true
+                createStartMenuShortcut = true
+                runAfterFinish = true
+            }
+
+            appx {
+                applicationId = "SchedulerDemo"
+                publisherDisplayName = "KDroidFilter"
+                displayName = "Scheduler Demo"
+                publisher = "CN=D541E802-6D30-446A-864E-2E8ABD2DAA5E"
+                identityName = "KDroidFilter.SchedulerDemo"
+                languages = listOf("en-US", "fr-FR")
+            }
+        }
     }
 }
 

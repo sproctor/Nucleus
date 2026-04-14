@@ -148,7 +148,7 @@ internal object WindowsTaskScheduler : PlatformScheduler {
         return schtasks(
             "/Create",
             "/TN", retryTaskPath(taskId),
-            "/TR", "\"$execPath\" $SCHEDULER_ARG $taskId",
+            "/TR", "\\\"$execPath\\\" $SCHEDULER_ARG $taskId",
             "/SC", "ONCE",
             "/SD", dateStr,
             "/ST", timeStr,
@@ -163,7 +163,7 @@ internal object WindowsTaskScheduler : PlatformScheduler {
         val args = mutableListOf(
             "/Create",
             "/TN", taskPath(request.taskId),
-            "/TR", "\"$execPath\" $SCHEDULER_ARG ${request.taskId}",
+            "/TR", "\\\"$execPath\\\" $SCHEDULER_ARG ${request.taskId}",
             "/RL", "LIMITED",
             "/F",
         )
@@ -263,15 +263,19 @@ internal object WindowsTaskScheduler : PlatformScheduler {
                 ProcessBuilder("schtasks.exe", *args)
                     .redirectErrorStream(true)
                     .start()
-            // Drain output to prevent blocking
-            process.inputStream.bufferedReader().readText()
+            // Drain output for logging
+            val output = process.inputStream.bufferedReader().readText().trim()
             val exited = process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             if (!exited) {
                 process.destroyForcibly()
                 logger.warning("schtasks ${args.joinToString(" ")} timed out")
                 false
             } else {
-                process.exitValue() == 0
+                val success = process.exitValue() == 0
+                if (!success) {
+                    logger.warning("schtasks ${args.joinToString(" ")} exit=${process.exitValue()}: $output")
+                }
+                success
             }
         } catch (e: Exception) {
             logger.log(Level.WARNING, "schtasks ${args.joinToString(" ")} failed", e)
