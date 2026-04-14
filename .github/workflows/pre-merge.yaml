@@ -155,6 +155,13 @@ jobs:
           pattern: 'system-info-*'
           merge-multiple: true
 
+      - name: Download scheduler artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: scheduler/src/main/resources/nucleus/native/
+          pattern: 'scheduler-*'
+          merge-multiple: true
+
       - name: Verify all natives present
         run: |
           EXPECTED=(
@@ -228,6 +235,8 @@ jobs:
             "system-info/src/main/resources/nucleus/native/darwin-x64/libnucleus_system_info.dylib"
             "system-info/src/main/resources/nucleus/native/linux-x64/libnucleus_system_info.so"
             "system-info/src/main/resources/nucleus/native/linux-aarch64/libnucleus_system_info.so"
+            "scheduler/src/main/resources/nucleus/native/win32-x64/nucleus_scheduler.dll"
+            "scheduler/src/main/resources/nucleus/native/win32-aarch64/nucleus_scheduler.dll"
           )
           MISSING=0
           for f in "${EXPECTED[@]}"; do

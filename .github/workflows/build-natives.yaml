@@ -250,6 +250,27 @@ jobs:
           path: system-info/src/main/resources/nucleus/native/win32-*/
           retention-days: 1
 
+      - name: Build scheduler Windows native DLLs
+        shell: cmd
+        run: call scheduler\src\main\native\windows\build.bat
+
+      - name: Verify scheduler Windows natives
+        shell: bash
+        run: |
+          for f in \
+            scheduler/src/main/resources/nucleus/native/win32-x64/nucleus_scheduler.dll \
+            scheduler/src/main/resources/nucleus/native/win32-aarch64/nucleus_scheduler.dll; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload scheduler Windows DLLs
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduler-windows
+          path: scheduler/src/main/resources/nucleus/native/win32-*/
+          retention-days: 1
+
   macos:
     runs-on: macos-latest
     steps:
