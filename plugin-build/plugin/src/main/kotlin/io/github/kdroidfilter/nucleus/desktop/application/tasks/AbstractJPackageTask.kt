@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.tasks
 
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.FileAssociation
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.LaunchAgentDefinition
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.MacOSSigningSettings
+import io.github.kdroidfilter.nucleus.desktop.application.internal.LaunchAgentPlistGenerator
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.UrlProtocol
 import io.github.kdroidfilter.nucleus.desktop.application.internal.APP_RESOURCES_DIR
@@ -257,6 +259,10 @@ abstract class AbstractJPackageTask
         @get:Optional
         @get:PathSensitive(PathSensitivity.RELATIVE)
         internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
+
+        @get:Input
+        internal val macLaunchAgents: ListProperty<LaunchAgentDefinition> =
+            objects.listProperty(LaunchAgentDefinition::class.java).convention(emptyList())
 
         @get:Input
         @get:Optional
@@ -621,6 +627,15 @@ abstract class AbstractJPackageTask
 
             if (sandboxingEnabled.get()) {
                 moveNativeLibsToFrameworks(appDir, macSigner, appEntitlementsFile)
+            }
+
+            // Generate and embed launch agent plists before signing
+            val launchAgentDefs = macLaunchAgents.get()
+            if (launchAgentDefs.isNotEmpty()) {
+                val destDir = appDir.resolve("Contents/Library/LaunchAgents")
+                for (agent in launchAgentDefs) {
+                    LaunchAgentPlistGenerator.generate(agent, destDir)
+                }
             }
 
             macSigner.sign(runtimeDir, runtimeEntitlementsFile, forceEntitlements = true)

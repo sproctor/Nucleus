@@ -414,6 +414,25 @@ jobs:
           path: notification-macos/src/main/resources/nucleus/native/darwin-*/
           retention-days: 1
 
+      - name: Build service-management-macos macOS dylibs
+        run: bash service-management-macos/src/main/native/macos/build.sh
+
+      - name: Verify service-management-macos macOS natives
+        run: |
+          for f in \
+            service-management-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_service_management.dylib \
+            service-management-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_service_management.dylib; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload service-management-macos macOS dylibs
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-management-macos
+          path: service-management-macos/src/main/resources/nucleus/native/darwin-*/
+          retention-days: 1
+
       - name: Build launcher-macos macOS dylibs
         run: bash launcher-macos/src/main/native/macos/build.sh
 
