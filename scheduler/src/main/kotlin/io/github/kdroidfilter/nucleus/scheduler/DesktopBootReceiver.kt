@@ -1,8 +1,10 @@
 package io.github.kdroidfilter.nucleus.scheduler
 
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.scheduler.internal.LinuxSystemdScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.TaskMetadataStore
+import io.github.kdroidfilter.nucleus.scheduler.internal.WindowsTaskScheduler
 import kotlinx.coroutines.runBlocking
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -102,6 +104,10 @@ public object DesktopBootReceiver {
         // For explicit retry, we'd need the RetryPolicy from the original TaskRequest,
         // which we don't persist. The next periodic/calendar trigger will re-run the task
         // with an incremented runAttemptCount.
-        LinuxSystemdScheduler.scheduleRetry(taskId, DEFAULT_RETRY_DELAY_SECONDS)
+        when (Platform.Current) {
+            Platform.Linux -> LinuxSystemdScheduler.scheduleRetry(taskId, DEFAULT_RETRY_DELAY_SECONDS)
+            Platform.Windows -> WindowsTaskScheduler.scheduleRetry(taskId, DEFAULT_RETRY_DELAY_SECONDS)
+            else -> logger.warning("Retry scheduling not supported on ${Platform.Current}")
+        }
     }
 }

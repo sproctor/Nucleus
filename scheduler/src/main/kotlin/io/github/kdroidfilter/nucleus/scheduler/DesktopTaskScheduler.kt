@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.scheduler.internal.LinuxSystemdScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.NoopScheduler
 import io.github.kdroidfilter.nucleus.scheduler.internal.PlatformScheduler
+import io.github.kdroidfilter.nucleus.scheduler.internal.WindowsTaskScheduler
 
 /**
  * Schedules background tasks with the OS so they run even when the app is closed.
@@ -20,6 +21,7 @@ public object DesktopTaskScheduler {
     private val delegate: PlatformScheduler =
         when (Platform.Current) {
             Platform.Linux -> LinuxSystemdScheduler
+            Platform.Windows -> WindowsTaskScheduler
             else -> NoopScheduler
         }
 
