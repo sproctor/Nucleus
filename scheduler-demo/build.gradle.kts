@@ -16,7 +16,6 @@ dependencies {
     implementation(project(":decorated-window-jewel"))
     implementation(project(":decorated-window-jni"))
     implementation(project(":scheduler"))
-    implementation(project(":notification-common"))
 
     val jewelExclusions =
         Action<ExternalModuleDependency> {

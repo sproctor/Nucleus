@@ -19,6 +19,9 @@ import org.jetbrains.jewel.ui.ComponentStyling
 import schedulerdemo.task.BackupTask
 import schedulerdemo.task.NotificationTask
 import schedulerdemo.task.SyncTask
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 private fun buildRegistry() =
     TaskRegistry
@@ -29,9 +32,9 @@ private fun buildRegistry() =
         .build()
 
 fun main(args: Array<String>) {
-    if (DesktopBootReceiver.isSchedulerInvocation(args)) {
+    val openedByScheduler = DesktopBootReceiver.isSchedulerInvocation(args)
+    if (openedByScheduler) {
         DesktopBootReceiver.handle(args = args, registry = buildRegistry())
-        return
     }
 
     application {
@@ -59,7 +62,7 @@ fun main(args: Array<String>) {
                     ),
                 content = {
                     JewelTitleBar()
-                    SchedulerDemoView()
+                    SchedulerDemoView(openedByScheduler = openedByScheduler)
                 },
             )
         }
