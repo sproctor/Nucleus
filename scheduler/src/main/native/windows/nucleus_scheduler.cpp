@@ -175,10 +175,14 @@ static std::wstring todayAtBoundary(int hour, int minute) {
 
 static jlong dateToEpochMs(DATE date) {
     if (date == 0.0) return 0;
-    SYSTEMTIME st;
-    if (!VariantTimeToSystemTime(date, &st)) return 0;
+    // VariantTimeToSystemTime returns LOCAL time
+    SYSTEMTIME stLocal;
+    if (!VariantTimeToSystemTime(date, &stLocal)) return 0;
+    // Convert local → UTC before SystemTimeToFileTime (which expects UTC)
+    SYSTEMTIME stUtc;
+    if (!TzSpecificLocalTimeToSystemTime(nullptr, &stLocal, &stUtc)) return 0;
     FILETIME ft;
-    if (!SystemTimeToFileTime(&st, &ft)) return 0;
+    if (!SystemTimeToFileTime(&stUtc, &ft)) return 0;
     ULARGE_INTEGER uli;
     uli.LowPart = ft.dwLowDateTime;
     uli.HighPart = ft.dwHighDateTime;
