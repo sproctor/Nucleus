@@ -9,11 +9,13 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
+import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Windows implementation using the Task Scheduler via `schtasks.exe`.
@@ -95,12 +97,12 @@ internal object WindowsTaskScheduler : PlatformScheduler {
 
     override fun cancelAll() {
         getAllTaskIds().forEach { taskId ->
-            deleteSchtask(taskPath(taskId))
+            val deleted = deleteSchtask(taskPath(taskId))
             deleteSchtask(retryTaskPath(taskId))
+            if (deleted) TaskMetadataStore.delete(appId, taskId)
         }
         // Delete the app folder itself (will fail silently if not empty or missing)
         deleteSchtask("\\$TASK_FOLDER\\$appId")
-        TaskMetadataStore.deleteAll(appId)
     }
 
     override fun isScheduled(taskId: String): Boolean =
@@ -109,13 +111,13 @@ internal object WindowsTaskScheduler : PlatformScheduler {
     override fun getTaskInfo(taskId: String): TaskInfo? {
         if (!isScheduled(taskId)) return null
 
-        val nextRunMs = parseNextRun(taskId)
+        val xmlInfo = queryTaskXml(taskId)
 
         return TaskInfo(
             taskId = taskId,
-            state = TaskState.SCHEDULED,
+            state = xmlInfo?.state ?: TaskState.SCHEDULED,
             lastRunMs = TaskMetadataStore.getLastRunMs(appId, taskId),
-            nextRunMs = nextRunMs,
+            nextRunMs = xmlInfo?.nextRunMs,
             runCount = TaskMetadataStore.getRunCount(appId, taskId),
             lastResult = TaskMetadataStore.getLastResult(appId, taskId),
         )
@@ -153,6 +155,8 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             "/SD", dateStr,
             "/ST", timeStr,
             "/RL", "LIMITED",
+            "/IT",
+            "/Z", // Auto-delete after execution
             "/F",
         )
     }
@@ -165,6 +169,7 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             "/TN", taskPath(request.taskId),
             "/TR", "\"$execPath\" $SCHEDULER_ARG \"${request.taskId}\"",
             "/RL", "LIMITED",
+            "/IT", // Only run when user is logged on interactively
             "/F",
         )
 
@@ -316,73 +321,70 @@ internal object WindowsTaskScheduler : PlatformScheduler {
     private fun getAllTaskIds(): List<String> =
         TaskMetadataStore.listTaskIds(appId).filter { isScheduled(it) }
 
+    private data class SchtasksXmlInfo(
+        val state: TaskState,
+        val nextRunMs: Long?,
+    )
+
     /**
-     * Parses the next run time from `schtasks /Query` CSV output.
-     *
-     * CSV column order is fixed regardless of locale:
-     * column 0 = task name, column 1 = next run time, column 2 = status.
-     * The date/time *values* are still locale-formatted, so we try several patterns.
+     * Queries task info via `schtasks /Query /FO XML` which produces
+     * locale-independent ISO 8601 dates and English status strings.
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun parseNextRun(taskId: String): Long? {
+    private fun queryTaskXml(taskId: String): SchtasksXmlInfo? {
         val output = schtasksQuery(
-            "/Query", "/TN", taskPath(taskId), "/FO", "CSV",
+            "/Query", "/TN", taskPath(taskId), "/FO", "XML",
         ) ?: return null
 
-        // CSV: header line + data line
-        val dataLine = output.lines().getOrNull(1) ?: return null
-        val columns = parseCsvLine(dataLine)
-        val nextRunStr = columns.getOrNull(1) ?: return null
+        return try {
+            val doc = DocumentBuilderFactory.newInstance()
+                .newDocumentBuilder()
+                .parse(output.byteInputStream())
 
-        if (nextRunStr == "N/A" || nextRunStr.isBlank()) return null
+            val nextRunStr = doc.getElementsByTagName("NextRunTime")
+                .let { if (it.length > 0) it.item(0).textContent else null }
 
-        return tryParseDateTime(nextRunStr)
+            val statusStr = doc.getElementsByTagName("Status")
+                .let { if (it.length > 0) it.item(0).textContent else null }
+
+            val state = parseTaskState(statusStr)
+            val nextRunMs = parseXmlDateTime(nextRunStr)
+
+            SchtasksXmlInfo(state = state, nextRunMs = nextRunMs)
+        } catch (e: Exception) {
+            logger.log(Level.FINE, "Failed to parse schtasks XML for '$taskId'", e)
+            null
+        }
     }
 
     /**
-     * Minimal CSV line parser — splits on commas, strips surrounding quotes.
+     * Maps the schtasks XML `<Status>` element to [TaskState].
+     * XML output always uses English status strings regardless of locale.
      */
-    private fun parseCsvLine(line: String): List<String> =
-        line.split(",").map { it.trim().removeSurrounding("\"") }
+    private fun parseTaskState(status: String?): TaskState =
+        when (status) {
+            "Running" -> TaskState.RUNNING
+            "Disabled" -> TaskState.INACTIVE
+            "Ready", "Queued" -> TaskState.SCHEDULED
+            else -> TaskState.SCHEDULED
+        }
 
     /**
-     * Parses a locale-dependent date/time string from `schtasks` output.
-     *
-     * Tries the system's own SHORT and MEDIUM date-time formats first (matching
-     * the locale `schtasks` uses), then falls back to well-known patterns.
+     * Parses an ISO 8601 date/time from schtasks XML output (e.g. `2026-04-15T14:30:00`).
      */
-    @Suppress("TooGenericExceptionCaught")
-    private fun tryParseDateTime(text: String): Long? {
-        // Try system locale formats first — these match what schtasks produces
-        val systemFormats = listOf(
-            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM),
-            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT),
-            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM),
-        )
-        for (fmt in systemFormats) {
+    private fun parseXmlDateTime(text: String?): Long? {
+        if (text.isNullOrBlank() || text == "N/A") return null
+        return try {
+            ZonedDateTime.parse(text, DateTimeFormatter.ISO_DATE_TIME)
+                .toInstant().toEpochMilli()
+        } catch (_: Exception) {
             try {
-                return fmt.parse(text)?.time
+                // schtasks sometimes omits timezone — treat as local
+                LocalDateTime.parse(text, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             } catch (_: Exception) {
-                // Try next format
+                null
             }
         }
-
-        // Fallback to hardcoded patterns for edge cases
-        val fallbackFormatters = listOf(
-            DateTimeFormatter.ofPattern("M/d/yyyy h:mm:ss a"),   // en-US
-            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"),  // fr-FR, pt-BR
-            DateTimeFormatter.ofPattern("d/MM/yyyy HH:mm:ss"),   // fr-FR single-digit day
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),  // ISO-like
-            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"),  // de-DE
-        )
-        for (fmt in fallbackFormatters) {
-            try {
-                val parsed = LocalDateTime.parse(text, fmt)
-                return parsed.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            } catch (_: Exception) {
-                // Try next format
-            }
-        }
-        return null
     }
 }

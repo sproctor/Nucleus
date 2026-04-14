@@ -49,6 +49,14 @@ public class TaskRequest private constructor(
 
     public companion object {
         private val MIN_INTERVAL = 15.minutes
+        private val TASK_ID_PATTERN = Regex("^[a-zA-Z0-9_-]+$")
+
+        private fun validateTaskId(taskId: String) {
+            require(taskId.isNotEmpty()) { "taskId must not be empty" }
+            require(TASK_ID_PATTERN.matches(taskId)) {
+                "taskId must match [a-zA-Z0-9_-]+, got '$taskId'"
+            }
+        }
 
         /**
          * A task that repeats at a fixed interval.
@@ -62,6 +70,7 @@ public class TaskRequest private constructor(
             interval: Duration,
             configure: Builder.() -> Unit = {},
         ): TaskRequest {
+            validateTaskId(taskId)
             require(interval >= MIN_INTERVAL) {
                 "Interval must be at least $MIN_INTERVAL, got $interval"
             }
@@ -90,6 +99,7 @@ public class TaskRequest private constructor(
             expression: CronExpression,
             configure: Builder.() -> Unit = {},
         ): TaskRequest {
+            validateTaskId(taskId)
             val builder = Builder().apply(configure)
             return TaskRequest(
                 taskId = taskId,
@@ -113,6 +123,7 @@ public class TaskRequest private constructor(
             taskId: String,
             configure: Builder.() -> Unit = {},
         ): TaskRequest {
+            validateTaskId(taskId)
             val builder = Builder().apply(configure)
             return TaskRequest(
                 taskId = taskId,
