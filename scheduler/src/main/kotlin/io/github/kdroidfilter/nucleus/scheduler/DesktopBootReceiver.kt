@@ -59,7 +59,7 @@ public object DesktopBootReceiver {
             try {
                 registry.create(taskId)
             } catch (e: TaskNotFoundException) {
-                logger.warning("Task '$taskId' not found in registry — cancelling orphan task")
+                logger.warning("Task '$taskId' not found in registry — cancelling orphan task: ${e.message}")
                 DesktopTaskScheduler.cancel(taskId)
                 return
             }

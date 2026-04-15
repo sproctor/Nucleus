@@ -308,7 +308,11 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
                 .matchEntire(trimmed)
         if (rangeMatch != null) {
-            val (startDay, endDay, hour, minute) = rangeMatch.destructured
+            val destructured = rangeMatch.destructured
+            val startDay = destructured.component1()
+            val endDay = destructured.component2()
+            val hour = destructured.component3()
+            val minute = destructured.component4()
             val days = expandDayRange(startDay, endDay)
             if (days != null) {
                 sb.appendLine("  <key>StartCalendarInterval</key>")
@@ -374,15 +378,23 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
 
     // -- Day mapping (launchd uses 0=Sunday, 1=Monday, ..., 6=Saturday) -------
 
+    private const val LAUNCHD_SUNDAY = 0
+    private const val LAUNCHD_MONDAY = 1
+    private const val LAUNCHD_TUESDAY = 2
+    private const val LAUNCHD_WEDNESDAY = 3
+    private const val LAUNCHD_THURSDAY = 4
+    private const val LAUNCHD_FRIDAY = 5
+    private const val LAUNCHD_SATURDAY = 6
+
     private val dayMap =
         mapOf(
-            "MON" to 1,
-            "TUE" to 2,
-            "WED" to 3,
-            "THU" to 4,
-            "FRI" to 5,
-            "SAT" to 6,
-            "SUN" to 0,
+            "MON" to LAUNCHD_MONDAY,
+            "TUE" to LAUNCHD_TUESDAY,
+            "WED" to LAUNCHD_WEDNESDAY,
+            "THU" to LAUNCHD_THURSDAY,
+            "FRI" to LAUNCHD_FRIDAY,
+            "SAT" to LAUNCHD_SATURDAY,
+            "SUN" to LAUNCHD_SUNDAY,
         )
 
     private val orderedDays = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")

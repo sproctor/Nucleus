@@ -24,6 +24,8 @@ internal object WindowsTaskScheduler : PlatformScheduler {
     private val logger = Logger.getLogger(WindowsTaskScheduler::class.java.name)
     private const val SCHEDULER_ARG = "--nucleus-scheduler-run"
     private const val TASK_FOLDER = "Nucleus"
+    private const val HOURLY_INTERVAL_MINUTES = 60
+    private const val HOURLY_DURATION_MINUTES = 60
 
     val isAvailable: Boolean get() = WindowsTaskSchedulerJni.isLoaded
 
@@ -220,8 +222,8 @@ internal object WindowsTaskScheduler : PlatformScheduler {
                                 name,
                                 exePath,
                                 args,
-                                60,
-                                60,
+                                HOURLY_INTERVAL_MINUTES,
+                                HOURLY_DURATION_MINUTES,
                             )
                         is CronSchedule.Daily ->
                             WindowsTaskSchedulerJni.nativeCreateDailyTask(
@@ -271,7 +273,7 @@ internal object WindowsTaskScheduler : PlatformScheduler {
      *
      * Returns `null` for unsupported expressions.
      */
-    @Suppress("CyclomaticComplexity")
+    @Suppress("CyclomaticComplexity", "ReturnCount")
     internal fun parseCronExpression(expression: String): CronSchedule? {
         val trimmed = expression.trim()
 
@@ -285,7 +287,11 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
                 .matchEntire(trimmed)
         if (rangeMatch != null) {
-            val (startDay, endDay, hour, minute) = rangeMatch.destructured
+            val destructured = rangeMatch.destructured
+            val startDay = destructured.component1()
+            val endDay = destructured.component2()
+            val hour = destructured.component3()
+            val minute = destructured.component4()
             val bitmask = expandDayRangeBitmask(startDay, endDay) ?: return null
             return CronSchedule.Weekly(bitmask, hour.toInt(), minute.toInt())
         }
