@@ -456,7 +456,7 @@ TestDesktopTaskScheduler().use { testScheduler ->
 | `uninstall()` | `Unit` | Restores the platform-default backend. Also called by `close()`. |
 | `runTask(taskId, registry)` | `TaskResult` | Executes the task immediately, updates run count and attempt tracking. |
 | `advanceTimeBy(duration, registry)` | `List<ExecutionRecord>` | Advances virtual time and triggers all periodic tasks whose interval has elapsed. |
-| `getExecutionHistory(taskId)` | `List<ExecutionRecord>` | Full execution history for a task (result, attempt count, virtual time). |
+| `getExecutionHistory(taskId)` | `List<ExecutionRecord>` | Full execution history for a task. |
 | `getAllExecutionHistory()` | `List<ExecutionRecord>` | Execution history across all tasks, sorted chronologically. |
 | `getEnqueuedRequest(taskId)` | `TaskRequest?` | Returns the enqueued request for assertions. |
 | `getEnqueuedRequests()` | `List<TaskRequest>` | Returns all enqueued requests. |
