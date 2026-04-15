@@ -263,6 +263,7 @@ Builder DSL:
 | `inputData(key, value)` | Attach a key-value pair, retrievable via `TaskContext.inputData`. |
 | `retryPolicy(policy)` | Set the retry strategy (`ExponentialBackoff` or `Linear`). |
 | `existingTaskPolicy(policy)` | `KEEP` (default) or `REPLACE` if same task ID exists. |
+| `runImmediately(enabled)` | Run the task immediately when scheduled (periodic tasks only). Default: `false`. |
 
 ### `CronExpression`
 
@@ -341,12 +342,12 @@ Task input data and run history are persisted per-platform:
 
 #### macOS (launchd)
 
-Generates plist files in `~/Library/LaunchAgents/` with label `io.github.kdroidfilter.nucleus.<appId>.<taskId>`. Managed via `launchctl load/unload`.
+Generates plist files in `~/Library/LaunchAgents/` with label `io.github.kdroidfilter.nucleus.<appId>.<taskId>`. Managed via a JNI bridge (`MacOSLaunchdSchedulerJni`) that uses Foundation and ServiceManagement APIs for plist writing, job status queries, and next-fire-time computation. Falls back to `launchctl` shell commands when the native library is unavailable.
 
 #### Linux (systemd)
 
-Creates systemd user service and timer units in `~/.config/systemd/user/`. Uses `systemctl --user` for management. Calendar tasks map directly to `OnCalendar=` expressions.
+Creates systemd user service and timer units in `~/.config/systemd/user/` (respects `$XDG_CONFIG_HOME`). Managed via a JNI D-Bus bridge (`LinuxSystemdSchedulerJni`) that talks directly to `org.freedesktop.systemd1.Manager` through GLib/GIO — no subprocess invocation. Calendar tasks map directly to `OnCalendar=` expressions. Unit names follow the pattern `nucleus-<appId>-<taskId>.service` / `.timer`.
 
 #### Windows (Task Scheduler)
 
-Registers tasks via `schtasks.exe` under `\Nucleus\<appId>\`. Periodic tasks use `/sc MINUTE`, calendar tasks use `/sc DAILY` with `/st` time, on-boot uses `/sc ONLOGON`.
+Registers tasks under `\Nucleus\<appId>\` via a JNI bridge (`WindowsTaskSchedulerJni`) that calls the Task Scheduler 2.0 COM API (`ITaskService`, `ITaskFolder`, `ITaskDefinition`) — no `schtasks.exe` subprocess. Supports periodic, daily, weekly, logon, and one-shot triggers natively.
