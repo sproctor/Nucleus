@@ -138,7 +138,9 @@ internal class MacOsDispatcher private constructor() : PlatformDispatcher {
         )
 
         val latch = CountDownLatch(1)
-        val errorHolder = java.util.concurrent.atomic.AtomicReference<String?>(null)
+        val errorHolder =
+            java.util.concurrent.atomic
+                .AtomicReference<String?>(null)
         NotificationCenter.add(request) { error ->
             if (error != null) {
                 errorHolder.set(error)

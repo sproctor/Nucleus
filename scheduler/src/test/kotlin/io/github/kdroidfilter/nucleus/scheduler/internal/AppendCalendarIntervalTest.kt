@@ -5,7 +5,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class AppendCalendarIntervalTest {
-
     private fun generate(expression: String): String {
         val sb = StringBuilder()
         MacOSLaunchdScheduler.appendCalendarInterval(sb, expression)

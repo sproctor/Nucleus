@@ -9,7 +9,6 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 class BuildTimerUnitTest {
-
     @Test
     fun `periodic timer has OnUnitInactiveSec`() {
         val request = TaskRequest.periodic("test-task", 1.hours)
@@ -28,9 +27,10 @@ class BuildTimerUnitTest {
 
     @Test
     fun `periodic timer runImmediately sets OnActiveSec to 0`() {
-        val request = TaskRequest.periodic("test-task", 1.hours) {
-            runImmediately()
-        }
+        val request =
+            TaskRequest.periodic("test-task", 1.hours) {
+                runImmediately()
+            }
         val unit = LinuxSystemdScheduler.buildTimerUnit(request)
 
         assertTrue(unit.contains("OnActiveSec=0"), "Expected OnActiveSec=0")

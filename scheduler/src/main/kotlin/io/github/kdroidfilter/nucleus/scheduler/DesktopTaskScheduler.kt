@@ -60,7 +60,7 @@ public object DesktopTaskScheduler {
         if (ExecutableRuntime.isPkg()) {
             logger.severe(
                 "DesktopTaskScheduler is not supported in sandboxed Mac App Store builds (.pkg). " +
-                    "Use the service-management-macos module with SMAppService instead."
+                    "Use the service-management-macos module with SMAppService instead.",
             )
             return false
         }

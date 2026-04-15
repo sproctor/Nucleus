@@ -6,9 +6,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 class ConvertCronToSchtasksTest {
-
-    private fun parse(expression: String): CronSchedule? =
-        WindowsTaskScheduler.parseCronExpression(expression)
+    private fun parse(expression: String): CronSchedule? = WindowsTaskScheduler.parseCronExpression(expression)
 
     @Test
     fun `daily at specific time`() {
@@ -45,11 +43,12 @@ class ConvertCronToSchtasksTest {
     fun `day range Mon to Fri`() {
         val result = parse("Mon..Fri *-*-* 18:00:00")
         assertIs<CronSchedule.Weekly>(result)
-        val expected = WindowsTaskSchedulerJni.MONDAY or
-            WindowsTaskSchedulerJni.TUESDAY or
-            WindowsTaskSchedulerJni.WEDNESDAY or
-            WindowsTaskSchedulerJni.THURSDAY or
-            WindowsTaskSchedulerJni.FRIDAY
+        val expected =
+            WindowsTaskSchedulerJni.MONDAY or
+                WindowsTaskSchedulerJni.TUESDAY or
+                WindowsTaskSchedulerJni.WEDNESDAY or
+                WindowsTaskSchedulerJni.THURSDAY or
+                WindowsTaskSchedulerJni.FRIDAY
         assertEquals(expected, result.daysOfWeek)
         assertEquals(18, result.hour)
         assertEquals(0, result.minute)
@@ -59,9 +58,10 @@ class ConvertCronToSchtasksTest {
     fun `day range Tue to Thu`() {
         val result = parse("Tue..Thu *-*-* 12:00:00")
         assertIs<CronSchedule.Weekly>(result)
-        val expected = WindowsTaskSchedulerJni.TUESDAY or
-            WindowsTaskSchedulerJni.WEDNESDAY or
-            WindowsTaskSchedulerJni.THURSDAY
+        val expected =
+            WindowsTaskSchedulerJni.TUESDAY or
+                WindowsTaskSchedulerJni.WEDNESDAY or
+                WindowsTaskSchedulerJni.THURSDAY
         assertEquals(expected, result.daysOfWeek)
         assertEquals(12, result.hour)
         assertEquals(0, result.minute)

@@ -16,28 +16,34 @@ import java.io.File
  * explicit uninstall hooks.
  */
 internal object TaskWrapperScript {
-
     private fun scriptsDir(appId: String): File {
-        val baseDir = when (Platform.Current) {
-            Platform.Windows ->
-                System.getenv("LOCALAPPDATA")
-                    ?: "${System.getProperty("user.home")}\\AppData\\Local"
-            Platform.MacOS ->
-                "${System.getProperty("user.home")}/Library/Application Support"
-            else ->
-                System.getenv("XDG_DATA_HOME")
-                    ?: "${System.getProperty("user.home")}/.local/share"
-        }
+        val baseDir =
+            when (Platform.Current) {
+                Platform.Windows ->
+                    System.getenv("LOCALAPPDATA")
+                        ?: "${System.getProperty("user.home")}\\AppData\\Local"
+                Platform.MacOS ->
+                    "${System.getProperty("user.home")}/Library/Application Support"
+                else ->
+                    System.getenv("XDG_DATA_HOME")
+                        ?: "${System.getProperty("user.home")}/.local/share"
+            }
         return File(baseDir, "nucleus/scheduler/$appId/scripts")
     }
 
-    fun scriptFile(appId: String, taskId: String): File {
+    fun scriptFile(
+        appId: String,
+        taskId: String,
+    ): File {
         val dir = scriptsDir(appId)
         val ext = if (Platform.Current == Platform.Windows) "vbs" else "sh"
         return File(dir, "$taskId.$ext")
     }
 
-    fun deleteScript(appId: String, taskId: String) {
+    fun deleteScript(
+        appId: String,
+        taskId: String,
+    ) {
         scriptFile(appId, taskId).delete()
     }
 
@@ -74,25 +80,28 @@ internal object TaskWrapperScript {
 
         val metadataFile = "$metadataDir\\$taskId.properties"
 
-        val content = buildString {
-            appendLine("Set fso = CreateObject(\"Scripting.FileSystemObject\")")
-            appendLine("If Not fso.FileExists(${vbsQuote(execPath)}) Then")
-            appendLine("    On Error Resume Next")
-            appendLine("    Set svc = CreateObject(\"Schedule.Service\")")
-            appendLine("    svc.Connect")
-            appendLine("    Set folder = svc.GetFolder(${vbsQuote(taskFolder)})")
-            appendLine("    folder.DeleteTask ${vbsQuote(taskId)}, 0")
-            appendLine("    folder.DeleteTask ${vbsQuote("$taskId-retry")}, 0")
-            appendLine("    On Error GoTo 0")
-            appendLine("    If fso.FileExists(${vbsQuote(metadataFile)}) Then fso.DeleteFile ${vbsQuote(metadataFile)}")
-            appendLine("    fso.DeleteFile WScript.ScriptFullName")
-            appendLine("    WScript.Quit 0")
-            appendLine("End If")
-            appendLine("Set shell = CreateObject(\"WScript.Shell\")")
-            // shell.Run expects a command string; inner quotes wrap the exe path for spaces.
-            // VBS string: "..." with doubled quotes inside → literal quotes in the value.
-            appendLine("shell.Run \"\"\"${vbsEscape(execPath)}\"\" --nucleus-scheduler-run $taskId\", 0, True")
-        }
+        val content =
+            buildString {
+                appendLine("Set fso = CreateObject(\"Scripting.FileSystemObject\")")
+                appendLine("If Not fso.FileExists(${vbsQuote(execPath)}) Then")
+                appendLine("    On Error Resume Next")
+                appendLine("    Set svc = CreateObject(\"Schedule.Service\")")
+                appendLine("    svc.Connect")
+                appendLine("    Set folder = svc.GetFolder(${vbsQuote(taskFolder)})")
+                appendLine("    folder.DeleteTask ${vbsQuote(taskId)}, 0")
+                appendLine("    folder.DeleteTask ${vbsQuote("$taskId-retry")}, 0")
+                appendLine("    On Error GoTo 0")
+                appendLine(
+                    "    If fso.FileExists(${vbsQuote(metadataFile)}) Then fso.DeleteFile ${vbsQuote(metadataFile)}",
+                )
+                appendLine("    fso.DeleteFile WScript.ScriptFullName")
+                appendLine("    WScript.Quit 0")
+                appendLine("End If")
+                appendLine("Set shell = CreateObject(\"WScript.Shell\")")
+                // shell.Run expects a command string; inner quotes wrap the exe path for spaces.
+                // VBS string: "..." with doubled quotes inside → literal quotes in the value.
+                appendLine("shell.Run \"\"\"${vbsEscape(execPath)}\"\" --nucleus-scheduler-run $taskId\", 0, True")
+            }
         file.writeText(content)
         return file
     }
@@ -118,21 +127,22 @@ internal object TaskWrapperScript {
         val file = scriptFile(appId, taskId)
         file.parentFile.mkdirs()
 
-        val content = buildString {
-            appendLine("#!/bin/bash")
-            appendLine("EXEC=${quote(execPath)}")
-            appendLine("if [ ! -x \"${'$'}EXEC\" ]; then")
-            appendLine("    systemctl --user disable --now ${quote(timerUnit)} 2>/dev/null")
-            appendLine("    systemctl --user disable ${quote(serviceUnit)} 2>/dev/null")
-            appendLine("    rm -f ${quote(timerFilePath)}")
-            appendLine("    rm -f ${quote(serviceFilePath)}")
-            appendLine("    systemctl --user daemon-reload 2>/dev/null")
-            appendLine("    rm -f ${quote(metadataDir + "/" + taskId + ".properties")}")
-            appendLine("    rm -f ${quote(file.absolutePath)}")
-            appendLine("    exit 0")
-            appendLine("fi")
-            appendLine("\"${'$'}EXEC\" --nucleus-scheduler-run $taskId")
-        }
+        val content =
+            buildString {
+                appendLine("#!/bin/bash")
+                appendLine("EXEC=${quote(execPath)}")
+                appendLine("if [ ! -x \"${'$'}EXEC\" ]; then")
+                appendLine("    systemctl --user disable --now ${quote(timerUnit)} 2>/dev/null")
+                appendLine("    systemctl --user disable ${quote(serviceUnit)} 2>/dev/null")
+                appendLine("    rm -f ${quote(timerFilePath)}")
+                appendLine("    rm -f ${quote(serviceFilePath)}")
+                appendLine("    systemctl --user daemon-reload 2>/dev/null")
+                appendLine("    rm -f ${quote(metadataDir + "/" + taskId + ".properties")}")
+                appendLine("    rm -f ${quote(file.absolutePath)}")
+                appendLine("    exit 0")
+                appendLine("fi")
+                appendLine("\"${'$'}EXEC\" --nucleus-scheduler-run $taskId")
+            }
         file.writeText(content)
         file.setExecutable(true)
         return file

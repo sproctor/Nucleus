@@ -5,7 +5,9 @@ package io.github.kdroidfilter.nucleus.servicemanagement
  *
  * Describes the current registration state of an app service.
  */
-public enum class AppServiceStatus(public val rawValue: Int) {
+public enum class AppServiceStatus(
+    public val rawValue: Int,
+) {
     /** The service has not been registered, or was unregistered. */
     NOT_REGISTERED(0),
 

@@ -19,9 +19,6 @@ import org.jetbrains.jewel.ui.ComponentStyling
 import schedulerdemo.task.BackupTask
 import schedulerdemo.task.NotificationTask
 import schedulerdemo.task.SyncTask
-import java.io.File
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 private fun buildRegistry() =
     TaskRegistry

@@ -12,7 +12,8 @@ plugins {
     alias(libs.plugins.versionCheck)
 }
 
-val demoProjects = setOf("example", "jewel-sample", "system-info-demo", "sample-cmp", "scheduler-demo", "service-management-demo")
+val demoProjects =
+    setOf("example", "jewel-sample", "system-info-demo", "sample-cmp", "scheduler-demo", "service-management-demo")
 
 subprojects {
     if (name !in demoProjects) {

@@ -62,10 +62,11 @@ fun SchedulerDemoView(openedByScheduler: Boolean = false) {
     ) {
         if (openedByScheduler) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2E7D32), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF2E7D32), RoundedCornerShape(8.dp))
+                        .padding(12.dp),
             ) {
                 Text("Opened by scheduler", fontWeight = FontWeight.Bold, color = Color.White)
             }
@@ -115,12 +116,13 @@ fun SchedulerDemoView(openedByScheduler: Boolean = false) {
             }
 
             DefaultButton(onClick = {
-                val ok = scheduler.enqueue(
-                    TaskRequest.periodic("notification", 15.minutes) {
-                        inputData("title", "Scheduled Notification")
-                        inputData("message", "This notification was scheduled 15 minutes ago!")
-                    },
-                )
+                val ok =
+                    scheduler.enqueue(
+                        TaskRequest.periodic("notification", 15.minutes) {
+                            inputData("title", "Scheduled Notification")
+                            inputData("message", "This notification was scheduled 15 minutes ago!")
+                        },
+                    )
                 log(if (ok) "Enqueued 'notification' (every 15min)" else "Failed to enqueue 'notification'")
                 refreshTasks()
             }) {

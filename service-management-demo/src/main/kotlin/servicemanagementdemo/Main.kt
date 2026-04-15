@@ -54,18 +54,19 @@ private fun runBackgroundTask() {
     ).send()
 }
 
-private fun launchUi() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "SMAppService Demo",
-    ) {
-        MaterialTheme {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                App()
+private fun launchUi() =
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "SMAppService Demo",
+        ) {
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    App()
+                }
             }
         }
     }
-}
 
 @Composable
 fun App() {
@@ -77,8 +78,11 @@ fun App() {
     }
 
     fun appendLogSafe(message: String) {
-        if (EventQueue.isDispatchThread()) appendLog(message)
-        else EventQueue.invokeLater { appendLog(message) }
+        if (EventQueue.isDispatchThread()) {
+            appendLog(message)
+        } else {
+            EventQueue.invokeLater { appendLog(message) }
+        }
     }
 
     Column(
@@ -112,8 +116,9 @@ fun App() {
         // Background Agent — runs every 15 min even when app is closed
         ServiceSection(
             title = "Background Notification Agent",
-            description = "Registers a launch agent that sends a notification every 15 minutes, " +
-                "even when the app is closed.",
+            description =
+                "Registers a launch agent that sends a notification every 15 minutes, " +
+                    "even when the app is closed.",
             service = AppService.Agent(AGENT_LABEL),
             onLog = ::appendLog,
             onLogSafe = ::appendLogSafe,
@@ -165,8 +170,11 @@ private fun ServiceSection(
                 Button(onClick = {
                     val result = AppServiceManager.register(service)
                     onLog(
-                        if (result.isSuccess) "[$title] Registered"
-                        else "[$title] Failed: ${result.exceptionOrNull()?.message}",
+                        if (result.isSuccess) {
+                            "[$title] Registered"
+                        } else {
+                            "[$title] Failed: ${result.exceptionOrNull()?.message}"
+                        },
                     )
                 }) { Text("Register") }
 

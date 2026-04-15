@@ -40,7 +40,10 @@ internal object NativeMacServiceManagementBridge {
      * @return error message string, or `null` on success
      */
     @JvmStatic
-    external fun nativeRegister(type: Int, identifier: String): String?
+    external fun nativeRegister(
+        type: Int,
+        identifier: String,
+    ): String?
 
     /**
      * Unregisters a service. Calls back via [onUnregisterResult] when done.
@@ -50,7 +53,11 @@ internal object NativeMacServiceManagementBridge {
      * @param callbackId callback ID for result delivery
      */
     @JvmStatic
-    external fun nativeUnregister(type: Int, identifier: String, callbackId: Long)
+    external fun nativeUnregister(
+        type: Int,
+        identifier: String,
+        callbackId: Long,
+    )
 
     /**
      * Returns the raw SMAppServiceStatus value.
@@ -60,7 +67,10 @@ internal object NativeMacServiceManagementBridge {
      * @return raw status value (0..3)
      */
     @JvmStatic
-    external fun nativeGetStatus(type: Int, identifier: String): Int
+    external fun nativeGetStatus(
+        type: Int,
+        identifier: String,
+    ): Int
 
     /**
      * Opens the Login Items pane in System Settings.
@@ -74,7 +84,10 @@ internal object NativeMacServiceManagementBridge {
 
     /** Called by native code when [nativeUnregister] completes. */
     @JvmStatic
-    fun onUnregisterResult(callbackId: Long, error: String?) {
+    fun onUnregisterResult(
+        callbackId: Long,
+        error: String?,
+    ) {
         val callback = consumeCallback<(String?) -> Unit>(callbackId) ?: return
         callback(error)
     }

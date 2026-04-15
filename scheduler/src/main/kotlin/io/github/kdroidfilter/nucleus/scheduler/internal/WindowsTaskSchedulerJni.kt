@@ -13,7 +13,6 @@ private const val LIBRARY_NAME = "nucleus_scheduler"
  * Creation methods return `null` on success or an error message on failure.
  */
 internal object WindowsTaskSchedulerJni {
-
     val isLoaded: Boolean = NativeLibraryLoader.load(LIBRARY_NAME, WindowsTaskSchedulerJni::class.java)
 
     // ── Task creation ───────────────────────────────────────────────────

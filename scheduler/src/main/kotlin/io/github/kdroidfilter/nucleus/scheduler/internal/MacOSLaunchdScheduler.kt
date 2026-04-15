@@ -134,8 +134,7 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
         )
     }
 
-    override fun getAllTasks(): List<TaskInfo> =
-        listScheduledTaskIds().mapNotNull { getTaskInfo(it) }
+    override fun getAllTasks(): List<TaskInfo> = listScheduledTaskIds().mapNotNull { getTaskInfo(it) }
 
     // -- Retry support --------------------------------------------------------
 
@@ -159,43 +158,46 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             retryFile.delete()
         }
 
-        val programArgs = buildString {
-            appendLine("    <string>$execPath</string>")
-            appendLine("    <string>$SCHEDULER_ARG</string>")
-            appendLine("    <string>$taskId</string>")
-        }.trimEnd()
+        val programArgs =
+            buildString {
+                appendLine("    <string>$execPath</string>")
+                appendLine("    <string>$SCHEDULER_ARG</string>")
+                appendLine("    <string>$taskId</string>")
+            }.trimEnd()
 
-        val plist = buildString {
-            appendLine(PLIST_HEADER)
-            appendLine("<dict>")
-            appendLine("  <key>Label</key>")
-            appendLine("  <string>${retryLabel(taskId)}</string>")
-            appendLine("  <key>ProgramArguments</key>")
-            appendLine("  <array>")
-            appendLine(programArgs)
-            appendLine("  </array>")
-            appendLine("  <key>RunAtLoad</key>")
-            appendLine("  <true/>")
-            appendLine("  <key>KeepAlive</key>")
-            appendLine("  <false/>")
-            appendLine("  <key>ProcessType</key>")
-            appendLine("  <string>Background</string>")
-            appendLine("</dict>")
-            appendLine("</plist>")
-        }
+        val plist =
+            buildString {
+                appendLine(PLIST_HEADER)
+                appendLine("<dict>")
+                appendLine("  <key>Label</key>")
+                appendLine("  <string>${retryLabel(taskId)}</string>")
+                appendLine("  <key>ProgramArguments</key>")
+                appendLine("  <array>")
+                appendLine(programArgs)
+                appendLine("  </array>")
+                appendLine("  <key>RunAtLoad</key>")
+                appendLine("  <true/>")
+                appendLine("  <key>KeepAlive</key>")
+                appendLine("  <false/>")
+                appendLine("  <key>ProcessType</key>")
+                appendLine("  <string>Background</string>")
+                appendLine("</dict>")
+                appendLine("</plist>")
+            }
 
         launchAgentsDir.mkdirs()
         retryFile.writeText(plist)
 
         // Delay the load so the retry fires after the requested wait
-        val thread = Thread({
-            try {
-                Thread.sleep(delaySeconds * MILLIS_PER_SECOND)
-                launchctl("load", retryFile.absolutePath)
-            } catch (_: InterruptedException) {
-                logger.warning("Retry delay interrupted for task '$taskId'")
-            }
-        }, "nucleus-retry-$taskId")
+        val thread =
+            Thread({
+                try {
+                    Thread.sleep(delaySeconds * MILLIS_PER_SECOND)
+                    launchctl("load", retryFile.absolutePath)
+                } catch (_: InterruptedException) {
+                    logger.warning("Retry delay interrupted for task '$taskId'")
+                }
+            }, "nucleus-retry-$taskId")
         thread.isDaemon = true
         thread.start()
 
@@ -231,7 +233,10 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
      * (no popup, no CPU usage). Orphan plists are cleaned up by [DesktopBootReceiver]
      * if the app is reinstalled.
      */
-    private fun buildPlist(request: TaskRequest, execPath: String): String =
+    private fun buildPlist(
+        request: TaskRequest,
+        execPath: String,
+    ): String =
         buildString {
             appendLine(PLIST_HEADER)
             appendLine("<dict>")
@@ -282,7 +287,10 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
      * - `Mon..Fri *-*-* HH:MM:00`   → weekdays at HH:MM (generates array of dicts)
      */
     @Suppress("CyclomaticComplexity")
-    internal fun appendCalendarInterval(sb: StringBuilder, expression: String) {
+    internal fun appendCalendarInterval(
+        sb: StringBuilder,
+        expression: String,
+    ) {
         val trimmed = expression.trim()
 
         // Pattern: every hour — *-*-* *:00:00
@@ -296,8 +304,9 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
         }
 
         // Pattern: day range (Mon..Fri) with time
-        val rangeMatch = Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
-            .matchEntire(trimmed)
+        val rangeMatch =
+            Regex("""^(\w{3})\.\.(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
+                .matchEntire(trimmed)
         if (rangeMatch != null) {
             val (startDay, endDay, hour, minute) = rangeMatch.destructured
             val days = expandDayRange(startDay, endDay)
@@ -320,8 +329,9 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
         }
 
         // Pattern: specific weekday with time — Mon *-*-* HH:MM:00
-        val weekdayMatch = Regex("""^(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
-            .matchEntire(trimmed)
+        val weekdayMatch =
+            Regex("""^(\w{3})\s+\*-\*-\*\s+(\d{2}):(\d{2}):\d{2}$""")
+                .matchEntire(trimmed)
         if (weekdayMatch != null) {
             val (day, hour, minute) = weekdayMatch.destructured
             val dayNum = dayToLaunchdWeekday(day)
@@ -358,22 +368,31 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             "Unsupported cron expression '$expression' for macOS launchd. " +
                 "Supported patterns: '*-*-* HH:MM:00', '*-*-* *:00:00', " +
                 "'Mon *-*-* HH:MM:00', 'Mon..Fri *-*-* HH:MM:00'. " +
-                "Use CronExpression factory methods instead of CronExpression.custom()."
+                "Use CronExpression factory methods instead of CronExpression.custom().",
         )
     }
 
     // -- Day mapping (launchd uses 0=Sunday, 1=Monday, ..., 6=Saturday) -------
 
-    private val dayMap = mapOf(
-        "MON" to 1, "TUE" to 2, "WED" to 3, "THU" to 4,
-        "FRI" to 5, "SAT" to 6, "SUN" to 0,
-    )
+    private val dayMap =
+        mapOf(
+            "MON" to 1,
+            "TUE" to 2,
+            "WED" to 3,
+            "THU" to 4,
+            "FRI" to 5,
+            "SAT" to 6,
+            "SUN" to 0,
+        )
 
     private val orderedDays = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
     private fun dayToLaunchdWeekday(day: String): Int? = dayMap[day.uppercase()]
 
-    private fun expandDayRange(start: String, end: String): List<Int>? {
+    private fun expandDayRange(
+        start: String,
+        end: String,
+    ): List<Int>? {
         val startIdx = orderedDays.indexOf(start.uppercase())
         val endIdx = orderedDays.indexOf(end.uppercase())
         if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) return null

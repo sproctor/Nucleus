@@ -31,7 +31,12 @@ internal object WindowsTaskScheduler : PlatformScheduler {
         get() = NucleusApp.appId
 
     private val executablePath: String?
-        get() = ProcessHandle.current().info().command().orElse(null)
+        get() =
+            ProcessHandle
+                .current()
+                .info()
+                .command()
+                .orElse(null)
 
     // -- Task naming ----------------------------------------------------------
 
@@ -71,13 +76,14 @@ internal object WindowsTaskScheduler : PlatformScheduler {
         }
 
         val metadataDir = TaskMetadataStore.storeDir(appId).absolutePath
-        val wrapperScript = TaskWrapperScript.generateWindowsScript(
-            appId = appId,
-            taskId = request.taskId,
-            execPath = execPath,
-            taskFolder = folderPath(),
-            metadataDir = metadataDir,
-        )
+        val wrapperScript =
+            TaskWrapperScript.generateWindowsScript(
+                appId = appId,
+                taskId = request.taskId,
+                execPath = execPath,
+                taskFolder = folderPath(),
+                metadataDir = metadataDir,
+            )
 
         val error = createTask(request, WSCRIPT_EXE, wscriptArgs(wrapperScript))
         if (error != null) {
@@ -136,12 +142,14 @@ internal object WindowsTaskScheduler : PlatformScheduler {
         )
     }
 
-    override fun getAllTasks(): List<TaskInfo> =
-        getAllTaskIds().mapNotNull { getTaskInfo(it) }
+    override fun getAllTasks(): List<TaskInfo> = getAllTaskIds().mapNotNull { getTaskInfo(it) }
 
     // -- Retry support --------------------------------------------------------
 
-    fun scheduleRetry(taskId: String, delaySeconds: Long): Boolean {
+    fun scheduleRetry(
+        taskId: String,
+        delaySeconds: Long,
+    ): Boolean {
         if (!isAvailable) return false
         val execPath = executablePath ?: return false
         val startTime = LocalDateTime.now().plusSeconds(delaySeconds)
@@ -161,13 +169,14 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             retryArgs = arguments(taskId)
         }
 
-        val error = WindowsTaskSchedulerJni.nativeCreateOnceTask(
-            folderPath = folderPath(),
-            taskName = retryTaskName(taskId),
-            exePath = retryExe,
-            arguments = retryArgs,
-            startBoundary = startBoundary,
-        )
+        val error =
+            WindowsTaskSchedulerJni.nativeCreateOnceTask(
+                folderPath = folderPath(),
+                taskName = retryTaskName(taskId),
+                exePath = retryExe,
+                arguments = retryArgs,
+                startBoundary = startBoundary,
+            )
         if (error != null) {
             logger.warning("Failed to schedule retry for '$taskId': $error")
             return false
@@ -177,7 +186,11 @@ internal object WindowsTaskScheduler : PlatformScheduler {
 
     // -- Task creation --------------------------------------------------------
 
-    private fun createTask(request: TaskRequest, exePath: String, args: String): String? {
+    private fun createTask(
+        request: TaskRequest,
+        exePath: String,
+        args: String,
+    ): String? {
         val folder = folderPath()
         val name = request.taskId
 
@@ -186,7 +199,12 @@ internal object WindowsTaskScheduler : PlatformScheduler {
                 val minutes = request.interval!!.inWholeMinutes.toInt()
                 val startDelay = if (request.runImmediately) 0 else minutes
                 WindowsTaskSchedulerJni.nativeCreatePeriodicTask(
-                    folder, name, exePath, args, minutes, startDelay,
+                    folder,
+                    name,
+                    exePath,
+                    args,
+                    minutes,
+                    startDelay,
                 )
             }
 
@@ -196,23 +214,44 @@ internal object WindowsTaskScheduler : PlatformScheduler {
                     "Unsupported cron expression '${request.cronExpression}'"
                 } else {
                     when (schedule) {
-                        is CronSchedule.Hourly -> WindowsTaskSchedulerJni.nativeCreatePeriodicTask(
-                            folder, name, exePath, args, 60, 60,
-                        )
-                        is CronSchedule.Daily -> WindowsTaskSchedulerJni.nativeCreateDailyTask(
-                            folder, name, exePath, args, schedule.hour, schedule.minute,
-                        )
-                        is CronSchedule.Weekly -> WindowsTaskSchedulerJni.nativeCreateWeeklyTask(
-                            folder, name, exePath, args,
-                            schedule.daysOfWeek, schedule.hour, schedule.minute,
-                        )
+                        is CronSchedule.Hourly ->
+                            WindowsTaskSchedulerJni.nativeCreatePeriodicTask(
+                                folder,
+                                name,
+                                exePath,
+                                args,
+                                60,
+                                60,
+                            )
+                        is CronSchedule.Daily ->
+                            WindowsTaskSchedulerJni.nativeCreateDailyTask(
+                                folder,
+                                name,
+                                exePath,
+                                args,
+                                schedule.hour,
+                                schedule.minute,
+                            )
+                        is CronSchedule.Weekly ->
+                            WindowsTaskSchedulerJni.nativeCreateWeeklyTask(
+                                folder,
+                                name,
+                                exePath,
+                                args,
+                                schedule.daysOfWeek,
+                                schedule.hour,
+                                schedule.minute,
+                            )
                     }
                 }
             }
 
             TaskRequest.Type.ON_BOOT -> {
                 WindowsTaskSchedulerJni.nativeCreateLogonTask(
-                    folder, name, exePath, args,
+                    folder,
+                    name,
+                    exePath,
+                    args,
                 )
             }
         }
@@ -275,19 +314,23 @@ internal object WindowsTaskScheduler : PlatformScheduler {
 
     // -- Day-of-week helpers --------------------------------------------------
 
-    private val DAY_BITS = mapOf(
-        "SUN" to WindowsTaskSchedulerJni.SUNDAY,
-        "MON" to WindowsTaskSchedulerJni.MONDAY,
-        "TUE" to WindowsTaskSchedulerJni.TUESDAY,
-        "WED" to WindowsTaskSchedulerJni.WEDNESDAY,
-        "THU" to WindowsTaskSchedulerJni.THURSDAY,
-        "FRI" to WindowsTaskSchedulerJni.FRIDAY,
-        "SAT" to WindowsTaskSchedulerJni.SATURDAY,
-    )
+    private val DAY_BITS =
+        mapOf(
+            "SUN" to WindowsTaskSchedulerJni.SUNDAY,
+            "MON" to WindowsTaskSchedulerJni.MONDAY,
+            "TUE" to WindowsTaskSchedulerJni.TUESDAY,
+            "WED" to WindowsTaskSchedulerJni.WEDNESDAY,
+            "THU" to WindowsTaskSchedulerJni.THURSDAY,
+            "FRI" to WindowsTaskSchedulerJni.FRIDAY,
+            "SAT" to WindowsTaskSchedulerJni.SATURDAY,
+        )
 
     private val ORDERED_DAYS = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
-    private fun expandDayRangeBitmask(start: String, end: String): Int? {
+    private fun expandDayRangeBitmask(
+        start: String,
+        end: String,
+    ): Int? {
         val startIdx = ORDERED_DAYS.indexOf(start.uppercase())
         val endIdx = ORDERED_DAYS.indexOf(end.uppercase())
         if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) return null
@@ -323,8 +366,10 @@ internal object WindowsTaskScheduler : PlatformScheduler {
      * that belong to *this* app (the folder may contain retry tasks too).
      */
     private fun getAllTaskIds(): List<String> {
-        val comNames = WindowsTaskSchedulerJni.nativeGetTaskNames(folderPath())
-            ?.toSet() ?: emptySet()
+        val comNames =
+            WindowsTaskSchedulerJni
+                .nativeGetTaskNames(folderPath())
+                ?.toSet() ?: emptySet()
         // Use metadata store IDs, filtered by actual COM presence
         return TaskMetadataStore.listTaskIds(appId).filter { it in comNames }
     }
@@ -335,6 +380,15 @@ internal object WindowsTaskScheduler : PlatformScheduler {
  */
 internal sealed class CronSchedule {
     data object Hourly : CronSchedule()
-    data class Daily(val hour: Int, val minute: Int) : CronSchedule()
-    data class Weekly(val daysOfWeek: Int, val hour: Int, val minute: Int) : CronSchedule()
+
+    data class Daily(
+        val hour: Int,
+        val minute: Int,
+    ) : CronSchedule()
+
+    data class Weekly(
+        val daysOfWeek: Int,
+        val hour: Int,
+        val minute: Int,
+    ) : CronSchedule()
 }

@@ -74,7 +74,10 @@ public object AppServiceManager {
      * @param callback called when the operation completes, with an error string or `null` on success
      */
     @JvmStatic
-    public fun unregister(service: AppService, callback: (error: String?) -> Unit = {}) {
+    public fun unregister(
+        service: AppService,
+        callback: (error: String?) -> Unit = {},
+    ) {
         if (!isAvailable) {
             callback("SMAppService not available")
             return

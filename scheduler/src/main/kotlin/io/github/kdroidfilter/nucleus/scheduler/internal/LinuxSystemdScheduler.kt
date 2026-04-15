@@ -76,16 +76,17 @@ internal object LinuxSystemdScheduler : PlatformScheduler {
         val serviceFile = File(systemdUserDir, serviceFileName(request.taskId))
         val timerFile = File(systemdUserDir, timerFileName(request.taskId))
         val metadataDir = TaskMetadataStore.storeDir(appId).absolutePath
-        val wrapperScript = TaskWrapperScript.generateLinuxScript(
-            appId = appId,
-            taskId = request.taskId,
-            execPath = execPath,
-            timerUnit = timerFileName(request.taskId),
-            serviceUnit = serviceFileName(request.taskId),
-            serviceFilePath = serviceFile.absolutePath,
-            timerFilePath = timerFile.absolutePath,
-            metadataDir = metadataDir,
-        )
+        val wrapperScript =
+            TaskWrapperScript.generateLinuxScript(
+                appId = appId,
+                taskId = request.taskId,
+                execPath = execPath,
+                timerUnit = timerFileName(request.taskId),
+                serviceUnit = serviceFileName(request.taskId),
+                serviceFilePath = serviceFile.absolutePath,
+                timerFilePath = timerFile.absolutePath,
+                metadataDir = metadataDir,
+            )
 
         // Generate .service file pointing to wrapper script
         val serviceContent = buildServiceUnit(request.taskId, wrapperScript.absolutePath)

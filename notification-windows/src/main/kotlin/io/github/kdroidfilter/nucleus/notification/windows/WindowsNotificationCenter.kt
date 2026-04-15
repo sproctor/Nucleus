@@ -7,6 +7,23 @@ import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import java.util.logging.Logger
 
 /**
+ * Controls how the library handles Start Menu shortcuts with AUMID.
+ * Mirrors WinToastLib's ShortcutPolicy.
+ */
+enum class ShortcutPolicy(
+    internal val nativeValue: Int,
+) {
+    /** Don't check, create, or modify any shortcut. */
+    IGNORE(0),
+
+    /** Require a matching shortcut to exist, but never create or modify one. */
+    REQUIRE_NO_CREATE(1),
+
+    /** Create or update the shortcut if needed (default). */
+    REQUIRE_CREATE(2),
+}
+
+/**
  * Kotlin API for Windows Toast Notifications (WinRT).
  *
  * Provides full access to the Windows toast notification system via JNI.
@@ -20,21 +37,6 @@ import java.util.logging.Logger
  *
  * Thread-safe singleton.
  */
-/**
- * Controls how the library handles Start Menu shortcuts with AUMID.
- * Mirrors WinToastLib's ShortcutPolicy.
- */
-enum class ShortcutPolicy(internal val nativeValue: Int) {
-    /** Don't check, create, or modify any shortcut. */
-    IGNORE(0),
-
-    /** Require a matching shortcut to exist, but never create or modify one. */
-    REQUIRE_NO_CREATE(1),
-
-    /** Create or update the shortcut if needed (default). */
-    REQUIRE_CREATE(2),
-}
-
 object WindowsNotificationCenter {
     private val logger = Logger.getLogger(WindowsNotificationCenter::class.java.simpleName)
     private var initialized = false
@@ -77,7 +79,11 @@ object WindowsNotificationCenter {
         val isAppx = ExecutableRuntime.isAppX()
         val resolvedAumid = resolveAumid(aumid, isAppx)
         val resolvedAppName = resolveAppName(appName, resolvedAumid)
-        logger.fine("Initializing with AUMID='${resolvedAumid.ifEmpty { "<package-identity>" }}' appName='$resolvedAppName' isAppx=$isAppx policy=$shortcutPolicy")
+        logger.fine(
+            "Initializing with AUMID='${resolvedAumid.ifEmpty {
+                "<package-identity>"
+            }}' appName='$resolvedAppName' isAppx=$isAppx policy=$shortcutPolicy",
+        )
 
         if (shortcutPolicy == ShortcutPolicy.REQUIRE_NO_CREATE && ExecutableRuntime.isDev()) {
             logger.warning(
@@ -87,9 +93,13 @@ object WindowsNotificationCenter {
             )
         }
 
-        initialized = NativeWindowsNotificationBridge.nativeInitialize(
-            resolvedAumid, isAppx, resolvedAppName, shortcutPolicy.nativeValue,
-        )
+        initialized =
+            NativeWindowsNotificationBridge.nativeInitialize(
+                resolvedAumid,
+                isAppx,
+                resolvedAppName,
+                shortcutPolicy.nativeValue,
+            )
         if (!initialized) {
             logger.warning("Failed to initialize Windows notification subsystem (AUMID='$resolvedAumid')")
         }
@@ -97,8 +107,11 @@ object WindowsNotificationCenter {
     }
 
     private fun defaultShortcutPolicy(): ShortcutPolicy =
-        if (ExecutableRuntime.isDev()) ShortcutPolicy.REQUIRE_NO_CREATE
-        else ShortcutPolicy.REQUIRE_CREATE
+        if (ExecutableRuntime.isDev()) {
+            ShortcutPolicy.REQUIRE_NO_CREATE
+        } else {
+            ShortcutPolicy.REQUIRE_CREATE
+        }
 
     // -- Show --
 

@@ -27,7 +27,9 @@ public sealed class AppService(
      * @param bundleIdentifier the bundle identifier of the login item helper
      *        (located in `Contents/Library/LoginItems/`)
      */
-    public class LoginItem(bundleIdentifier: String) : AppService(TYPE_LOGIN_ITEM, bundleIdentifier)
+    public class LoginItem(
+        bundleIdentifier: String,
+    ) : AppService(TYPE_LOGIN_ITEM, bundleIdentifier)
 
     /**
      * A launch agent that runs in the user session.
@@ -35,7 +37,9 @@ public sealed class AppService(
      * @param label the agent label matching the Gradle DSL `agent()` declaration
      *        (e.g. `"com.myapp.agent"`). The `.plist` suffix is added automatically if missing.
      */
-    public class Agent(label: String) : AppService(TYPE_AGENT, label.ensurePlistSuffix())
+    public class Agent(
+        label: String,
+    ) : AppService(TYPE_AGENT, label.ensurePlistSuffix())
 
     /**
      * A launch daemon that runs as root.
@@ -43,7 +47,9 @@ public sealed class AppService(
      * @param label the daemon label matching the plist filename in `Contents/Library/LaunchDaemons/`
      *        (e.g. `"com.myapp.daemon"`). The `.plist` suffix is added automatically if missing.
      */
-    public class Daemon(label: String) : AppService(TYPE_DAEMON, label.ensurePlistSuffix())
+    public class Daemon(
+        label: String,
+    ) : AppService(TYPE_DAEMON, label.ensurePlistSuffix())
 
     internal companion object {
         const val TYPE_MAIN_APP = 3
@@ -51,7 +57,6 @@ public sealed class AppService(
         const val TYPE_AGENT = 1
         const val TYPE_DAEMON = 2
 
-        private fun String.ensurePlistSuffix(): String =
-            if (endsWith(".plist")) this else "$this.plist"
+        private fun String.ensurePlistSuffix(): String = if (endsWith(".plist")) this else "$this.plist"
     }
 }
