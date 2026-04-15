@@ -116,9 +116,6 @@ scheduler.enqueue(
 
 // Every hour
 scheduler.enqueue(TaskRequest.calendar("heartbeat", CronExpression.everyHour()))
-
-// Custom systemd OnCalendar expression
-scheduler.enqueue(TaskRequest.calendar("custom", CronExpression.custom("*-*-01 00:00:00")))
 ```
 
 ### On-boot tasks
@@ -274,7 +271,6 @@ Builder DSL:
 | `everyWeekdayAt(day, hour, minute)` | `Mon *-*-* HH:MM:00` | Specific day of the week. |
 | `everyMondayAt(hour, minute)` | `Mon *-*-* HH:MM:00` | Shorthand for every Monday. |
 | `everyHour()` | `*-*-* *:00:00` | Every hour at minute 0. |
-| `custom(expression)` | any | Raw systemd `OnCalendar` syntax. |
 
 ### `DesktopTask`
 

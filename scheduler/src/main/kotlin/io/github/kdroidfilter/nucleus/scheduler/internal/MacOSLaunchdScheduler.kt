@@ -141,7 +141,7 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             "Unsupported cron expression '$expression' for macOS launchd. " +
                 "Supported patterns: '*-*-* HH:MM:00', '*-*-* *:00:00', " +
                 "'Mon *-*-* HH:MM:00', 'Mon..Fri *-*-* HH:MM:00'. " +
-                "Use CronExpression factory methods instead of CronExpression.custom().",
+                "Use CronExpression factory methods for cross-platform compatibility.",
         )
     }
 

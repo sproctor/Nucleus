@@ -90,12 +90,5 @@ public class CronExpression private constructor(
          * Example: `everyHour()` → `*-*-* *:00:00`
          */
         public fun everyHour(): CronExpression = CronExpression("*-*-* *:00:00")
-
-        /**
-         * Custom systemd OnCalendar expression.
-         *
-         * See `systemd.time(7)` for the full syntax.
-         */
-        public fun custom(expression: String): CronExpression = CronExpression(expression)
     }
 }
