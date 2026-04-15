@@ -401,6 +401,28 @@ TestDesktopTaskScheduler().use { testScheduler ->
 } // .close() restores the platform-default backend
 ```
 
+#### Testing calendar and on-boot tasks
+
+`advanceTimeBy` only triggers **periodic** tasks — calendar and on-boot tasks depend on absolute time or OS events, not intervals. Use `runTask()` directly for those:
+
+```kotlin
+TestDesktopTaskScheduler().use { testScheduler ->
+    testScheduler.install()
+
+    // Calendar task
+    DesktopTaskScheduler.enqueue(
+        TaskRequest.calendar("report", CronExpression.everyDayAt(9))
+    )
+    val result = testScheduler.runTask("report", registry)
+    assertEquals(TaskResult.Success, result)
+
+    // On-boot task
+    DesktopTaskScheduler.enqueue(TaskRequest.onBoot("startup-check"))
+    val bootResult = testScheduler.runTask("startup-check", registry)
+    assertEquals(TaskResult.Success, bootResult)
+}
+```
+
 #### Retry tracking
 
 When `doWork()` returns `TaskResult.Retry`, the `runAttemptCount` is automatically incremented for the next execution. On `Success` or `Failure`, it resets to 1:
@@ -439,5 +461,16 @@ TestDesktopTaskScheduler().use { testScheduler ->
 | `getEnqueuedRequest(taskId)` | `TaskRequest?` | Returns the enqueued request for assertions. |
 | `getEnqueuedRequests()` | `List<TaskRequest>` | Returns all enqueued requests. |
 | `currentVirtualTimeMs` | `Long` | The current virtual time in milliseconds. |
+
+### `ExecutionRecord`
+
+Returned by `advanceTimeBy()`, `getExecutionHistory()`, and `getAllExecutionHistory()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `taskId` | `String` | The task that was executed. |
+| `result` | `TaskResult` | The outcome of `doWork()` (`Success`, `Failure`, or `Retry`). |
+| `runAttemptCount` | `Int` | The 1-based attempt number at the time of execution. |
+| `virtualTimeMs` | `Long` | The virtual time (in milliseconds) at which the execution occurred. |
 
 All standard `DesktopTaskScheduler` methods (`enqueue`, `cancel`, `isScheduled`, `getTaskInfo`, `getAllTasks`) work as expected after `install()`.
