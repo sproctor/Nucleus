@@ -29,6 +29,14 @@ fun main() {
         println("GPU: ${gpu.name} — ${gpu.dedicatedVideoMemory / 1024 / 1024}MB VRAM")
         println("  Temp=${gpu.temperature?.let { "${it.toInt()}C" } ?: "N/A"}, Usage=${gpu.gpuUsage?.let { "${it.toInt()}%" } ?: "N/A"}")
     }
+
+    val battery = SystemInfo.batteryInfo()
+    println("Battery: ${battery?.let { "${(it.stateOfCharge * 100).toInt()}% (${it.state})" } ?: "none"}")
+
+    val connectivity = SystemInfo.connectivityInfo()
+    println("Network: connected=${connectivity?.isConnected}, metered=${connectivity?.meteredStatus}")
+
+    println("Idle: ${SystemInfo.idleTime()}s since last input")
 }
 ```
 
@@ -47,6 +55,9 @@ fun main() {
 | Users | `NetUserEnum` | `getpwent` | `/etc/passwd` |
 | Motherboard | WMI `Win32_BaseBoard` | IOKit `IOPlatformExpertDevice` | `/sys/devices/virtual/dmi/id/board_*` |
 | Product | WMI `Win32_ComputerSystemProduct` | IOKit | `/sys/devices/virtual/dmi/id/product_*` |
+| Battery (charge, state, health, time estimates) | `DeviceIoControl` (IOCTL) | IOKit `AppleSmartBattery` | `/sys/class/power_supply/*/` |
+| Network connectivity (connected, metered) | `NLM_CONNECTIVITY` (COM) | `NWPathMonitor` | NetworkManager D-Bus |
+| Idle time (seconds since last input) | `GetLastInputInfo` | IOKit `HIDIdleTime` | D-Bus `org.freedesktop.ScreenSaver` |
 
 ## API Reference
 
@@ -57,6 +68,9 @@ All methods are on the `SystemInfo` singleton object.
 | Function | Returns | Description |
 |----------|---------|-------------|
 | `isAvailable()` | `Boolean` | `true` if the native library loaded successfully on this platform. |
+| `batteryInfo()` | `BatteryInfo?` | Battery charge, state, health, and time estimates. `null` if no battery. |
+| `connectivityInfo()` | `ConnectivityInfo?` | Network connectivity and metered status. |
+| `idleTime()` | `Long` | Seconds since last user input. `-1` if unavailable. |
 
 ### OS Info
 
@@ -263,6 +277,96 @@ val prod: ProductInfo? = SystemInfo.product()
 | `version` | `String?` | Product version |
 | `vendorName` | `String?` | System vendor |
 
+### Battery Info
+
+```kotlin
+val battery: BatteryInfo? = SystemInfo.batteryInfo()
+```
+
+Returns `null` when no battery is detected (desktops without a battery) or when the native library is unavailable.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stateOfCharge` | `Float` | Charge level (0.0–1.0) |
+| `state` | `BatteryState` | `Charging`, `Discharging`, `Full`, or `Unknown` |
+| `isPluggedIn` | `Boolean` | Whether the device is connected to external power |
+| `currentCapacity` | `Int` | Current capacity (mWh) |
+| `maxCapacity` | `Int` | Full charge capacity (mWh) |
+| `designCapacity` | `Int` | Original design capacity (mWh) |
+| `cycleCount` | `Int` | Number of charge cycles |
+| `voltage` | `Int` | Current voltage (mV) |
+| `amperage` | `Int` | Current amperage (mA, negative when discharging) |
+| `temperature` | `Float?` | Battery temperature (°C), `null` if unavailable |
+| `health` | `Float` | Battery health (0.0–1.0, `maxCapacity / designCapacity`) |
+| `timeToFull` | `Int?` | Estimated seconds until full, `null` if not charging |
+| `timeToEmpty` | `Int?` | Estimated seconds until empty, `null` if not discharging |
+| `manufacturer` | `String?` | Battery manufacturer |
+| `modelName` | `String?` | Battery model name |
+| `serialNumber` | `String?` | Battery serial number |
+
+`BatteryState` enum:
+
+| Value | Description |
+|-------|-------------|
+| `Charging` | Battery is charging |
+| `Discharging` | Battery is discharging (on battery power) |
+| `Full` | Battery is fully charged and plugged in |
+| `Unknown` | State cannot be determined |
+
+#### Platform details
+
+| Platform | Backend | Notes |
+|----------|---------|-------|
+| **macOS** | IOKit `AppleSmartBattery` | Full telemetry including temperature and time estimates. Returns `null` if `BatteryInstalled` flag is absent. |
+| **Linux** | `/sys/class/power_supply/*/` (sysfs) | Reads `capacity`, `status`, `voltage_now`, `current_now`, etc. Temperature from `temp` if available. |
+| **Windows** | `DeviceIoControl` with `IOCTL_BATTERY_QUERY_INFORMATION` / `IOCTL_BATTERY_STATUS` | Enumerates battery devices via Setup API. Supports multi-battery systems (reports first battery). |
+
+### Connectivity Info
+
+```kotlin
+val connectivity: ConnectivityInfo? = SystemInfo.connectivityInfo()
+```
+
+Returns `null` when the native library is unavailable.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `isConnected` | `Boolean` | Whether any network connection is active |
+| `meteredStatus` | `MeteredStatus` | Whether the connection is metered |
+
+`MeteredStatus` enum:
+
+| Value | Description |
+|-------|-------------|
+| `NOT_AVAILABLE` | Not connected — metered status is irrelevant |
+| `UNKNOWN` | Connected, but metered status cannot be determined |
+| `UNMETERED` | Connected via an unmetered network (Wi-Fi, Ethernet) |
+| `METERED` | Connected via a metered network (cellular, tethered) |
+
+#### Platform details
+
+| Platform | Backend | Notes |
+|----------|---------|-------|
+| **macOS** | `NWPathMonitor` (Network framework) | Detects connectivity and metered status via path flags. |
+| **Linux** | NetworkManager D-Bus (`org.freedesktop.NetworkManager`) | Reads `Connectivity` and `Metered` properties. Falls back to `NOT_AVAILABLE` if NetworkManager is absent. |
+| **Windows** | Network List Manager COM API (`INetworkListManager`) | Uses `NLM_CONNECTIVITY` flags for connectivity and `NLM_INTERNET_CONNECTIVITY` for metered detection. |
+
+### Idle Time
+
+```kotlin
+val idleSeconds: Long = SystemInfo.idleTime()
+```
+
+Returns the number of seconds since the user's last keyboard or mouse input. Returns `-1` if the native library is unavailable or idle time cannot be determined.
+
+#### Platform details
+
+| Platform | Backend | Notes |
+|----------|---------|-------|
+| **macOS** | IOKit `HIDIdleTime` | Reads the `HIDIdleTime` property from the IOKit registry (nanoseconds, converted to seconds). |
+| **Linux** | D-Bus `org.freedesktop.ScreenSaver.GetSessionIdleTime` | Queries the screensaver D-Bus interface. Returns `-1` if the D-Bus service is unavailable. |
+| **Windows** | `GetLastInputInfo` | Computes idle time from the difference between current tick count and last input event. |
+
 ## How It Works
 
 ### Linux
@@ -283,14 +387,17 @@ Each subsystem reads directly from the kernel's virtual filesystems:
 | Users | `getpwent()` |
 | Motherboard | `/sys/devices/virtual/dmi/id/board_*` |
 | Product | `/sys/devices/virtual/dmi/id/product_*` |
+| Battery | `/sys/class/power_supply/*/` (capacity, status, voltage_now, current_now, etc.) |
+| Connectivity | NetworkManager D-Bus (`org.freedesktop.NetworkManager`) |
+| Idle time | D-Bus `org.freedesktop.ScreenSaver.GetSessionIdleTime` |
 
 ### Windows
 
-Uses Win32 APIs (DXGI, WMI, `GetSystemTimes`, `NtQuerySystemInformation`, etc.) via JNI. GPU metrics use NVML when an NVIDIA driver is present.
+Uses Win32 APIs (DXGI, WMI, `GetSystemTimes`, `NtQuerySystemInformation`, `GetLastInputInfo`, etc.) via JNI. GPU metrics use NVML when an NVIDIA driver is present. Battery info via `DeviceIoControl` IOCTL. Connectivity via NLM COM API.
 
 ### macOS
 
-Uses sysctl, IOKit, `host_processor_info`, `proc_listallpids`, and Metal APIs via JNI (Objective-C).
+Uses sysctl, IOKit, `host_processor_info`, `proc_listallpids`, `NWPathMonitor`, and Metal APIs via JNI (Objective-C). Battery info via IOKit `AppleSmartBattery`. Idle time via IOKit `HIDIdleTime`.
 
 ## Native Libraries
 
