@@ -1,0 +1,25 @@
+{
+  "annotationProcessor": {},
+  "jniBridge": {
+    "classes": [
+      {
+        "className": "io.github.kdroidfilter.nucleus.media.control.linux.NativeLinuxBridge",
+        "methods": [
+          { "name": "nativeConfigure", "parameterTypes": ["java.lang.String", "java.lang.String"] },
+          { "name": "nativeSetMetadata", "parameterTypes": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.String", "long"] },
+          { "name": "nativeSetPlaybackState", "parameterTypes": ["int", "long"] },
+          { "name": "nativeSetVolume", "parameterTypes": ["double"] },
+          { "name": "nativeStartListening", "parameterTypes": [] },
+          { "name": "nativeStopListening", "parameterTypes": [] },
+          { "name": "onMediaControlEvent", "parameterTypes": ["java.lang.String"] }
+        ]
+      }
+    ]
+  },
+  "resource": {
+    "includes": [
+      { "pattern": "nucleus/native/linux-x64/libnucleus_media_control_linux.so" },
+      { "pattern": "nucleus/native/linux-aarch64/libnucleus_media_control_linux.so" }
+    ]
+  }
+}

@@ -766,3 +766,19 @@ jobs:
           name: scheduler-linux-${{ matrix.arch }}
           path: scheduler/src/main/resources/nucleus/native/linux-*/
           retention-days: 1
+
+      - name: Build media-control Linux native shared library
+        run: bash media-control/src/main/native/linux/build.sh
+
+      - name: Verify media-control Linux native
+        run: |
+          f="media-control/src/main/resources/nucleus/native/linux-${{ matrix.arch }}/libnucleus_media_control_linux.so"
+          if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+          echo "OK: $f ($(wc -c < "$f") bytes)"
+
+      - name: Upload media-control Linux shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-control-linux-${{ matrix.arch }}
+          path: media-control/src/main/resources/nucleus/native/linux-*/
+          retention-days: 1
