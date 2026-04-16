@@ -45,6 +45,7 @@ import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
 import org.jetbrains.jewel.ui.typography
 import org.jetbrains.skiko.hostOs
+import systeminfodemo.ui.panels.BatteryPanel
 import systeminfodemo.ui.panels.CpuPanel
 import systeminfodemo.ui.panels.DisksPanel
 import systeminfodemo.ui.panels.GpuPanel
@@ -67,6 +68,7 @@ enum class NavItem(
     Disks("Disks"),
     Network("Network"),
     Sensors("Sensors"),
+    Battery("Battery"),
     Processes("Processes"),
     Hardware("Hardware"),
 }
@@ -232,6 +234,26 @@ fun AppContent() {
                 Text("${state.components.size} sensors", fontSize = 11.sp, color = JewelTheme.globalColors.text.info)
             }
 
+            SidebarItem("Battery", currentNav == NavItem.Battery, { currentNav = NavItem.Battery }) {
+                val battery = state.batteryInfo
+                if (battery != null) {
+                    val pct = battery.stateOfCharge * 100f
+                    val color = when {
+                        pct < 20f -> Color(0xFFF75464)
+                        pct < 50f -> Color(0xFFD4A843)
+                        else -> Color(0xFF5AB869)
+                    }
+                    Text(
+                        "%.0f%% — %s".format(pct, battery.state.name),
+                        fontSize = 11.sp,
+                        color = JewelTheme.globalColors.text.info,
+                    )
+                    MiniProgressBar(battery.stateOfCharge, color)
+                } else {
+                    Text("Not available", fontSize = 11.sp, color = JewelTheme.globalColors.text.info)
+                }
+            }
+
             SidebarItem("Processes", currentNav == NavItem.Processes, { currentNav = NavItem.Processes }) {
                 Text("${state.processes.size} running", fontSize = 11.sp, color = JewelTheme.globalColors.text.info)
             }
@@ -285,6 +307,7 @@ private fun PanelContent(
         NavItem.Disks -> DisksPanel(state)
         NavItem.Network -> NetworkPanel(state)
         NavItem.Sensors -> SensorsPanel(state)
+        NavItem.Battery -> BatteryPanel(state)
         NavItem.Processes -> ProcessesPanel(state)
         NavItem.Hardware -> HardwarePanel(state)
     }

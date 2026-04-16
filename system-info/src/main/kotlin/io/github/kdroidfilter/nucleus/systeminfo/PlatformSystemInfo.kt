@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.systeminfo
 
+import io.github.kdroidfilter.nucleus.systeminfo.model.BatteryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
@@ -39,4 +40,6 @@ internal interface PlatformSystemInfo {
     fun process(pid: Long): ProcessInfo?
 
     fun gpus(): List<GpuInfo>
+
+    fun batteryInfo(): BatteryInfo?
 }

@@ -1,6 +1,7 @@
 package io.github.kdroidfilter.nucleus.systeminfo.linux
 
 import io.github.kdroidfilter.nucleus.systeminfo.PlatformSystemInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.BatteryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuInfo
@@ -248,6 +249,8 @@ internal object LinuxSystemInfo : PlatformSystemInfo {
             root = bridge.nativeProcessByPidRoot(pid)?.ifEmpty { null },
         )
     }
+
+    override fun batteryInfo(): BatteryInfo? = null
 
     @Suppress("CyclomaticComplexMethod")
     override fun gpus(): List<GpuInfo> {
