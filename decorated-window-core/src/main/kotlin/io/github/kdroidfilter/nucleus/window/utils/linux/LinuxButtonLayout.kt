@@ -4,8 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.NativeLayoutDirectionBridge
 import java.util.function.Consumer
+
+/**
+ * Returns true if the current desktop session is GNOME.
+ * Used to decide whether to read GNOME GSettings for button layout.
+ */
+private fun isGnomeDesktop(): Boolean = LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.Gnome
 
 /**
  * Represents a titlebar button type from the GNOME `button-layout` GSettings key.
@@ -45,10 +52,14 @@ data class LinuxButtonLayout(
 
         /**
          * Reads the current system button layout (one-shot).
-         * Falls back to [Default] if GSettings is unavailable.
+         * Falls back to [Default] if not on GNOME, GSettings is unavailable,
+         * or returns no buttons.
          */
         fun readSystem(): LinuxButtonLayout =
             try {
+                if (!isGnomeDesktop()) {
+                    return Default
+                }
                 val raw = NativeLayoutDirectionBridge.nativeGetButtonLayout()
                 if (raw != null) parse(raw) else Default
             } catch (_: UnsatisfiedLinkError) {
@@ -108,17 +119,21 @@ data class LinuxButtonLayout(
 /**
  * Singleton that starts the GSettings observer and keeps the button layout
  * up to date. Accessed from `WindowControlArea` to render the correct buttons.
+ * On non-GNOME desktops, the observer is not started and [Default] layout is used.
  */
 internal object LinuxButtonLayoutObserver {
     init {
-        try {
-            NativeLayoutDirectionBridge.nativeStartButtonLayoutObserving()
-        } catch (_: UnsatisfiedLinkError) {
-            // Native lib not available — monitoring won't work, layout stays at initial value
+        if (isGnomeDesktop()) {
+            try {
+                NativeLayoutDirectionBridge.nativeStartButtonLayoutObserving()
+            } catch (_: UnsatisfiedLinkError) {
+                // Native lib not available — monitoring won't work, layout stays at initial value
+            }
         }
     }
 
     fun registerListener(listener: Consumer<String>) {
+        if (!isGnomeDesktop()) return
         NativeLayoutDirectionBridge.registerButtonLayoutListener(listener)
     }
 
