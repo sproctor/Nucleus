@@ -6,6 +6,7 @@ import io.github.kdroidfilter.nucleus.systeminfo.model.BatteryState
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ConnectivityInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.MeteredStatus
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
@@ -252,7 +253,10 @@ internal object LinuxSystemInfo : PlatformSystemInfo {
         )
     }
 
-    override fun idleTime(): Long = -1L
+    override fun idleTime(): Long {
+        if (!bridge.isLoaded) return -1L
+        return bridge.nativeIdleTimeSeconds()
+    }
 
     @Suppress("CyclomaticComplexMethod")
     override fun batteryInfo(): BatteryInfo? {
@@ -348,5 +352,15 @@ internal object LinuxSystemInfo : PlatformSystemInfo {
         }
     }
 
-    override fun connectivityInfo(): ConnectivityInfo? = null
+    override fun connectivityInfo(): ConnectivityInfo? {
+        if (!bridge.isLoaded) return null
+        return ConnectivityInfo(
+            isConnected = bridge.nativeIsNetworkConnected(),
+            meteredStatus = when (bridge.nativeGetMeteredStatus()) {
+                1 -> MeteredStatus.UNMETERED
+                2 -> MeteredStatus.METERED
+                else -> MeteredStatus.UNKNOWN
+            },
+        )
+    }
 }

@@ -1,3 +1,6 @@
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.CompressionLevel
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SigningAlgorithm
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -64,7 +67,7 @@ nucleus.application {
         javaLanguageVersion = 25
         jvmVendor = JvmVendorSpec.BELLSOFT
         imageName = "system-info-demo"
-        march = providers.gradleProperty("nativeMarch").getOrElse("native")
+        march = "compatibility"
         buildArgs.addAll(
             "-H:+AddAllCharsets",
             "-Djava.awt.headless=false",
@@ -73,9 +76,33 @@ nucleus.application {
         )
     }
 
+
     nativeDistributions {
-        packageName = "SystemInfoDemo"
+        compressionLevel = CompressionLevel.Maximum
+        targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb)
+
+        packageName = "SystemInfo"
         packageVersion = "1.0.0"
+        homepage = "https://github.com/kdroidFilter/Nucleus"
+
+        linux {
+            debMaintainer = "KDroidFilter <dev@kdroidfilter.com>"
+        }
+
+        windows {
+            signing {
+                enabled = true
+                certificateFile.set(rootProject.file("example/packaging/KDroidFilter.pfx"))
+                certificatePassword = "ChangeMe-Temp123!"
+                algorithm = SigningAlgorithm.Sha256
+                timestampServer = "http://timestamp.digicert.com"
+            }
+        }
+
+        macOS {
+            bundleID = "io.github.kdroidfilter.systeminfo"
+            dockName = "SystemInfo"
+        }
     }
 }
 
