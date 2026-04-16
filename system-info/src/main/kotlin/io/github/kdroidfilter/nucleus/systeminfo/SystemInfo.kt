@@ -3,7 +3,9 @@ package io.github.kdroidfilter.nucleus.systeminfo
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.systeminfo.linux.LinuxSystemInfo
 import io.github.kdroidfilter.nucleus.systeminfo.macos.MacOsSystemInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.BatteryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.ConnectivityInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
@@ -51,4 +53,10 @@ object SystemInfo {
     fun process(pid: Long): ProcessInfo? = delegate?.process(pid)
 
     fun gpus(): List<GpuInfo> = delegate?.gpus() ?: emptyList()
+
+    fun batteryInfo(): BatteryInfo? = delegate?.batteryInfo()
+
+    fun idleTime(): Long = delegate?.idleTime() ?: -1L
+
+    fun connectivityInfo(): ConnectivityInfo? = delegate?.connectivityInfo()
 }

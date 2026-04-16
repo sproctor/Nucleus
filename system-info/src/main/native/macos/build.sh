@@ -40,6 +40,9 @@ SOURCES=(
     "$SCRIPT_DIR/nucleus_system_info_user.c"
     "$SCRIPT_DIR/nucleus_system_info_hardware.c"
     "$SCRIPT_DIR/nucleus_system_info_gpu.c"
+    "$SCRIPT_DIR/nucleus_system_info_battery.c"
+    "$SCRIPT_DIR/nucleus_system_info_idle.c"
+    "$SCRIPT_DIR/nucleus_system_info_connectivity.c"
 )
 
 COMMON_FLAGS=(
@@ -49,6 +52,7 @@ COMMON_FLAGS=(
     -fvisibility=hidden
     -framework IOKit
     -framework CoreFoundation
+    -framework Network
 )
 
 mkdir -p "$OUT_DIR_ARM64" "$OUT_DIR_X64"

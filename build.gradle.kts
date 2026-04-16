@@ -12,7 +12,8 @@ plugins {
     alias(libs.plugins.versionCheck)
 }
 
-val demoProjects = setOf("example", "jewel-sample", "system-info-demo", "sample-cmp")
+val demoProjects =
+    setOf("example", "jewel-sample", "system-info-demo", "sample-cmp", "scheduler-demo", "service-management-demo")
 
 subprojects {
     if (name !in demoProjects) {
@@ -109,6 +110,7 @@ tasks.register("preMerge") {
     dependsOn(":notification-linux:check")
     dependsOn(":notification-macos:check")
     dependsOn(":launcher-linux:check")
+    dependsOn(":scheduler:check")
     dependsOn(":example:check")
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:validatePlugins"))

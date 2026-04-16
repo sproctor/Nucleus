@@ -935,6 +935,7 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                 packageTask.fileAssociations.set(mac.fileAssociations)
                 packageTask.urlProtocols.set(app.nativeDistributions.protocols)
                 packageTask.macLayeredIcons.set(mac.layeredIconDir)
+                packageTask.macLaunchAgents.set(mac.launchAgents.agents)
             }
         }
     }

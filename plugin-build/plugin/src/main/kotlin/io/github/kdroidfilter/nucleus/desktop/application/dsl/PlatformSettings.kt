@@ -108,6 +108,30 @@ abstract class JvmMacOSPlatformSettings : AbstractMacOSPlatformSettings() {
      */
     var macOsSdkVersion: String? = "26.0"
 
+    /**
+     * Configures launch agent plists to embed in the macOS app bundle
+     * at `Contents/Library/LaunchAgents/`.
+     *
+     * These agents are registered at runtime via `SMAppService.agent(plistName:)`.
+     *
+     * ```kotlin
+     * macOS {
+     *     launchAgents {
+     *         agent("com.myapp.sync") {
+     *             bundleProgram("Contents/MacOS/MyApp")
+     *             arguments("--sync")
+     *             startInterval(900)
+     *         }
+     *     }
+     * }
+     * ```
+     */
+    val launchAgents: LaunchAgentSettings = LaunchAgentSettings()
+
+    fun launchAgents(fn: Action<LaunchAgentSettings>) {
+        fn.execute(launchAgents)
+    }
+
     internal val infoPlistSettings = InfoPlistSettings()
 
     fun infoPlist(fn: Action<InfoPlistSettings>) {

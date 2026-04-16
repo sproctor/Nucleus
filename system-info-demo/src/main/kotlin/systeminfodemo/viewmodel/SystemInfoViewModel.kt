@@ -3,7 +3,9 @@
 package systeminfodemo.viewmodel
 
 import io.github.kdroidfilter.nucleus.systeminfo.SystemInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.BatteryInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.ComponentInfo
+import io.github.kdroidfilter.nucleus.systeminfo.model.ConnectivityInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.CpuGlobalInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.DiskInfo
 import io.github.kdroidfilter.nucleus.systeminfo.model.GpuInfo
@@ -36,6 +38,9 @@ data class SystemInfoState(
     val product: ProductInfo? = null,
     val processes: List<ProcessInfo> = emptyList(),
     val gpus: List<GpuInfo> = emptyList(),
+    val batteryInfo: BatteryInfo? = null,
+    val connectivityInfo: ConnectivityInfo? = null,
+    val idleTime: Long = -1L,
     val cpuHistory: List<Float> = emptyList(),
     val cpuTempHistory: List<Float> = emptyList(),
     val coreTempHistory: Map<Int, List<Float>> = emptyMap(),
@@ -75,6 +80,9 @@ object SystemInfoViewModel {
         val product = SystemInfo.product()
         val procs = SystemInfo.processes()
         val gpus = SystemInfo.gpus()
+        val battery = SystemInfo.batteryInfo()
+        val connectivity = SystemInfo.connectivityInfo()
+        val idleTime = SystemInfo.idleTime()
 
         val current = _state.value
         val cpuHist = (current.cpuHistory + (cpu?.globalCpuUsage ?: 0f)).takeLast(HISTORY_MAX_SIZE)
@@ -123,6 +131,9 @@ object SystemInfoViewModel {
                 product = product,
                 processes = procs,
                 gpus = gpus,
+                batteryInfo = battery,
+                connectivityInfo = connectivity,
+                idleTime = idleTime,
                 cpuHistory = cpuHist,
                 cpuTempHistory = cpuTempHist,
                 coreTempHistory = coreTempHist,

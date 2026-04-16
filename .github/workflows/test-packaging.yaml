@@ -130,6 +130,13 @@ jobs:
           pattern: 'notification-macos*'
           merge-multiple: true
 
+      - name: Download service-management-macos artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: service-management-macos/src/main/resources/nucleus/native/
+          pattern: 'service-management-macos*'
+          merge-multiple: true
+
       - name: Download notification-linux artifacts
         uses: actions/download-artifact@v4
         with:
@@ -184,6 +191,13 @@ jobs:
         with:
           path: system-info/src/main/resources/nucleus/native/
           pattern: 'system-info-*'
+          merge-multiple: true
+
+      - name: Download scheduler artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: scheduler/src/main/resources/nucleus/native/
+          pattern: 'scheduler-*'
           merge-multiple: true
 
       - name: Build packages

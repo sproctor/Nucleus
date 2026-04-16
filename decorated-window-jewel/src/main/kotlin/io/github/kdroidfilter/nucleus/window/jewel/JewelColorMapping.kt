@@ -2,7 +2,6 @@ package io.github.kdroidfilter.nucleus.window.jewel
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
@@ -22,16 +21,11 @@ private val isLinux = Platform.Current == Platform.Linux
 private val isKde =
     isLinux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
 
-@Suppress("MagicNumber")
-private val linuxWindowBorderColor = Color(0x12FFFFFF)
-
 @Composable
 internal fun rememberJewelWindowStyle(): DecoratedWindowStyle {
     val isDark = JewelTheme.isDark
-    // On Linux, blend the Jewel border color with a semi-transparent overlay so the
-    // window frame adapts to both light and dark themes without a jarring white outline.
     val borderColor =
-        if (isLinux) {
+        if (isLinux && isDark) {
             JewelTheme.globalColors.borders.normal
                 .copy(alpha = 0.6f)
         } else {

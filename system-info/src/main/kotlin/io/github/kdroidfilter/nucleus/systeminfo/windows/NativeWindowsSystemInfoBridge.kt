@@ -234,4 +234,43 @@ internal object NativeWindowsSystemInfoBridge {
     @JvmStatic external fun nativeGpuFanSpeeds(): FloatArray?
 
     @JvmStatic external fun nativeGpuPowerDraws(): FloatArray?
+
+    // Battery
+    @JvmStatic external fun nativeBatteryPresent(): Boolean
+
+    @JvmStatic external fun nativeBatteryExternalConnected(): Boolean
+
+    @JvmStatic external fun nativeBatteryIsCharging(): Boolean
+
+    @JvmStatic external fun nativeBatteryFullyCharged(): Boolean
+
+    @JvmStatic external fun nativeBatteryCurrentCapacity(): Int
+
+    @JvmStatic external fun nativeBatteryMaxCapacity(): Int
+
+    @JvmStatic external fun nativeBatteryDesignCapacity(): Int
+
+    @JvmStatic external fun nativeBatteryCycleCount(): Int
+
+    @JvmStatic external fun nativeBatteryVoltage(): Int
+
+    @JvmStatic external fun nativeBatteryAmperage(): Int
+
+    @JvmStatic external fun nativeBatteryTemperature(): Float
+
+    @JvmStatic external fun nativeBatteryTimeRemaining(): Int
+
+    @JvmStatic external fun nativeBatteryManufacturer(): String?
+
+    @JvmStatic external fun nativeBatteryModelName(): String?
+
+    @JvmStatic external fun nativeBatterySerialNumber(): String?
+
+    // Idle time
+    @JvmStatic external fun nativeIdleTimeSeconds(): Long
+
+    // Connectivity
+    @JvmStatic external fun nativeIsNetworkConnected(): Boolean
+
+    @JvmStatic external fun nativeGetMeteredStatus(): Int
 }

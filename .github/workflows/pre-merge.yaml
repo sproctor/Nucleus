@@ -92,6 +92,13 @@ jobs:
           pattern: 'notification-macos*'
           merge-multiple: true
 
+      - name: Download service-management-macos artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: service-management-macos/src/main/resources/nucleus/native/
+          pattern: 'service-management-macos*'
+          merge-multiple: true
+
       - name: Download notification-linux artifacts
         uses: actions/download-artifact@v4
         with:
@@ -148,6 +155,13 @@ jobs:
           pattern: 'system-info-*'
           merge-multiple: true
 
+      - name: Download scheduler artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: scheduler/src/main/resources/nucleus/native/
+          pattern: 'scheduler-*'
+          merge-multiple: true
+
       - name: Verify all natives present
         run: |
           EXPECTED=(
@@ -189,6 +203,8 @@ jobs:
             "taskbar-progress/src/main/resources/nucleus/native/darwin-x64/libnucleus_taskbar_progress.dylib"
             "notification-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_notification.dylib"
             "notification-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_notification.dylib"
+            "service-management-macos/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_service_management.dylib"
+            "service-management-macos/src/main/resources/nucleus/native/darwin-x64/libnucleus_service_management.dylib"
             "notification-linux/src/main/resources/nucleus/native/linux-x64/libnucleus_notification_linux.so"
             "notification-linux/src/main/resources/nucleus/native/linux-aarch64/libnucleus_notification_linux.so"
             "notification-windows/src/main/resources/nucleus/native/win32-x64/nucleus_notification_windows.dll"
@@ -219,6 +235,12 @@ jobs:
             "system-info/src/main/resources/nucleus/native/darwin-x64/libnucleus_system_info.dylib"
             "system-info/src/main/resources/nucleus/native/linux-x64/libnucleus_system_info.so"
             "system-info/src/main/resources/nucleus/native/linux-aarch64/libnucleus_system_info.so"
+            "scheduler/src/main/resources/nucleus/native/win32-x64/nucleus_scheduler.dll"
+            "scheduler/src/main/resources/nucleus/native/win32-aarch64/nucleus_scheduler.dll"
+            "scheduler/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_scheduler.dylib"
+            "scheduler/src/main/resources/nucleus/native/darwin-x64/libnucleus_scheduler.dylib"
+            "scheduler/src/main/resources/nucleus/native/linux-x64/libnucleus_scheduler_linux.so"
+            "scheduler/src/main/resources/nucleus/native/linux-aarch64/libnucleus_scheduler_linux.so"
           )
           MISSING=0
           for f in "${EXPECTED[@]}"; do
