@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.media.control
 
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.media.control.linux.NativeLinuxBridge
@@ -241,7 +242,15 @@ object MediaControlService {
         override fun configure(
             dbusName: String,
             displayName: String,
-        ) = NativeWindowsBridge.nativeConfigure(dbusName, displayName)
+        ) {
+            // Windows needs the same AUMID the Nucleus plugin stamps on the
+            // Start Menu shortcut ("com.app.<packageName>") so SMTC resolves
+            // it to the app icon + display name. For APPX packages the
+            // package manifest provides the identity — pass empty to let
+            // Windows use it instead of overriding.
+            val aumid = if (ExecutableRuntime.isAppX()) "" else NucleusApp.aumid
+            NativeWindowsBridge.nativeConfigure(aumid, displayName)
+        }
 
         override fun setMetadata(
             title: String?,

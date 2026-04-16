@@ -421,34 +421,18 @@ extern "C" {
 
 JNIEXPORT void JNICALL
 Java_io_github_kdroidfilter_nucleus_media_control_windows_NativeWindowsBridge_nativeConfigure(
-    JNIEnv *env, jclass, jstring jDbusName, jstring jDisplayName
+    JNIEnv *env, jclass, jstring jAumid, jstring jDisplayName
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
 
-    // SMTC silently shows nothing if the process has no stable AUMID — a Java
-    // process defaults to the javaw.exe path, which doesn't work. Derive a
-    // stable identifier from the dbusName (reverse-DNS form) or displayName.
-    std::wstring dbus = toWString(env, jDbusName);
+    // First arg is the Windows AUMID (already resolved by the Kotlin side via
+    // NucleusApp.aumid — matches the value stamped by the plugin on the Start
+    // Menu shortcut). Empty for APPX/MSIX: package identity takes over.
+    std::wstring aumid = toWString(env, jAumid);
     std::wstring disp = toWString(env, jDisplayName);
     g_displayName = disp;
 
-    std::wstring aumid;
-    const std::wstring mprisPrefix = L"org.mpris.MediaPlayer2.";
-    if (dbus.rfind(mprisPrefix, 0) == 0) {
-        aumid = dbus.substr(mprisPrefix.length());
-    } else if (!dbus.empty()) {
-        aumid = dbus;
-    } else if (!disp.empty()) {
-        aumid = disp;
-    }
     if (!aumid.empty()) {
-        // Replace invalid chars — AUMIDs must match [A-Za-z0-9.] with segments.
-        for (auto &c : aumid) {
-            if (!((c >= L'A' && c <= L'Z') || (c >= L'a' && c <= L'z') ||
-                  (c >= L'0' && c <= L'9') || c == L'.' || c == L'_' || c == L'-')) {
-                c = L'_';
-            }
-        }
         SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
     }
 
@@ -460,8 +444,7 @@ Java_io_github_kdroidfilter_nucleus_media_control_windows_NativeWindowsBridge_na
 
     // For non-packaged (NSIS/jpackage) installs, patch the existing Start Menu
     // shortcut to carry our AUMID so SMTC can resolve it to the app icon+name.
-    // Safe if the shortcut is missing (APPX/MSIX don't need it — the package
-    // identity already maps the AUMID).
+    // Safe no-op when the shortcut is missing or on APPX (empty aumid skips).
     if (!disp.empty() && !aumid.empty()) {
         patchStartMenuShortcut(disp, aumid);
     }
