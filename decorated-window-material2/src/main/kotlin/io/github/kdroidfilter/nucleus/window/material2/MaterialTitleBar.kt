@@ -1,6 +1,8 @@
 package io.github.kdroidfilter.nucleus.window.material2
 
+import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import io.github.kdroidfilter.nucleus.window.ControlButtonsDirection
@@ -35,6 +37,9 @@ fun DecoratedWindowScope.MaterialTitleBar(
         style = style,
         controlButtonsDirection = controlButtonsDirection,
         backgroundContent = backgroundContent,
-        content = content,
-    )
+    ) { state ->
+        CompositionLocalProvider(LocalContentColor provides style.colors.content) {
+            content(state)
+        }
+    }
 }

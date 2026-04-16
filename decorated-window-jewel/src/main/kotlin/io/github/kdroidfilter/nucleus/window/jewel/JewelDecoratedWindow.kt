@@ -1,6 +1,7 @@
 package io.github.kdroidfilter.nucleus.window.jewel
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.window.WindowState
@@ -10,6 +11,8 @@ import io.github.kdroidfilter.nucleus.window.DecoratedWindowScope
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import org.jetbrains.jewel.foundation.theme.JewelTheme
+
+private const val LUMINANCE_THRESHOLD = 0.5f
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -28,11 +31,14 @@ fun JewelDecoratedWindow(
     titleBarStyle: TitleBarStyle? = null,
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
+    val colorScheme = JewelTheme.globalColors
     val windowStyle = rememberJewelWindowStyle()
     val jewelTitleBarStyle = rememberJewelTitleBarStyle()
 
+    val titleBarIsDark = jewelTitleBarStyle.colors.background.luminance() < LUMINANCE_THRESHOLD
+
     NucleusDecoratedWindowTheme(
-        isDark = JewelTheme.isDark,
+        isDark = titleBarIsDark,
         windowStyle = windowStyle,
         titleBarStyle = titleBarStyle ?: jewelTitleBarStyle,
     ) {
