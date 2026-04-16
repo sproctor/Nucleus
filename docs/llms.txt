@@ -87,13 +87,13 @@ A pre-built demo is available on the [GitHub Releases page](https://github.com/k
 
 ### macOS
     ```bash
-    curl -fsSL https://nucleus.kdroidfilter.com/install.sh | bash
+    curl -fsSL https://nucleusframework.dev/install.sh | bash
     ```
     Detects your architecture (Apple Silicon or Intel), downloads, installs to `/Applications`, and launches.
 
 ### Linux
     ```bash
-    curl -fsSL https://nucleus.kdroidfilter.com/install-linux.sh | bash
+    curl -fsSL https://nucleusframework.dev/install-linux.sh | bash
     ```
     Detects your architecture and package manager, downloads and installs the appropriate `.deb` or `.rpm`.
 
