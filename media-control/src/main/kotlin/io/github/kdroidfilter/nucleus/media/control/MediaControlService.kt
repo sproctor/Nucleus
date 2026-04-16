@@ -1,37 +1,47 @@
 package io.github.kdroidfilter.nucleus.media.control
 
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.media.control.linux.NativeLinuxBridge
+import io.github.kdroidfilter.nucleus.media.control.macos.NativeMacOsBridge
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.swing.SwingUtilities
 
 /**
- * Entry point for OS-level media controls on Linux via MPRIS D-Bus.
+ * Entry point for OS-level media controls.
  *
- * On Windows and macOS, all methods are no-ops and [isAvailable] returns `false`.
+ * Supported backends:
+ *  - Linux: MPRIS D-Bus (`org.mpris.MediaPlayer2.<name>`)
+ *  - macOS: MPNowPlayingInfoCenter + MPRemoteCommandCenter (Control Center / Now Playing)
  *
- * Linux: communicates with the MPRIS D-Bus interface at `org.mpris.MediaPlayer2.<name>`.
- * The D-Bus name defaults to `org.mpris.MediaPlayer2.${NucleusApp.appId}`.
+ * On Windows, all methods are no-ops and [isAvailable] returns `false`.
  *
  * Events dispatched to the callback are delivered on the Swing EDT.
  */
 object MediaControlService {
-
     private val json = Json { ignoreUnknownKeys = true }
 
-    /**
-     * Returns `true` if the native library loaded successfully on Linux.
-     * Always returns `false` on Windows and macOS.
-     */
-    fun isAvailable(): Boolean = NativeLinuxBridge.isLoaded
+    private val backend: Backend =
+        when (Platform.Current) {
+            Platform.Linux -> LinuxBackend.takeIf { it.isLoaded } ?: NoopBackend
+            Platform.MacOS -> MacOsBackend.takeIf { it.isLoaded } ?: NoopBackend
+            else -> NoopBackend
+        }
 
     /**
-     * Configure the MPRIS player identity on D-Bus.
-     * Must be called once before any other method on Linux.
+     * Returns `true` if the native backend loaded successfully on the current OS.
+     * Always returns `false` on Windows and unsupported platforms.
+     */
+    fun isAvailable(): Boolean = backend !== NoopBackend
+
+    /**
+     * Configure the media player identity.
      *
-     * @param dbusName The D-Bus bus name following the MPRIS spec format.
-     *                 Defaults to `org.mpris.MediaPlayer2.${NucleusApp.appId}`.
+     * On Linux, registers the MPRIS D-Bus name (format `org.mpris.MediaPlayer2.<name>`).
+     * On macOS, this is a no-op — identity is derived from the host app bundle.
+     *
+     * @param dbusName The D-Bus bus name (Linux only). Defaults to `org.mpris.MediaPlayer2.${NucleusApp.appId}`.
      * @param displayName The human-readable name shown in the system media center.
      *                    Defaults to [NucleusApp.appName] or `"Nucleus App"`.
      */
@@ -39,8 +49,7 @@ object MediaControlService {
         dbusName: String = "org.mpris.MediaPlayer2.${NucleusApp.appId}",
         displayName: String = NucleusApp.appName ?: "Nucleus App",
     ) {
-        if (!isAvailable()) return
-        NativeLinuxBridge.nativeConfigure(dbusName, displayName)
+        backend.configure(dbusName, displayName)
     }
 
     /**
@@ -48,8 +57,7 @@ object MediaControlService {
      * Call whenever the track changes.
      */
     fun setMetadata(metadata: MediaMetadata) {
-        if (!isAvailable()) return
-        NativeLinuxBridge.nativeSetMetadata(
+        backend.setMetadata(
             title = metadata.title,
             artist = metadata.artist,
             album = metadata.album,
@@ -63,8 +71,7 @@ object MediaControlService {
      * Call on play/pause/stop and periodically during playback to update position.
      */
     fun setPlaybackState(state: MediaPlaybackState) {
-        if (!isAvailable()) return
-        NativeLinuxBridge.nativeSetPlaybackState(
+        backend.setPlaybackState(
             status = state.status.ordinal,
             positionMs = state.positionMs ?: -1L,
         )
@@ -72,11 +79,13 @@ object MediaControlService {
 
     /**
      * Update the player volume shown in the system media center.
+     *
      * @param volume Volume level in the range 0.0–1.0.
+     *
+     * Note: on macOS this is a no-op (no per-app volume channel in Now Playing).
      */
     fun setVolume(volume: Double) {
-        if (!isAvailable()) return
-        NativeLinuxBridge.nativeSetVolume(volume.coerceIn(0.0, 1.0))
+        backend.setVolume(volume.coerceIn(0.0, 1.0))
     }
 
     /**
@@ -84,22 +93,24 @@ object MediaControlService {
      *
      * The callback is dispatched on the Swing EDT — safe to mutate Compose/Swing state directly.
      * Only one listener is active at a time; calling attach replaces any previous listener.
+     *
+     * Events emitted per platform:
+     *  - Linux (MPRIS): Play, Pause, Toggle, Next, Previous, Stop, SeekBy, SetPosition, SetVolume, OpenUri, Raise, Quit
+     *  - macOS (Remote Command Center): Play, Pause, Toggle, Next, Previous, Stop, SetPosition
      */
     fun attach(callback: (MediaControlEvent) -> Unit) {
-        if (!isAvailable()) return
-        NativeLinuxBridge.attach { raw ->
+        backend.attach { raw ->
             val event = parseEvent(raw) ?: return@attach
             SwingUtilities.invokeLater { callback(event) }
         }
     }
 
     /**
-     * Detach the listener and unregister from D-Bus.
+     * Detach the listener and unregister from the platform media center.
      * No further events will be dispatched.
      */
     fun detach() {
-        if (!isAvailable()) return
-        NativeLinuxBridge.detach()
+        backend.detach()
     }
 
     @Serializable
@@ -131,4 +142,123 @@ object MediaControlService {
     }
 
     private const val MICROS_PER_MS = 1000L
+
+    // ---- Backend abstraction ------------------------------------------------
+
+    private interface Backend {
+        val isLoaded: Boolean
+
+        fun configure(
+            dbusName: String,
+            displayName: String,
+        )
+
+        fun setMetadata(
+            title: String?,
+            artist: String?,
+            album: String?,
+            coverUrl: String?,
+            durationMs: Long,
+        )
+
+        fun setPlaybackState(
+            status: Int,
+            positionMs: Long,
+        )
+
+        fun setVolume(volume: Double)
+
+        fun attach(rawCallback: (String) -> Unit)
+
+        fun detach()
+    }
+
+    private object LinuxBackend : Backend {
+        override val isLoaded: Boolean get() = NativeLinuxBridge.isLoaded
+
+        override fun configure(
+            dbusName: String,
+            displayName: String,
+        ) = NativeLinuxBridge.nativeConfigure(dbusName, displayName)
+
+        override fun setMetadata(
+            title: String?,
+            artist: String?,
+            album: String?,
+            coverUrl: String?,
+            durationMs: Long,
+        ) = NativeLinuxBridge.nativeSetMetadata(title, artist, album, coverUrl, durationMs)
+
+        override fun setPlaybackState(
+            status: Int,
+            positionMs: Long,
+        ) = NativeLinuxBridge.nativeSetPlaybackState(status, positionMs)
+
+        override fun setVolume(volume: Double) = NativeLinuxBridge.nativeSetVolume(volume)
+
+        override fun attach(rawCallback: (String) -> Unit) {
+            NativeLinuxBridge.attach(rawCallback)
+        }
+
+        override fun detach() = NativeLinuxBridge.detach()
+    }
+
+    private object MacOsBackend : Backend {
+        override val isLoaded: Boolean get() = NativeMacOsBridge.isLoaded
+
+        override fun configure(
+            dbusName: String,
+            displayName: String,
+        ) = NativeMacOsBridge.nativeConfigure(dbusName, displayName)
+
+        override fun setMetadata(
+            title: String?,
+            artist: String?,
+            album: String?,
+            coverUrl: String?,
+            durationMs: Long,
+        ) = NativeMacOsBridge.nativeSetMetadata(title, artist, album, coverUrl, durationMs)
+
+        override fun setPlaybackState(
+            status: Int,
+            positionMs: Long,
+        ) = NativeMacOsBridge.nativeSetPlaybackState(status, positionMs)
+
+        override fun setVolume(volume: Double) = NativeMacOsBridge.nativeSetVolume(volume)
+
+        override fun attach(rawCallback: (String) -> Unit) {
+            NativeMacOsBridge.attach(rawCallback)
+        }
+
+        override fun detach() = NativeMacOsBridge.detach()
+    }
+
+    @Suppress("EmptyFunctionBlock")
+    private object NoopBackend : Backend {
+        override val isLoaded: Boolean get() = false
+
+        override fun configure(
+            dbusName: String,
+            displayName: String,
+        ) = Unit
+
+        override fun setMetadata(
+            title: String?,
+            artist: String?,
+            album: String?,
+            coverUrl: String?,
+            durationMs: Long,
+        ) = Unit
+
+        override fun setPlaybackState(
+            status: Int,
+            positionMs: Long,
+        ) = Unit
+
+        override fun setVolume(volume: Double) = Unit
+
+        override fun attach(rawCallback: (String) -> Unit) = Unit
+
+        override fun detach() = Unit
+    }
 }

@@ -1,11 +1,11 @@
-package io.github.kdroidfilter.nucleus.media.control.linux
+package io.github.kdroidfilter.nucleus.media.control.macos
 
 import io.github.kdroidfilter.nucleus.core.runtime.NativeLibraryLoader
 
-private const val LIBRARY_NAME = "nucleus_media_control_linux"
+private const val LIBRARY_NAME = "nucleus_media_control_macos"
 
-internal object NativeLinuxBridge {
-    private val loaded = NativeLibraryLoader.load(LIBRARY_NAME, NativeLinuxBridge::class.java)
+internal object NativeMacOsBridge {
+    private val loaded = NativeLibraryLoader.load(LIBRARY_NAME, NativeMacOsBridge::class.java)
     val isLoaded: Boolean get() = loaded
 
     @Volatile
@@ -57,7 +57,7 @@ internal object NativeLinuxBridge {
     external fun nativeStopListening()
 
     // ---- Callback from native -------------------------------------------
-    // Invoked on a native D-Bus thread. The caller is responsible for
+    // Invoked on an internal AppKit queue. The caller is responsible for
     // dispatching to the UI thread if needed.
 
     @JvmStatic

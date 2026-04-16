@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -88,22 +86,51 @@ fun MediaControlScreen() {
             MediaControlService.attach { event ->
                 log("Event received: ${event::class.simpleName}")
                 when (event) {
-                    is MediaControlEvent.Play -> { isPlaying = true; syncToService() }
-                    is MediaControlEvent.Pause -> { isPlaying = false; syncToService() }
-                    is MediaControlEvent.Toggle -> { isPlaying = !isPlaying; syncToService() }
-                    is MediaControlEvent.Next -> { log("Next") }
-                    is MediaControlEvent.Previous -> { log("Previous") }
-                    is MediaControlEvent.Stop -> { isPlaying = false; currentPosition = 0; syncToService() }
-                    is MediaControlEvent.SeekBy -> {
-                        currentPosition = (currentPosition + event.offsetMs)
-                            .coerceIn(0, duration)
+                    is MediaControlEvent.Play -> {
+                        isPlaying = true
                         syncToService()
                     }
-                    is MediaControlEvent.SetPosition -> { currentPosition = event.positionMs; syncToService() }
-                    is MediaControlEvent.SetVolume -> { volume = event.volume }
-                    is MediaControlEvent.OpenUri -> { log("OpenUri: ${event.uri}") }
-                    is MediaControlEvent.Raise -> { log("Raise") }
-                    is MediaControlEvent.Quit -> { log("Quit") }
+                    is MediaControlEvent.Pause -> {
+                        isPlaying = false
+                        syncToService()
+                    }
+                    is MediaControlEvent.Toggle -> {
+                        isPlaying = !isPlaying
+                        syncToService()
+                    }
+                    is MediaControlEvent.Next -> {
+                        log("Next")
+                    }
+                    is MediaControlEvent.Previous -> {
+                        log("Previous")
+                    }
+                    is MediaControlEvent.Stop -> {
+                        isPlaying = false
+                        currentPosition = 0
+                        syncToService()
+                    }
+                    is MediaControlEvent.SeekBy -> {
+                        currentPosition =
+                            (currentPosition + event.offsetMs)
+                                .coerceIn(0, duration)
+                        syncToService()
+                    }
+                    is MediaControlEvent.SetPosition -> {
+                        currentPosition = event.positionMs
+                        syncToService()
+                    }
+                    is MediaControlEvent.SetVolume -> {
+                        volume = event.volume
+                    }
+                    is MediaControlEvent.OpenUri -> {
+                        log("OpenUri: ${event.uri}")
+                    }
+                    is MediaControlEvent.Raise -> {
+                        log("Raise")
+                    }
+                    is MediaControlEvent.Quit -> {
+                        log("Quit")
+                    }
                 }
             }
             configured = true
@@ -125,13 +152,25 @@ fun MediaControlScreen() {
                     .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Media Control (MPRIS)", style = MaterialTheme.typography.headlineSmall)
+            val backendLabel =
+                when (Platform.Current) {
+                    Platform.Linux -> "MPRIS D-Bus"
+                    Platform.MacOS -> "Now Playing / Control Center"
+                    else -> "Unsupported platform"
+                }
+            Text("Media Control — $backendLabel", style = MaterialTheme.typography.headlineSmall)
 
             if (!MediaControlService.isAvailable()) {
-                Text(
-                    "Native library not available. This module only works on Linux with MPRIS-compatible desktop environment.",
-                    color = MaterialTheme.colorScheme.error,
-                )
+                val reason =
+                    when (Platform.Current) {
+                        Platform.Linux ->
+                            "Native library not available. Requires a running D-Bus session and an MPRIS-aware desktop environment."
+                        Platform.MacOS ->
+                            "Native library not available. Requires macOS 10.13.2+."
+                        else ->
+                            "Media controls are only supported on Linux and macOS."
+                    }
+                Text(reason, color = MaterialTheme.colorScheme.error)
                 return@Surface
             }
 
@@ -314,11 +353,16 @@ fun MediaControlScreen() {
 
             // ── Event Log ───────────────────────────────────────────────
             SectionCard("Event Log") {
+                val emptyHint =
+                    when (Platform.Current) {
+                        Platform.Linux ->
+                            "No events yet. Control this player from a media center (e.g., GNOME Settings, KDE Plasma)."
+                        Platform.MacOS ->
+                            "No events yet. Control this player from Control Center or the Now Playing menu bar widget."
+                        else -> "No events yet."
+                    }
                 if (events.isEmpty()) {
-                    Text(
-                        "No events yet. Control this player from a media center (e.g., GNOME Settings, KDE Plasma).",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text(emptyHint, style = MaterialTheme.typography.bodySmall)
                 } else {
                     events.forEachIndexed { index, event ->
                         Text(
@@ -334,11 +378,22 @@ fun MediaControlScreen() {
             }
 
             // ── Hint ─────────────────────────────────────────────────────
-            Text(
-                text = "Tip: Use playerctl metadata in a terminal, or control from your desktop environment's media controls.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            val hint =
+                when (Platform.Current) {
+                    Platform.Linux ->
+                        "Tip: Use `playerctl metadata` in a terminal, or control from your desktop environment's media widget."
+                    Platform.MacOS ->
+                        "Tip: Open Control Center (menu-bar icon) — this app appears as the Now Playing source. " +
+                            "Volume, OpenUri, Raise, Quit and relative Seek are Linux-only on macOS."
+                    else -> ""
+                }
+            if (hint.isNotEmpty()) {
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -568,6 +568,25 @@ jobs:
           path: system-info/src/main/resources/nucleus/native/darwin-*/
           retention-days: 1
 
+      - name: Build media-control macOS dylibs
+        run: bash media-control/src/main/native/macos/build.sh
+
+      - name: Verify media-control macOS natives
+        run: |
+          for f in \
+            media-control/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_media_control_macos.dylib \
+            media-control/src/main/resources/nucleus/native/darwin-x64/libnucleus_media_control_macos.dylib; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload media-control macOS dylibs
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-control-macos
+          path: media-control/src/main/resources/nucleus/native/darwin-*/
+          retention-days: 1
+
   linux:
     runs-on: ${{ matrix.os }}
     strategy:

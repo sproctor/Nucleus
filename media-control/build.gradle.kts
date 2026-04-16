@@ -50,13 +50,36 @@ val buildNativeLinux by tasks.registering(Exec::class) {
     commandLine("bash", "build.sh")
 }
 
+val buildNativeMacos by tasks.registering(Exec::class) {
+    description = "Compiles the Objective-C JNI bridge into macOS dylibs (arm64 + x86_64)"
+    group = "build"
+    val hasPrebuilt =
+        nativeResourceDir
+            .dir("darwin-aarch64")
+            .file("libnucleus_media_control_macos.dylib")
+            .asFile
+            .exists() &&
+            nativeResourceDir
+                .dir("darwin-x64")
+                .file("libnucleus_media_control_macos.dylib")
+                .asFile
+                .exists()
+    enabled = Os.isFamily(Os.FAMILY_MAC) && !hasPrebuilt
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/macos")
+    inputs.dir(nativeDir)
+    outputs.dir(nativeResourceDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
 tasks.processResources {
-    dependsOn(buildNativeLinux)
+    dependsOn(buildNativeLinux, buildNativeMacos)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeLinux)
+        dependsOn(buildNativeLinux, buildNativeMacos)
     }
 }
 

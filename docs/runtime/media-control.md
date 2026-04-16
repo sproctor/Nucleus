@@ -1,12 +1,18 @@
-# Media Control (Linux)
+# Media Control (Linux + macOS)
 
-OS-level media controls (play/pause, next/previous, seek, metadata, volume) via the [MPRIS D-Bus specification](https://specifications.freedesktop.org/mpris-spec/latest/) on Linux. Expose your media player to the system media center — GNOME Shell, KDE Plasma, `playerctl`, `sound indicators`, lock screens — through a single JNI bridge.
+OS-level media controls (play/pause, next/previous, seek, metadata) for your desktop app, exposed through a single cross-platform Kotlin API:
 
-!!! info "Pure D-Bus via GIO"
-    Uses GLib/GIO (`libgio-2.0`) for D-Bus communication — no JNA, no reflection, no Java D-Bus libraries.
+- **Linux** — [MPRIS D-Bus specification](https://specifications.freedesktop.org/mpris-spec/latest/). Integrates with GNOME Shell, KDE Plasma, `playerctl`, sound indicators, lock screens.
+- **macOS** — `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter` (MediaPlayer.framework). Integrates with Control Center, the Now Playing menu-bar widget, and media keys.
 
-!!! warning "Linux only"
-    MPRIS is a freedesktop specification specific to Linux. On Windows and macOS, `MediaControlService.isAvailable()` returns `false` and all methods are safe no-ops. For cross-platform media controls, use platform-specific APIs directly (SMTC on Windows, `MPNowPlayingInfoCenter` on macOS).
+!!! info "Native backends"
+    Linux uses GLib/GIO (`libgio-2.0`) for D-Bus. macOS uses `MediaPlayer.framework` via an Objective-C JNI bridge. No JNA, no reflection, no Java D-Bus libraries.
+
+!!! warning "Windows not yet supported"
+    On Windows, `MediaControlService.isAvailable()` returns `false` and all methods are safe no-ops. Windows SMTC support is tracked as a future enhancement.
+
+!!! note "Platform differences"
+    The events emitted by the OS differ per backend. Linux (MPRIS) can emit every `MediaControlEvent` variant. macOS (Remote Command Center) only emits `Play`, `Pause`, `Toggle`, `Next`, `Previous`, `Stop` and `SetPosition`. `SetVolume`, `OpenUri`, `Raise`, `Quit` and relative `SeekBy` are Linux-only and will never fire on macOS. `MediaControlService.setVolume(…)` is a no-op on macOS (system volume is managed separately from Now Playing).
 
 ## Installation
 
@@ -68,17 +74,17 @@ MediaControlService.detach()
 
 ### `MediaControlService`
 
-Singleton entry point. All methods are safe no-ops on Windows/macOS.
+Singleton entry point. All methods are safe no-ops on Windows and on platforms where the native backend fails to load.
 
 | Property / Method | Returns | Description |
 |---|---|---|
-| `isAvailable()` | `Boolean` | `true` if the native library loaded on Linux. |
-| `configure(dbusName, displayName)` | `Unit` | Configure the MPRIS player identity. Call once before `attach`. |
+| `isAvailable()` | `Boolean` | `true` if the native backend loaded on the current OS (Linux or macOS). |
+| `configure(dbusName, displayName)` | `Unit` | Configure the player identity. On Linux, registers the MPRIS bus name. On macOS, no-op. |
 | `setMetadata(metadata)` | `Unit` | Update the metadata shown by the system media center. |
 | `setPlaybackState(state)` | `Unit` | Update playback status and position. |
-| `setVolume(volume)` | `Unit` | Update the player volume (0.0–1.0). |
+| `setVolume(volume)` | `Unit` | Update the player volume (0.0–1.0). **macOS: no-op.** |
 | `attach(callback)` | `Unit` | Listen for control events from the OS. Replaces any previous listener. |
-| `detach()` | `Unit` | Detach the listener and release D-Bus resources. |
+| `detach()` | `Unit` | Detach the listener and release native resources. |
 
 #### `configure`
 
@@ -89,8 +95,8 @@ fun configure(
 )
 ```
 
-- `dbusName`: full D-Bus bus name following the MPRIS spec format. Each running instance must use a unique suffix.
-- `displayName`: human-readable name shown in system media centers (`Identity` property on the root interface).
+- `dbusName` *(Linux only)*: full D-Bus bus name following the MPRIS spec format. Each running instance must use a unique suffix. Ignored on macOS.
+- `displayName` *(Linux only)*: human-readable name shown in system media centers (MPRIS `Identity` property on the root interface). On macOS, the identity is derived from the host app bundle (`CFBundleName` / `CFBundleIdentifier`).
 
 ---
 
@@ -101,13 +107,16 @@ fun configure(
 | `title` | `String?` | Track title. |
 | `artist` | `String?` | Artist name. |
 | `album` | `String?` | Album name. |
-| `coverUrl` | `String?` | Cover art URL. For local files, use the `file://` scheme. |
+| `coverUrl` | `String?` | Cover art URL. Local files must use the `file://` scheme. Both backends also accept `http(s)://`. |
 | `duration` | `Long?` | Track duration in **milliseconds**. |
 
-Mapped to MPRIS `Metadata` dict — `mpris:trackid`, `mpris:length`, `mpris:artUrl`, `xesam:title`, `xesam:artist`, `xesam:album`. Time values are converted to microseconds internally as required by the spec.
+Backend mapping:
+
+- **Linux** — MPRIS `Metadata` dict: `mpris:trackid`, `mpris:length`, `mpris:artUrl`, `xesam:title`, `xesam:artist`, `xesam:album`. Time values are converted to microseconds internally as required by the spec.
+- **macOS** — `MPNowPlayingInfoCenter.nowPlayingInfo` keys: `MPMediaItemPropertyTitle`, `MPMediaItemPropertyArtist`, `MPMediaItemPropertyAlbumTitle`, `MPMediaItemPropertyPlaybackDuration`, `MPMediaItemPropertyArtwork`. Artwork is loaded asynchronously on a background queue and merged once decoded.
 
 !!! tip "Track changes"
-    Each call to `setMetadata` increments an internal `mpris:trackid`, signalling to listeners that a new track started. Use this on track boundaries rather than on minor metadata updates.
+    Each call to `setMetadata` starts a new track: on Linux it bumps `mpris:trackid`, on macOS it replaces `nowPlayingInfo` entirely (clearing any stale artwork from the previous track). Use it on track boundaries rather than on minor metadata updates.
 
 ---
 
@@ -122,7 +131,10 @@ data class MediaPlaybackState(
 )
 ```
 
-Call `setPlaybackState` whenever playback state changes and periodically during playback to keep the displayed position in sync. Setting a new `positionMs` emits an MPRIS `Seeked` signal, which clients use to resync their progress UI.
+Call `setPlaybackState` whenever playback state changes and periodically during playback to keep the displayed position in sync.
+
+- **Linux** — a new `positionMs` emits an MPRIS `Seeked` signal so clients (applets, lock screens) resync their progress UI.
+- **macOS** — `status` maps to `MPNowPlayingPlaybackState` (Playing/Paused/Stopped) on `MPNowPlayingInfoCenter.defaultCenter`. `positionMs` is written to `MPNowPlayingInfoPropertyElapsedPlaybackTime` (seconds).
 
 ---
 
@@ -130,20 +142,22 @@ Call `setPlaybackState` whenever playback state changes and periodically during 
 
 Sealed hierarchy of events sent by the OS to your app.
 
-| Event | Payload | Triggered by |
-|---|---|---|
-| `Play` | — | Play button, media key, headset "play". |
-| `Pause` | — | Pause button, media key. |
-| `Toggle` | — | MPRIS `PlayPause`, most headset play-pause buttons. |
-| `Next` | — | Next button, media key. |
-| `Previous` | — | Previous button, media key. |
-| `Stop` | — | Stop button. |
-| `SeekBy(offsetMs)` | `Long` (signed, ms) | Scrubbing forward/backward. Negative = backward. |
-| `SetPosition(positionMs)` | `Long` (ms) | User dragged the progress bar. |
-| `SetVolume(volume)` | `Double` (0.0–1.0) | Volume slider in the media center. |
-| `OpenUri(uri)` | `String` | External app requests to open a URI. |
-| `Raise` | — | Request to bring the player window to the front. |
-| `Quit` | — | Request to quit the player. |
+| Event | Payload | Linux (MPRIS) | macOS (RemoteCommand) |
+|---|---|:---:|:---:|
+| `Play` | — | ✅ | ✅ |
+| `Pause` | — | ✅ | ✅ |
+| `Toggle` | — | ✅ | ✅ |
+| `Next` | — | ✅ | ✅ |
+| `Previous` | — | ✅ | ✅ |
+| `Stop` | — | ✅ | ✅ |
+| `SetPosition(positionMs)` | `Long` (ms) | ✅ | ✅ |
+| `SeekBy(offsetMs)` | `Long` (signed, ms) | ✅ | — |
+| `SetVolume(volume)` | `Double` (0.0–1.0) | ✅ | — |
+| `OpenUri(uri)` | `String` | ✅ | — |
+| `Raise` | — | ✅ | — |
+| `Quit` | — | ✅ | — |
+
+macOS-only notes: the Remote Command Center does not expose a per-app volume channel, a relative seek amount, or Raise/Quit/OpenUri commands — those events simply never fire on macOS. Design your callback as an exhaustive `when` anyway: events absent on a given OS are simply ignored.
 
 !!! info "Threading"
     The callback is dispatched on the Swing EDT — safe to mutate Compose/Swing state directly.
@@ -152,16 +166,29 @@ Sealed hierarchy of events sent by the OS to your app.
 
 ## How It Works
 
-`media-control` runs a dedicated thread hosting a `GMainLoop` that owns two D-Bus objects at `/org/mpris/MediaPlayer2`:
+### Linux (MPRIS)
+
+A dedicated thread hosts a `GMainLoop` that owns two D-Bus objects at `/org/mpris/MediaPlayer2`:
 
 - `org.mpris.MediaPlayer2` — root interface with `Identity`, `Raise`, `Quit`.
 - `org.mpris.MediaPlayer2.Player` — playback interface with `Play`, `Pause`, `Seek`, metadata, volume, etc.
 
 State changes pushed via `setMetadata` / `setPlaybackState` / `setVolume` emit MPRIS `PropertiesChanged` signals from the main-loop thread, so clients (media applets, `playerctl`, lock screens) update in real time without polling.
 
+### macOS (MediaPlayer.framework)
+
+- `setMetadata` / `setPlaybackState` mutate `MPNowPlayingInfoCenter.defaultCenter` on the main queue. macOS propagates the change to Control Center and the Now Playing menu-bar widget automatically.
+- `attach` installs block handlers on `MPRemoteCommandCenter.sharedCommandCenter` for `playCommand`, `pauseCommand`, `togglePlayPauseCommand`, `stopCommand`, `nextTrackCommand`, `previousTrackCommand`, and `changePlaybackPositionCommand`. Each handler emits a JSON event to Kotlin via JNI. Targets are retained so `detach` can remove them cleanly.
+- Artwork URLs are decoded asynchronously on a global dispatch queue using `NSImage initWithContentsOfURL:`. A monotonic counter ensures stale artwork (from a previous track) cannot overwrite fresh metadata.
+
+!!! info "Event loop requirement (macOS)"
+    The Remote Command Center only delivers events while the main AppKit run loop is processing — which is the case by default in any Compose Desktop / Swing app. No extra setup is needed.
+
 ---
 
-## Desktop Environment Support
+## System Integration
+
+### Linux
 
 The MPRIS2 specification is supported by most modern Linux desktops:
 
@@ -173,7 +200,7 @@ The MPRIS2 specification is supported by most modern Linux desktops:
 | `sound-theme-freedesktop` indicators | Yes | Yes | — | Yes |
 | Lock screens (GDM, SDDM) | Yes | Yes | — | — |
 
-### Testing from the Terminal
+Testing from the terminal:
 
 ```bash
 # Show current metadata
@@ -188,20 +215,41 @@ playerctl --player=<dbusName> position 60
 dbus-monitor --session "type='signal',interface='org.freedesktop.DBus.Properties'"
 ```
 
+### macOS
+
+| Surface | Metadata | Transport | Seek | Artwork |
+|---|---|---|---|---|
+| Control Center (Now Playing widget, macOS 11+) | Yes | Yes | Yes | Yes |
+| Menu-bar Now Playing icon | Yes | Yes | Yes | Yes |
+| Media keys (F7/F8/F9, headset buttons, Touch Bar) | — | Yes | — | — |
+
+Requirements:
+
+- macOS 10.13.2 or newer (deployment target of the shipped dylib).
+- The app must run with an active AppKit run loop (any Compose Desktop / Swing app does).
+- No entitlements or Info.plist keys are required. `MPNowPlayingInfoCenter` works for both sandboxed and non-sandboxed apps.
+
 ---
 
 ## Native Library
 
-Ships pre-built Linux shared libraries (x86_64 + aarch64). `isAvailable` returns `false` on other platforms.
+Ships pre-built native binaries for Linux (x86_64 + aarch64) and macOS (arm64 + x86_64). `isAvailable` returns `false` on Windows and on platforms where the bundled binary fails to load.
 
-- `libnucleus_media_control_linux.so` — linked against `libgio-2.0` (GLib/GIO)
-- Build requirement: `libglib2.0-dev` (Debian/Ubuntu) or `glib2-devel` (Fedora)
-- One D-Bus service thread per JVM with its own `GMainContext`
+| Platform | Binary | Linked against | Build requirements |
+|---|---|---|---|
+| Linux | `libnucleus_media_control_linux.so` | `libgio-2.0` (GLib/GIO) | `libglib2.0-dev` (Debian/Ubuntu) / `glib2-devel` (Fedora) |
+| macOS | `libnucleus_media_control_macos.dylib` | `Foundation`, `AppKit`, `MediaPlayer` | Xcode Command Line Tools (clang) |
+
+Each JVM hosts a single long-lived background worker: on Linux a dedicated thread with its own `GMainContext`, on macOS GCD blocks dispatched to the main queue.
 
 ## ProGuard
 
 ```proguard
 -keep class io.github.kdroidfilter.nucleus.media.control.linux.NativeLinuxBridge {
+    native <methods>;
+    static ** on*(...);
+}
+-keep class io.github.kdroidfilter.nucleus.media.control.macos.NativeMacOsBridge {
     native <methods>;
     static ** on*(...);
 }

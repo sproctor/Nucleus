@@ -26,16 +26,24 @@ sealed class MediaControlEvent {
      * Request to seek relative to the current position.
      * @property offsetMs Offset in milliseconds. Negative means seek backward.
      */
-    data class SeekBy(val offsetMs: Long) : MediaControlEvent()
+    data class SeekBy(
+        val offsetMs: Long,
+    ) : MediaControlEvent()
 
     /** Request to set the playback position (absolute, in milliseconds). */
-    data class SetPosition(val positionMs: Long) : MediaControlEvent()
+    data class SetPosition(
+        val positionMs: Long,
+    ) : MediaControlEvent()
 
     /** Request to set the volume. The value is in the range 0.0–1.0. */
-    data class SetVolume(val volume: Double) : MediaControlEvent()
+    data class SetVolume(
+        val volume: Double,
+    ) : MediaControlEvent()
 
     /** Request to open a URI. */
-    data class OpenUri(val uri: String) : MediaControlEvent()
+    data class OpenUri(
+        val uri: String,
+    ) : MediaControlEvent()
 
     /** Request to bring the media player's UI to the front. */
     data object Raise : MediaControlEvent()

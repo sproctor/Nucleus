@@ -198,7 +198,7 @@ fun main(args: Array<String>) {
                                 ) {
                                     add("Launcher")
                                 }
-                                if (Platform.Current == Platform.Linux) {
+                                if (Platform.Current != Platform.Windows) {
                                     add("Media Control")
                                 }
                                 add("Hotkeys")
