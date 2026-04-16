@@ -72,15 +72,15 @@ MediaControlService.detach()
 
 ### `MediaControlService`
 
-Singleton entry point. All methods are safe no-ops on Windows and on platforms where the native backend fails to load.
+Singleton entry point. All methods are safe no-ops on platforms where the native backend fails to load.
 
 | Property / Method | Returns | Description |
 |---|---|---|
-| `isAvailable()` | `Boolean` | `true` if the native backend loaded on the current OS (Linux or macOS). |
-| `configure(dbusName, displayName)` | `Unit` | Configure the player identity. On Linux, registers the MPRIS bus name. On macOS, no-op. |
+| `isAvailable()` | `Boolean` | `true` if the native backend loaded on the current OS (Linux, macOS, or Windows). |
+| `configure(dbusName, displayName)` | `Unit` | Configure the player identity. On Linux, registers the MPRIS bus name. On Windows, derives a stable AUMID from the identifier. On macOS, no-op. |
 | `setMetadata(metadata)` | `Unit` | Update the metadata shown by the system media center. |
 | `setPlaybackState(state)` | `Unit` | Update playback status and position. |
-| `setVolume(volume)` | `Unit` | Update the player volume (0.0–1.0). **macOS: no-op.** |
+| `setVolume(volume)` | `Unit` | Update the player volume (0.0–1.0). **macOS / Windows: no-op.** |
 | `attach(callback)` | `Unit` | Listen for control events from the OS. Replaces any previous listener. |
 | `detach()` | `Unit` | Detach the listener and release native resources. |
 
@@ -93,8 +93,8 @@ fun configure(
 )
 ```
 
-- `dbusName` *(Linux only)*: full D-Bus bus name following the MPRIS spec format. Each running instance must use a unique suffix. Ignored on macOS.
-- `displayName` *(Linux only)*: human-readable name shown in system media centers (MPRIS `Identity` property on the root interface). On macOS, the identity is derived from the host app bundle (`CFBundleName` / `CFBundleIdentifier`).
+- `dbusName`: on Linux, the full D-Bus bus name following the MPRIS spec format (each running instance must use a unique suffix). On Windows, the segment after `org.mpris.MediaPlayer2.` is used as the process `AppUserModelID` (sanitized to `[A-Za-z0-9._-]`) — required by SMTC for the media overlay to display anything. Ignored on macOS.
+- `displayName`: on Linux, the human-readable name shown in system media centers (MPRIS `Identity` property). On Windows, used as a fallback AUMID if `dbusName` is empty. On macOS, the identity is derived from the host app bundle (`CFBundleName` / `CFBundleIdentifier`).
 
 ---
 
@@ -112,9 +112,10 @@ Backend mapping:
 
 - **Linux** — MPRIS `Metadata` dict: `mpris:trackid`, `mpris:length`, `mpris:artUrl`, `xesam:title`, `xesam:artist`, `xesam:album`. Time values are converted to microseconds internally as required by the spec.
 - **macOS** — `MPNowPlayingInfoCenter.nowPlayingInfo` keys: `MPMediaItemPropertyTitle`, `MPMediaItemPropertyArtist`, `MPMediaItemPropertyAlbumTitle`, `MPMediaItemPropertyPlaybackDuration`, `MPMediaItemPropertyArtwork`. Artwork is loaded asynchronously on a background queue and merged once decoded.
+- **Windows** — `SystemMediaTransportControlsDisplayUpdater.MusicProperties` (`Title`, `Artist`, `AlbumTitle`) and `Thumbnail` via `RandomAccessStreamReference.CreateFromUri`. Duration is written to `SystemMediaTransportControlsTimelineProperties` (hundreds-of-nanoseconds units). Cover art accepts `http(s)://` and `file://` URIs; Windows fetches them on its own background thread.
 
 !!! tip "Track changes"
-    Each call to `setMetadata` starts a new track: on Linux it bumps `mpris:trackid`, on macOS it replaces `nowPlayingInfo` entirely (clearing any stale artwork from the previous track). Use it on track boundaries rather than on minor metadata updates.
+    Each call to `setMetadata` starts a new track: on Linux it bumps `mpris:trackid`, on macOS it replaces `nowPlayingInfo` entirely (clearing any stale artwork from the previous track), and on Windows it calls `DisplayUpdater.Update()` which publishes the new metadata atomically. Use it on track boundaries rather than on minor metadata updates.
 
 ---
 
@@ -133,6 +134,7 @@ Call `setPlaybackState` whenever playback state changes and periodically during 
 
 - **Linux** — a new `positionMs` emits an MPRIS `Seeked` signal so clients (applets, lock screens) resync their progress UI.
 - **macOS** — `status` maps to `MPNowPlayingPlaybackState` (Playing/Paused/Stopped) on `MPNowPlayingInfoCenter.defaultCenter`. `positionMs` is written to `MPNowPlayingInfoPropertyElapsedPlaybackTime` (seconds).
+- **Windows** — `status` maps to `MediaPlaybackStatus` (Playing/Paused/Stopped) on the SMTC. `positionMs` is written to `SystemMediaTransportControlsTimelineProperties.Position` and published via `UpdateTimelineProperties`. The SMTC media overlay only appears when `status` is `PLAYING` or `PAUSED`.
 
 ---
 
@@ -140,22 +142,22 @@ Call `setPlaybackState` whenever playback state changes and periodically during 
 
 Sealed hierarchy of events sent by the OS to your app.
 
-| Event | Payload | Linux (MPRIS) | macOS (RemoteCommand) |
-|---|---|:---:|:---:|
-| `Play` | — | ✅ | ✅ |
-| `Pause` | — | ✅ | ✅ |
-| `Toggle` | — | ✅ | ✅ |
-| `Next` | — | ✅ | ✅ |
-| `Previous` | — | ✅ | ✅ |
-| `Stop` | — | ✅ | ✅ |
-| `SetPosition(positionMs)` | `Long` (ms) | ✅ | ✅ |
-| `SeekBy(offsetMs)` | `Long` (signed, ms) | ✅ | — |
-| `SetVolume(volume)` | `Double` (0.0–1.0) | ✅ | — |
-| `OpenUri(uri)` | `String` | ✅ | — |
-| `Raise` | — | ✅ | — |
-| `Quit` | — | ✅ | — |
+| Event | Payload | Linux (MPRIS) | macOS (RemoteCommand) | Windows (SMTC) |
+|---|---|:---:|:---:|:---:|
+| `Play` | — | ✅ | ✅ | ✅ |
+| `Pause` | — | ✅ | ✅ | ✅ |
+| `Toggle` | — | ✅ | ✅ | — |
+| `Next` | — | ✅ | ✅ | ✅ |
+| `Previous` | — | ✅ | ✅ | ✅ |
+| `Stop` | — | ✅ | ✅ | ✅ |
+| `SetPosition(positionMs)` | `Long` (ms) | ✅ | ✅ | ✅ |
+| `SeekBy(offsetMs)` | `Long` (signed, ms) | ✅ | — | ✅ (±10 s, fast-forward / rewind) |
+| `SetVolume(volume)` | `Double` (0.0–1.0) | ✅ | — | — |
+| `OpenUri(uri)` | `String` | ✅ | — | — |
+| `Raise` | — | ✅ | — | — |
+| `Quit` | — | ✅ | — | — |
 
-macOS-only notes: the Remote Command Center does not expose a per-app volume channel, a relative seek amount, or Raise/Quit/OpenUri commands — those events simply never fire on macOS. Design your callback as an exhaustive `when` anyway: events absent on a given OS are simply ignored.
+Platform-specific notes: the macOS Remote Command Center does not expose a per-app volume channel, a relative seek amount, or Raise/Quit/OpenUri commands. Windows SMTC exposes `FastForward` / `Rewind` buttons as fixed-step `SeekBy` events (±10 s), but has no `Toggle`, `SetVolume`, `OpenUri`, `Raise`, or `Quit`. Design your callback as an exhaustive `when` anyway: events absent on a given OS are simply ignored.
 
 !!! info "Threading"
     The callback is dispatched on the Swing EDT — safe to mutate Compose/Swing state directly.
@@ -181,6 +183,18 @@ State changes pushed via `setMetadata` / `setPlaybackState` / `setVolume` emit M
 
 !!! info "Event loop requirement (macOS)"
     The Remote Command Center only delivers events while the main AppKit run loop is processing — which is the case by default in any Compose Desktop / Swing app. No extra setup is needed.
+
+### Windows (SystemMediaTransportControls)
+
+SMTC requires a window handle (HWND) and a stable `AppUserModelID`. Since the public API exposes neither, the bridge:
+
+- Creates a hidden top-level helper window (`WS_OVERLAPPEDWINDOW`, 1×1, never shown) on a dedicated background thread that pumps Windows messages.
+- Calls `RoInitialize(RO_INIT_SINGLETHREADED)` on that thread so WinRT events marshal correctly through the STA message pump.
+- Calls `SetCurrentProcessExplicitAppUserModelID` during `configure` — derived from the `dbusName` or `displayName` argument (sanitized to `[A-Za-z0-9._-]`). Without this, SMTC silently refuses to display anything because the process has no stable identity (the default AUMID is the `javaw.exe` path).
+- Binds SMTC to the helper window via `ISystemMediaTransportControlsInterop.GetForWindow`, then subscribes to `ButtonPressed` and `PlaybackPositionChangeRequested` events. Events are forwarded to Kotlin as JSON through a WRL `Callback<ITypedEventHandler>`.
+
+!!! info "No audio session required for display"
+    `DisplayUpdater.Update()` makes the metadata visible in the Windows 10/11 media overlay (the small widget above the volume flyout, Xbox Game Bar, lock screen) as soon as `status` is `PLAYING` or `PAUSED`. An actual audio output stream is not required.
 
 ---
 
@@ -227,18 +241,46 @@ Requirements:
 - The app must run with an active AppKit run loop (any Compose Desktop / Swing app does).
 - No entitlements or Info.plist keys are required. `MPNowPlayingInfoCenter` works for both sandboxed and non-sandboxed apps.
 
+### Windows
+
+| Surface | Metadata | Transport | Seek | Artwork |
+|---|---|---|---|---|
+| Volume flyout media overlay (Windows 10/11) | Yes | Yes | Yes | Yes |
+| Lock screen Now Playing | Yes | Yes | — | Yes |
+| Hardware media keys (Play/Pause/Next/Prev, FF/RW) | — | Yes | ±10 s | — |
+| Xbox Game Bar widget | Yes | Yes | Yes | Yes |
+| SoundBar / headset transport buttons | — | Yes | — | — |
+
+Requirements:
+
+- Windows 10 version 1809 (build 17763) or newer.
+- A stable `AppUserModelID` — set automatically by `configure()` from the `dbusName` or `displayName` argument. For packaged apps (`.msix`/`.appx`) the manifest AUMID is preferred, but the bridge's explicit call is compatible.
+- No audio session or special entitlements required. SMTC works for any JVM desktop app.
+
+Testing from PowerShell:
+
+```powershell
+# List current media sessions (Windows 10+)
+Get-MediaSessionInfo   # or use Windows media overlay (click the small icon above volume)
+
+# Simulate media-key presses
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("^{MEDIA_PLAY_PAUSE}")
+```
+
 ---
 
 ## Native Library
 
-Ships pre-built native binaries for Linux (x86_64 + aarch64) and macOS (arm64 + x86_64). `isAvailable` returns `false` on Windows and on platforms where the bundled binary fails to load.
+Ships pre-built native binaries for Linux (x86_64 + aarch64), macOS (arm64 + x86_64), and Windows (x64 + arm64). `isAvailable` returns `false` on platforms where the bundled binary fails to load.
 
 | Platform | Binary | Linked against | Build requirements |
 |---|---|---|---|
 | Linux | `libnucleus_media_control_linux.so` | `libgio-2.0` (GLib/GIO) | `libglib2.0-dev` (Debian/Ubuntu) / `glib2-devel` (Fedora) |
 | macOS | `libnucleus_media_control_macos.dylib` | `Foundation`, `AppKit`, `MediaPlayer` | Xcode Command Line Tools (clang) |
+| Windows | `nucleus_media_control_windows.dll` | `ole32`, `runtimeobject`, `user32`, `shell32` | MSVC 2019+ with Windows 10 SDK |
 
-Each JVM hosts a single long-lived background worker: on Linux a dedicated thread with its own `GMainContext`, on macOS GCD blocks dispatched to the main queue.
+Each JVM hosts a single long-lived background worker: on Linux a dedicated thread with its own `GMainContext`, on macOS GCD blocks dispatched to the main queue, and on Windows a dedicated STA-initialized thread running a classic `GetMessage` pump.
 
 ## ProGuard
 
@@ -248,6 +290,10 @@ Each JVM hosts a single long-lived background worker: on Linux a dedicated threa
     static ** on*(...);
 }
 -keep class io.github.kdroidfilter.nucleus.media.control.macos.NativeMacOsBridge {
+    native <methods>;
+    static ** on*(...);
+}
+-keep class io.github.kdroidfilter.nucleus.media.control.windows.NativeWindowsBridge {
     native <methods>;
     static ** on*(...);
 }

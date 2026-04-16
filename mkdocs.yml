@@ -98,7 +98,7 @@ nav:
               - Windows: runtime/launcher-windows.md
               - Linux: runtime/launcher-linux.md
           - Media Control:
-              - Linux + macOS: runtime/media-control.md
+              - Linux + macOS + Windows: runtime/media-control.md
           - System:
               - Dark Mode Detector: runtime/darkmode-detector.md
               - System Color: runtime/system-color.md
