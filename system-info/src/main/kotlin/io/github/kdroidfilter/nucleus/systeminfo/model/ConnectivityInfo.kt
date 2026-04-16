@@ -6,6 +6,7 @@ data class ConnectivityInfo(
 )
 
 enum class MeteredStatus {
+    NOT_AVAILABLE,
     UNKNOWN,
     UNMETERED,
     METERED,

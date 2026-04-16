@@ -353,13 +353,17 @@ internal object WindowsSystemInfo : PlatformSystemInfo {
 
     override fun connectivityInfo(): ConnectivityInfo? {
         if (!bridge.isLoaded) return null
-        val metered = bridge.nativeGetMeteredStatus()
+        val connected = bridge.nativeIsNetworkConnected()
         return ConnectivityInfo(
-            isConnected = bridge.nativeIsNetworkConnected(),
-            meteredStatus = when (metered) {
-                1 -> MeteredStatus.UNMETERED
-                2 -> MeteredStatus.METERED
-                else -> MeteredStatus.UNKNOWN
+            isConnected = connected,
+            meteredStatus = if (!connected) {
+                MeteredStatus.NOT_AVAILABLE
+            } else {
+                when (bridge.nativeGetMeteredStatus()) {
+                    1 -> MeteredStatus.UNMETERED
+                    2 -> MeteredStatus.METERED
+                    else -> MeteredStatus.UNKNOWN
+                }
             },
         )
     }

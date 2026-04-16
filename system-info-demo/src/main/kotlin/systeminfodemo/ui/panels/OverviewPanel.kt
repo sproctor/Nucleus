@@ -152,6 +152,7 @@ fun OverviewPanel(state: SystemInfoState) {
                     InfoRow(
                         "Metered",
                         when (conn.meteredStatus) {
+                            MeteredStatus.NOT_AVAILABLE -> "N/A"
                             MeteredStatus.UNMETERED -> "No"
                             MeteredStatus.METERED -> "Yes"
                             MeteredStatus.UNKNOWN -> "Unknown"
