@@ -223,6 +223,31 @@
     native <methods>;
 }
 
+# Nucleus global-hotkey JNI — onHotKey is invoked from native code via JNI
+-keep class io.github.kdroidfilter.nucleus.globalhotkey.windows.NativeWindowsHotKeyBridge {
+    native <methods>;
+    static void onHotKey(long, int, int);
+}
+-keep class io.github.kdroidfilter.nucleus.globalhotkey.macos.NativeMacOsHotKeyBridge {
+    native <methods>;
+    static void onHotKey(long, int, int);
+}
+-keep class io.github.kdroidfilter.nucleus.globalhotkey.linux.NativeLinuxHotKeyBridge {
+    native <methods>;
+    static void onHotKey(long, int, int);
+}
+
+# Nucleus launcher-windows JNI — ThumbBarClickListener.onThumbButtonClick is invoked from native
+-keep class io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsBadgeBridge { native <methods>; }
+-keep class io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsJumpListBridge { native <methods>; }
+-keep class io.github.kdroidfilter.nucleus.launcher.windows.NativeWindowsTaskbarBridge { native <methods>; }
+-keep interface io.github.kdroidfilter.nucleus.launcher.windows.ThumbBarClickListener {
+    void onThumbButtonClick(int);
+}
+-keep class * implements io.github.kdroidfilter.nucleus.launcher.windows.ThumbBarClickListener {
+    void onThumbButtonClick(int);
+}
+
 -dontwarn sun.misc.Unsafe
 -dontwarn sun.awt.**
 
