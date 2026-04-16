@@ -1,18 +1,16 @@
-# Media Control (Linux + macOS)
+# Media Control (Linux + macOS + Windows)
 
 OS-level media controls (play/pause, next/previous, seek, metadata) for your desktop app, exposed through a single cross-platform Kotlin API:
 
 - **Linux** — [MPRIS D-Bus specification](https://specifications.freedesktop.org/mpris-spec/latest/). Integrates with GNOME Shell, KDE Plasma, `playerctl`, sound indicators, lock screens.
 - **macOS** — `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter` (MediaPlayer.framework). Integrates with Control Center, the Now Playing menu-bar widget, and media keys.
+- **Windows** — `SystemMediaTransportControls` (WinRT `Windows.Media`). Integrates with the Windows 10/11 media overlay, SoundBar, lock screen, and hardware media keys.
 
 !!! info "Native backends"
-    Linux uses GLib/GIO (`libgio-2.0`) for D-Bus. macOS uses `MediaPlayer.framework` via an Objective-C JNI bridge. No JNA, no reflection, no Java D-Bus libraries.
-
-!!! warning "Windows not yet supported"
-    On Windows, `MediaControlService.isAvailable()` returns `false` and all methods are safe no-ops. Windows SMTC support is tracked as a future enhancement.
+    Linux uses GLib/GIO (`libgio-2.0`) for D-Bus. macOS uses `MediaPlayer.framework` via an Objective-C JNI bridge. Windows uses WinRT `SystemMediaTransportControls` via a C++/WRL JNI bridge. No JNA, no reflection, no Java D-Bus libraries.
 
 !!! note "Platform differences"
-    The events emitted by the OS differ per backend. Linux (MPRIS) can emit every `MediaControlEvent` variant. macOS (Remote Command Center) only emits `Play`, `Pause`, `Toggle`, `Next`, `Previous`, `Stop` and `SetPosition`. `SetVolume`, `OpenUri`, `Raise`, `Quit` and relative `SeekBy` are Linux-only and will never fire on macOS. `MediaControlService.setVolume(…)` is a no-op on macOS (system volume is managed separately from Now Playing).
+    The events emitted by the OS differ per backend. Linux (MPRIS) can emit every `MediaControlEvent` variant. macOS (Remote Command Center) only emits `Play`, `Pause`, `Toggle`, `Next`, `Previous`, `Stop` and `SetPosition`. Windows (SMTC) emits `Play`, `Pause`, `Next`, `Previous`, `Stop`, `SetPosition` and relative `SeekBy` (fast-forward / rewind, ±10 s). `SetVolume`, `OpenUri`, `Raise` and `Quit` are Linux-only. `MediaControlService.setVolume(…)` is a no-op on macOS and Windows (system volume is managed separately from SMTC / Now Playing).
 
 ## Installation
 

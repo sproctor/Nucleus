@@ -198,9 +198,8 @@ fun main(args: Array<String>) {
                                 ) {
                                     add("Launcher")
                                 }
-                                if (Platform.Current != Platform.Windows) {
-                                    add("Media Control")
-                                }
+                                add("Media Control")
+
                                 add("Hotkeys")
                                 if (Platform.Current == Platform.MacOS) {
                                     add("Menu")

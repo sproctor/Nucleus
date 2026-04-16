@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.media.control.linux.NativeLinuxBridge
 import io.github.kdroidfilter.nucleus.media.control.macos.NativeMacOsBridge
+import io.github.kdroidfilter.nucleus.media.control.windows.NativeWindowsBridge
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.swing.SwingUtilities
@@ -14,8 +15,7 @@ import javax.swing.SwingUtilities
  * Supported backends:
  *  - Linux: MPRIS D-Bus (`org.mpris.MediaPlayer2.<name>`)
  *  - macOS: MPNowPlayingInfoCenter + MPRemoteCommandCenter (Control Center / Now Playing)
- *
- * On Windows, all methods are no-ops and [isAvailable] returns `false`.
+ *  - Windows: System Media Transport Controls (SMTC / WinRT)
  *
  * Events dispatched to the callback are delivered on the Swing EDT.
  */
@@ -26,6 +26,7 @@ object MediaControlService {
         when (Platform.Current) {
             Platform.Linux -> LinuxBackend.takeIf { it.isLoaded } ?: NoopBackend
             Platform.MacOS -> MacOsBackend.takeIf { it.isLoaded } ?: NoopBackend
+            Platform.Windows -> WindowsBackend.takeIf { it.isLoaded } ?: NoopBackend
             else -> NoopBackend
         }
 
@@ -97,6 +98,7 @@ object MediaControlService {
      * Events emitted per platform:
      *  - Linux (MPRIS): Play, Pause, Toggle, Next, Previous, Stop, SeekBy, SetPosition, SetVolume, OpenUri, Raise, Quit
      *  - macOS (Remote Command Center): Play, Pause, Toggle, Next, Previous, Stop, SetPosition
+     *  - Windows (SMTC): Play, Pause, Next, Previous, Stop, SeekBy, SetPosition
      */
     fun attach(callback: (MediaControlEvent) -> Unit) {
         backend.attach { raw ->
@@ -231,6 +233,36 @@ object MediaControlService {
         }
 
         override fun detach() = NativeMacOsBridge.detach()
+    }
+
+    private object WindowsBackend : Backend {
+        override val isLoaded: Boolean get() = NativeWindowsBridge.isLoaded
+
+        override fun configure(
+            dbusName: String,
+            displayName: String,
+        ) = NativeWindowsBridge.nativeConfigure(dbusName, displayName)
+
+        override fun setMetadata(
+            title: String?,
+            artist: String?,
+            album: String?,
+            coverUrl: String?,
+            durationMs: Long,
+        ) = NativeWindowsBridge.nativeSetMetadata(title, artist, album, coverUrl, durationMs)
+
+        override fun setPlaybackState(
+            status: Int,
+            positionMs: Long,
+        ) = NativeWindowsBridge.nativeSetPlaybackState(status, positionMs)
+
+        override fun setVolume(volume: Double) = NativeWindowsBridge.nativeSetVolume(volume)
+
+        override fun attach(rawCallback: (String) -> Unit) {
+            NativeWindowsBridge.attach(rawCallback)
+        }
+
+        override fun detach() = NativeWindowsBridge.detach()
     }
 
     @Suppress("EmptyFunctionBlock")

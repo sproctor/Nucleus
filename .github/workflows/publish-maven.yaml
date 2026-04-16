@@ -245,6 +245,10 @@ jobs:
             "scheduler/src/main/resources/nucleus/native/linux-aarch64/libnucleus_scheduler_linux.so"
             "media-control/src/main/resources/nucleus/native/linux-x64/libnucleus_media_control_linux.so"
             "media-control/src/main/resources/nucleus/native/linux-aarch64/libnucleus_media_control_linux.so"
+            "media-control/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_media_control_macos.dylib"
+            "media-control/src/main/resources/nucleus/native/darwin-x64/libnucleus_media_control_macos.dylib"
+            "media-control/src/main/resources/nucleus/native/win32-x64/nucleus_media_control_windows.dll"
+            "media-control/src/main/resources/nucleus/native/win32-aarch64/nucleus_media_control_windows.dll"
           )
           MISSING=0
           for f in "${EXPECTED[@]}"; do

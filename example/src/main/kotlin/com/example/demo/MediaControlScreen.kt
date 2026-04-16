@@ -156,6 +156,7 @@ fun MediaControlScreen() {
                 when (Platform.Current) {
                     Platform.Linux -> "MPRIS D-Bus"
                     Platform.MacOS -> "Now Playing / Control Center"
+                    Platform.Windows -> "System Media Transport Controls"
                     else -> "Unsupported platform"
                 }
             Text("Media Control — $backendLabel", style = MaterialTheme.typography.headlineSmall)
@@ -167,8 +168,10 @@ fun MediaControlScreen() {
                             "Native library not available. Requires a running D-Bus session and an MPRIS-aware desktop environment."
                         Platform.MacOS ->
                             "Native library not available. Requires macOS 10.13.2+."
+                        Platform.Windows ->
+                            "Native library not available. Requires Windows 10+."
                         else ->
-                            "Media controls are only supported on Linux and macOS."
+                            "Media controls are only supported on Linux, macOS, and Windows."
                     }
                 Text(reason, color = MaterialTheme.colorScheme.error)
                 return@Surface

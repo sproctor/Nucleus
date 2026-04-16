@@ -73,13 +73,31 @@ val buildNativeMacos by tasks.registering(Exec::class) {
     commandLine("bash", "build.sh")
 }
 
+val buildNativeWindows by tasks.registering(Exec::class) {
+    description = "Compiles the C++ JNI bridge into Windows DLLs (x64 + arm64)"
+    group = "build"
+    val hasPrebuilt =
+        nativeResourceDir
+            .dir("win32-x64")
+            .file("nucleus_media_control_windows.dll")
+            .asFile
+            .exists()
+    enabled = Os.isFamily(Os.FAMILY_WINDOWS) && !hasPrebuilt
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/windows")
+    inputs.dir(nativeDir)
+    outputs.dir(nativeResourceDir)
+    workingDir(nativeDir)
+    commandLine("cmd", "/c", "build.bat")
+}
+
 tasks.processResources {
-    dependsOn(buildNativeLinux, buildNativeMacos)
+    dependsOn(buildNativeLinux, buildNativeMacos, buildNativeWindows)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeLinux, buildNativeMacos)
+        dependsOn(buildNativeLinux, buildNativeMacos, buildNativeWindows)
     }
 }
 
@@ -88,7 +106,10 @@ mavenPublishing {
 
     pom {
         name.set("Nucleus Media Control")
-        description.set("OS-level media controls (play/pause, metadata, seek) via MPRIS D-Bus on Linux")
+        description.set(
+            "OS-level media controls (play/pause, metadata, seek) via MPRIS (Linux), " +
+                "MPNowPlayingInfoCenter (macOS), and SMTC (Windows)",
+        )
         url.set("https://github.com/kdroidFilter/Nucleus")
 
         licenses {
