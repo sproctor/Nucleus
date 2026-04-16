@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.scheduler.Constraints
 import io.github.kdroidfilter.nucleus.scheduler.NetworkType
 import io.github.kdroidfilter.nucleus.scheduler.TaskContext
+import io.github.kdroidfilter.nucleus.scheduler.TaskData
 import java.io.File
 import java.util.Properties
 
@@ -52,12 +53,12 @@ internal object TaskMetadataStore {
     fun save(
         appId: String,
         taskId: String,
-        inputData: Map<String, String>,
+        inputData: TaskData,
     ) {
         val file = taskFile(appId, taskId)
         file.parentFile.mkdirs()
         val existing = load(file)
-        inputData.forEach { (k, v) -> existing.setProperty(k, v) }
+        inputData.map.forEach { (k, v) -> existing.setProperty(k, v) }
         file.outputStream().use { existing.store(it, null) }
     }
 
@@ -66,7 +67,7 @@ internal object TaskMetadataStore {
         taskId: String,
     ): TaskContext {
         val props = load(taskFile(appId, taskId))
-        val inputData =
+        val dataMap =
             props
                 .stringPropertyNames()
                 .filter { !it.startsWith("_") }
@@ -74,7 +75,7 @@ internal object TaskMetadataStore {
         val runAttempt = props.getProperty(KEY_RUN_ATTEMPT)?.toIntOrNull() ?: 1
         return TaskContext(
             taskId = taskId,
-            inputData = inputData,
+            inputData = TaskData(dataMap),
             runAttemptCount = runAttempt,
         )
     }

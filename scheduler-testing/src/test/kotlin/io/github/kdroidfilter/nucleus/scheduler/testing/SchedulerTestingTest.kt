@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.scheduler.DesktopTask
 import io.github.kdroidfilter.nucleus.scheduler.DesktopTaskScheduler
 import io.github.kdroidfilter.nucleus.scheduler.ExistingTaskPolicy
 import io.github.kdroidfilter.nucleus.scheduler.TaskContext
+import io.github.kdroidfilter.nucleus.scheduler.TaskData
 import io.github.kdroidfilter.nucleus.scheduler.TaskRegistry
 import io.github.kdroidfilter.nucleus.scheduler.TaskRequest
 import io.github.kdroidfilter.nucleus.scheduler.TaskResult
@@ -38,7 +39,7 @@ class RetryTask : DesktopTask {
 }
 
 class InputEchoTask : DesktopTask {
-    var receivedData: Map<String, String> = emptyMap()
+    var receivedData: TaskData = TaskData.EMPTY
 
     override suspend fun doWork(context: TaskContext): TaskResult {
         receivedData = context.inputData
@@ -79,9 +80,9 @@ class TestTaskRunnerTest {
             val task = InputEchoTask()
             TestTaskRunner.runTask(
                 task = task,
-                inputData = mapOf("key" to "value"),
+                inputData = TaskData.Builder().putString("key", "value").build(),
             )
-            assertEquals(mapOf("key" to "value"), task.receivedData)
+            assertEquals("value", task.receivedData.getString("key"))
         }
 
     @Test
@@ -206,7 +207,7 @@ class TestDesktopTaskSchedulerTest {
 
             val request =
                 TaskRequest.periodic("success", 1.hours) {
-                    inputData("key", "value")
+                    inputData { putString("key", "value") }
                 }
             DesktopTaskScheduler.enqueue(request)
 
@@ -224,12 +225,12 @@ class TestDesktopTaskSchedulerTest {
 
             DesktopTaskScheduler.enqueue(
                 TaskRequest.periodic("success", 1.hours) {
-                    inputData("version", "1")
+                    inputData { putString("version", "1") }
                 },
             )
             DesktopTaskScheduler.enqueue(
                 TaskRequest.periodic("success", 2.hours) {
-                    inputData("version", "2")
+                    inputData { putString("version", "2") }
                 },
             )
 
@@ -246,12 +247,12 @@ class TestDesktopTaskSchedulerTest {
 
             DesktopTaskScheduler.enqueue(
                 TaskRequest.periodic("success", 1.hours) {
-                    inputData("version", "1")
+                    inputData { putString("version", "1") }
                 },
             )
             DesktopTaskScheduler.enqueue(
                 TaskRequest.periodic("success", 2.hours) {
-                    inputData("version", "2")
+                    inputData { putString("version", "2") }
                     existingTaskPolicy(ExistingTaskPolicy.REPLACE)
                 },
             )
@@ -277,14 +278,16 @@ class TestDesktopTaskSchedulerTest {
 
                 DesktopTaskScheduler.enqueue(
                     TaskRequest.periodic("echo", 1.hours) {
-                        inputData("endpoint", "https://test.api")
-                        inputData("token", "abc123")
+                        inputData {
+                            putString("endpoint", "https://test.api")
+                            putString("token", "abc123")
+                        }
                     },
                 )
 
                 scheduler.runTask("echo", customRegistry)
-                assertEquals("https://test.api", task.receivedData["endpoint"])
-                assertEquals("abc123", task.receivedData["token"])
+                assertEquals("https://test.api", task.receivedData.getString("endpoint"))
+                assertEquals("abc123", task.receivedData.getString("token"))
             } finally {
                 scheduler.uninstall()
             }

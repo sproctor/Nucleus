@@ -91,7 +91,7 @@ Repeat at a fixed interval (minimum 15 minutes):
 ```kotlin
 scheduler.enqueue(
     TaskRequest.periodic("backup", 30.minutes) {
-        inputData("target", "/tmp/backup")
+        inputData { putString("target", "/tmp/backup") }
         retryPolicy(RetryPolicy.ExponentialBackoff())
         existingTaskPolicy(ExistingTaskPolicy.REPLACE)
     }
@@ -128,27 +128,36 @@ scheduler.enqueue(TaskRequest.onBoot("login-sync"))
 
 ### Input data
 
-Pass key-value pairs to tasks at enqueue time, then read them in `doWork()`:
+Pass typed key-value pairs to tasks at enqueue time via `TaskData`, then read them with typed accessors in `doWork()`:
 
 ```kotlin
 // Enqueue
 scheduler.enqueue(
     TaskRequest.periodic("sync", 1.hours) {
-        inputData("endpoint", "https://api.example.com")
-        inputData("token", "abc123")
+        inputData {
+            putString("endpoint", "https://api.example.com")
+            putString("token", "abc123")
+            putInt("retries", 3)
+            putBoolean("verbose", false)
+        }
     }
 )
 
 // In the task
 class SyncTask : DesktopTask {
     override suspend fun doWork(context: TaskContext): TaskResult {
-        val endpoint = context.inputData["endpoint"]
-        val token = context.inputData["token"]
+        val endpoint = context.inputData.getString("endpoint")
+            ?: return TaskResult.Failure("missing endpoint")
+        val token = context.inputData.getString("token")
+        val retries = context.inputData.getInt("retries", default = 3)
+        val verbose = context.inputData.getBoolean("verbose")
         // ...
         return TaskResult.Success
     }
 }
 ```
+
+Available typed accessors: `getString`, `getInt`, `getLong`, `getBoolean`, `getDouble`. All accept an optional `default` parameter (except `getString`, which returns `null` when absent).
 
 ### Task results and retry
 
@@ -339,7 +348,7 @@ Builder DSL:
 
 | Method | Description |
 |--------|-------------|
-| `inputData(key, value)` | Attach a key-value pair, retrievable via `TaskContext.inputData`. |
+| `inputData { ... }` | Attach typed key-value pairs via `TaskData.Builder` (see [Input data](#input-data)). |
 | `retryPolicy(policy)` | Set the retry strategy (`ExponentialBackoff` or `Linear`). |
 | `existingTaskPolicy(policy)` | `KEEP` (default) or `REPLACE` if same task ID exists. |
 | `runImmediately(enabled)` | Run the task immediately when scheduled (periodic tasks only). Default: `false`. |
@@ -367,7 +376,7 @@ Builder DSL:
 | Property | Type | Description |
 |----------|------|-------------|
 | `taskId` | `String` | The unique task identifier. |
-| `inputData` | `Map<String, String>` | Key-value pairs from enqueue time. |
+| `inputData` | `TaskData` | Typed key-value data from enqueue time. Use `getString`, `getInt`, `getLong`, `getBoolean`, `getDouble`. |
 | `runAttemptCount` | `Int` | 1-based attempt counter (increments on retry). |
 
 ### `TaskResult`
@@ -475,7 +484,7 @@ dependencies {
 val result = TestTaskRunner.runTask(
     task = SyncTask(),
     taskId = "sync",
-    inputData = mapOf("endpoint" to "https://test.api"),
+    inputData = TaskData.Builder().putString("endpoint", "https://test.api").build(),
     runAttemptCount = 1,
 )
 assertEquals(TaskResult.Success, result)
@@ -598,7 +607,7 @@ constraintChecker.uninstall()
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `runTask(task, taskId?, inputData?, runAttemptCount?)` | `TaskResult` | Calls `doWork()` with a controlled `TaskContext`. |
+| `runTask(task, taskId?, inputData?, runAttemptCount?)` | `TaskResult` | Calls `doWork()` with a controlled `TaskContext`. `inputData` is a `TaskData` instance (default: `TaskData.EMPTY`). |
 
 ### `TestDesktopTaskScheduler`
 

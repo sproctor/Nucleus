@@ -15,8 +15,8 @@ public class TaskRequest private constructor(
     @property:InternalSchedulerApi public val type: Type,
     @property:InternalSchedulerApi public val interval: Duration?,
     @property:InternalSchedulerApi public val cronExpression: CronExpression?,
-    /** Key-value pairs attached at enqueue time, retrievable via [TaskContext.inputData]. */
-    public val inputData: Map<String, String>,
+    /** Typed key-value data attached at enqueue time, retrievable via [TaskContext.inputData]. */
+    public val inputData: TaskData,
     internal val retryPolicy: RetryPolicy?,
     /** Policy for handling a task with the same ID already scheduled. */
     public val existingTaskPolicy: ExistingTaskPolicy,
@@ -31,18 +31,15 @@ public class TaskRequest private constructor(
      * DSL builder for configuring a [TaskRequest].
      */
     public class Builder internal constructor() {
-        internal val data = mutableMapOf<String, String>()
+        internal var taskData: TaskData = TaskData.EMPTY
         internal var retryPolicy: RetryPolicy? = null
         internal var existingTaskPolicy: ExistingTaskPolicy = ExistingTaskPolicy.KEEP
         internal var runImmediately: Boolean = false
         internal var constraints: Constraints = Constraints.NONE
 
-        /** Attach a key-value pair to the task, retrievable via [TaskContext.inputData]. */
-        public fun inputData(
-            key: String,
-            value: String,
-        ) {
-            data[key] = value
+        /** Attach typed key-value pairs to the task, retrievable via [TaskContext.inputData]. */
+        public fun inputData(configure: TaskData.Builder.() -> Unit) {
+            taskData = TaskData.Builder().apply(configure).build()
         }
 
         /** Set the retry policy for this task. */
@@ -107,7 +104,7 @@ public class TaskRequest private constructor(
                 type = Type.PERIODIC,
                 interval = interval,
                 cronExpression = null,
-                inputData = builder.data.toMap(),
+                inputData = builder.taskData,
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,
                 runImmediately = builder.runImmediately,
@@ -134,7 +131,7 @@ public class TaskRequest private constructor(
                 type = Type.CALENDAR,
                 interval = null,
                 cronExpression = expression,
-                inputData = builder.data.toMap(),
+                inputData = builder.taskData,
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,
                 runImmediately = false,
@@ -159,7 +156,7 @@ public class TaskRequest private constructor(
                 type = Type.ON_BOOT,
                 interval = null,
                 cronExpression = null,
-                inputData = builder.data.toMap(),
+                inputData = builder.taskData,
                 retryPolicy = builder.retryPolicy,
                 existingTaskPolicy = builder.existingTaskPolicy,
                 runImmediately = false,

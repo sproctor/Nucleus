@@ -280,8 +280,9 @@ public class TestDesktopTaskScheduler :
         val fires = mutableListOf<PendingFire>()
 
         for ((taskId, request) in tasks) {
-            if (request.type != TaskRequest.Type.PERIODIC || request.interval == null) continue
-            val intervalMs = request.interval.inWholeMilliseconds
+            val interval = request.interval
+            if (request.type != TaskRequest.Type.PERIODIC || interval == null) continue
+            val intervalMs = interval.inWholeMilliseconds
             val baseMs = enqueueTimeMs[taskId] ?: 0L
 
             // Compute the next fire time after current virtualTimeMs
