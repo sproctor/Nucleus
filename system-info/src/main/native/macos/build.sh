@@ -52,6 +52,7 @@ COMMON_FLAGS=(
     -fvisibility=hidden
     -framework IOKit
     -framework CoreFoundation
+    -framework Network
 )
 
 mkdir -p "$OUT_DIR_ARM64" "$OUT_DIR_X64"
