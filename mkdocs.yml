@@ -1,6 +1,6 @@
 site_name: Nucleus
 site_description: Gradle plugin for packaging JVM desktop apps as native installers
-site_url: https://kdroidfilter.github.io/Nucleus
+site_url: https://nucleusframework.dev
 repo_url: https://github.com/kdroidFilter/Nucleus
 repo_name: kdroidFilter/Nucleus
 edit_uri: edit/main/docs/

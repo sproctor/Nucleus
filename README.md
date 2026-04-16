@@ -54,7 +54,7 @@ Java evolved into Kotlin. JavaScript evolved into TypeScript. Desktop developmen
 
 ### Go deeper
 
-- **[Native Access](https://nucleus.kdroidfilter.com/native-access/)** — Write Kotlin/Native, call it from the JVM. No C, no boilerplate.
+- **[Native Access](https://nucleusframework.dev/native-access/)** — Write Kotlin/Native, call it from the JVM. No C, no boilerplate.
 - **30+ runtime modules** — Intuitive Kotlin APIs for every OS integration
 - **CI/CD ready** — Reusable GitHub Actions, 6-runner matrix builds, universal macOS binaries, MSIX bundles
 
@@ -129,7 +129,7 @@ Each module is published independently to Maven Central — use them together or
 
 ## Documentation
 
-Full documentation at **[nucleus.kdroidfilter.com](https://nucleus.kdroidfilter.com/)**.
+Full documentation at **[nucleusframework.dev](https://nucleusframework.dev/)**.
 
 ## License
 

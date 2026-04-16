@@ -23,7 +23,7 @@ Both files are **auto-generated** from the MkDocs documentation pages by the [`s
 Paste the URL directly in your prompt:
 
 ```
-Read https://nucleus.kdroidfilter.com/llms-full.txt and help me configure
+Read https://nucleusframework.dev/llms-full.txt and help me configure
 a Nucleus project with NSIS installer, auto-update, and macOS signing.
 ```
 
@@ -32,7 +32,7 @@ a Nucleus project with NSIS installer, auto-update, and macOS signing.
 Add the URL as a documentation source in your AI-powered IDE, or reference it in your project instructions:
 
 ```
-@doc https://nucleus.kdroidfilter.com/llms-full.txt
+@doc https://nucleusframework.dev/llms-full.txt
 ```
 
 ### Custom Agents / RAG Pipelines
@@ -40,8 +40,8 @@ Add the URL as a documentation source in your AI-powered IDE, or reference it in
 Fetch the files programmatically:
 
 ```bash
-curl -s https://nucleus.kdroidfilter.com/llms.txt       # concise
-curl -s https://nucleus.kdroidfilter.com/llms-full.txt   # complete
+curl -s https://nucleusframework.dev/llms.txt       # concise
+curl -s https://nucleusframework.dev/llms-full.txt   # complete
 ```
 
 ## What's Included
