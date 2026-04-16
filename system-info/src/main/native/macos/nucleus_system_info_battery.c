@@ -67,8 +67,9 @@ Java_io_github_kdroidfilter_nucleus_systeminfo_macos_NativeMacOsSystemInfoBridge
     JNIEnv *env, jclass clazz) {
     CFDictionaryRef props = copy_battery_properties();
     if (!props) return JNI_FALSE;
+    Boolean installed = get_bool(props, CFSTR("BatteryInstalled"));
     CFRelease(props);
-    return JNI_TRUE;
+    return installed ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jboolean JNICALL
