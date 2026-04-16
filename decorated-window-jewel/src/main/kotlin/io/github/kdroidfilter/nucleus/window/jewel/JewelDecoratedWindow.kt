@@ -12,6 +12,8 @@ import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 
+private const val LUMINANCE_THRESHOLD = 0.5f
+
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
 fun JewelDecoratedWindow(
@@ -33,7 +35,7 @@ fun JewelDecoratedWindow(
     val windowStyle = rememberJewelWindowStyle()
     val jewelTitleBarStyle = rememberJewelTitleBarStyle()
 
-    val titleBarIsDark = jewelTitleBarStyle.colors.background.luminance() < 0.5f
+    val titleBarIsDark = jewelTitleBarStyle.colors.background.luminance() < LUMINANCE_THRESHOLD
 
     NucleusDecoratedWindowTheme(
         isDark = titleBarIsDark,
