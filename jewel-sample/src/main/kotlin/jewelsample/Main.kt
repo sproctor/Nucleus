@@ -55,7 +55,7 @@ fun main() {
         val titleBarTheme = if (isTitleBarDark) darkTheme else lightTheme
 
         IntUiTheme(
-            theme = contentTheme,
+            theme = titleBarTheme,
             styling = ComponentStyling.default(),
             swingCompatMode = MainViewModel.swingCompat,
         ) {
@@ -71,19 +71,15 @@ fun main() {
                     processKeyShortcuts(keyEvent = keyEvent, onNavigateTo = MainViewModel::onNavigateTo)
                 },
                 content = {
-                    if (isTitleBarDark != isDark) {
-                        IntUiTheme(
-                            theme = titleBarTheme,
-                            styling = ComponentStyling.default(),
-                            swingCompatMode = MainViewModel.swingCompat,
-                        ) {
-                            TitleBarView()
-                        }
-                    } else {
-                        TitleBarView()
+                    TitleBarView()
+                    IntUiTheme(
+                        theme = contentTheme,
+                        styling = ComponentStyling.default(),
+                        swingCompatMode = MainViewModel.swingCompat,
+                    ) {
+                        @OptIn(ExperimentalJewelApi::class)
+                        ProvideMarkdownStyling { currentView.content() }
                     }
-                    @OptIn(ExperimentalJewelApi::class)
-                    ProvideMarkdownStyling { currentView.content() }
                 },
             )
         }
