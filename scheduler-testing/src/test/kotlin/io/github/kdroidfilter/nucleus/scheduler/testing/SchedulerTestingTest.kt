@@ -303,6 +303,29 @@ class TestDesktopTaskSchedulerTest {
     }
 
     @Test
+    fun `UPDATE_DATA policy refreshes payload without replacing schedule`() {
+        TestDesktopTaskScheduler().use { scheduler ->
+            scheduler.install()
+
+            DesktopTaskScheduler.enqueue(
+                TaskRequest.periodic(SuccessId, 1.hours) {
+                    inputData(Versioned(version = "1"))
+                },
+            )
+            DesktopTaskScheduler.enqueue(
+                TaskRequest.periodic(SuccessId, 1.hours) {
+                    inputData(Versioned(version = "2"))
+                    existingTaskPolicy(ExistingTaskPolicy.UPDATE_DATA)
+                },
+            )
+
+            val stored = scheduler.getEnqueuedRequest(SuccessId)
+            assertNotNull(stored)
+            assertEquals("2", stored.inputData.decode<Versioned>()?.version)
+        }
+    }
+
+    @Test
     fun `input data flows through to runTask`() =
         runBlocking {
             val scheduler = TestDesktopTaskScheduler()

@@ -13,7 +13,7 @@ The `scheduler` module registers background tasks with the OS so they run even w
 | Calendar tasks | Task Scheduler triggers | launchd `StartCalendarInterval` | systemd `OnCalendar=` |
 | On-boot / login tasks | Task Scheduler logon trigger | launchd `RunAtLoad` | systemd `default.target` |
 | Retry scheduling | One-shot task | One-shot launchd agent | One-shot systemd timer |
-| Minimum interval | 15 minutes (enforced by `require`) | 15 minutes (enforced by `require`) | 15 minutes (enforced by `require`) |
+| Minimum interval | 15 minutes ([throws on violation](#periodic-tasks)) | 15 minutes ([throws on violation](#periodic-tasks)) | 15 minutes ([throws on violation](#periodic-tasks)) |
 
 ## Installation
 
@@ -105,7 +105,7 @@ scheduler.enqueue(TaskRequest.onBoot(StartupCheckId))
 
 ### Periodic tasks
 
-Repeat at a fixed interval (minimum 15 minutes):
+Repeat at a fixed interval. The minimum interval is **15 minutes** — passing a smaller `Duration` to `TaskRequest.periodic(...)` throws `IllegalArgumentException` from the factory call (the validation happens when the request is built, not at `enqueue` time):
 
 ```kotlin
 @Serializable
@@ -118,7 +118,26 @@ scheduler.enqueue(
         existingTaskPolicy(ExistingTaskPolicy.REPLACE)
     }
 )
+
+// Throws IllegalArgumentException — the request is never built:
+TaskRequest.periodic(BackupId, 1.minutes)
 ```
+
+#### `runImmediately`
+
+By default, a periodic task waits for the full interval before its first run. Pass `runImmediately()` to fire one extra trigger as soon as the OS registers the task — useful for sync-on-startup-style tasks where you want the user to see fresh data right away rather than after the first interval:
+
+```kotlin
+scheduler.enqueue(
+    TaskRequest.periodic(SyncId, 1.hours) {
+        runImmediately()
+    }
+)
+```
+
+This is implemented natively per platform: `OnActiveSec=0` on systemd, `RunAtLoad=true` on launchd, `startDelay=0` on Windows Task Scheduler. The immediate trigger goes through the same code path as any other firing — it re-launches the app and runs through `DesktopBootReceiver.handle()`, which **does check [constraints](#constraints)** before invoking `doWork()`. If a constraint isn't satisfied at the immediate-trigger moment, the run is skipped exactly like any periodic firing.
+
+`runImmediately` is a no-op for `calendar` and `onBoot` tasks (calendar already fires on absolute times, on-boot already fires at login).
 
 ### Calendar tasks
 
@@ -272,20 +291,39 @@ scheduler.cancelAll()
 
 ### Existing task policy
 
-Control what happens when you enqueue a task ID that's already scheduled:
+Three modes control what happens when `enqueue` is called for a [`TaskId`](#taskid) that is already registered with the OS:
+
+| Policy | OS-level schedule | Persisted `TaskData` / `Constraints` |
+|--------|-------------------|--------------------------------------|
+| `KEEP` (default) | unchanged | unchanged |
+| `UPDATE_DATA` | unchanged | refreshed with the new request |
+| `REPLACE` | torn down and re-created | refreshed with the new request |
+
+`KEEP` is a strict no-op — the new request is ignored entirely. This is the safe default for "ensure this task exists" calls made on every app startup; you can call `enqueue` repeatedly without surprising side effects.
+
+`UPDATE_DATA` keeps the existing trigger in place but pushes a fresh payload (e.g. an updated config) into the metadata file. Use it when only the data changed, not the schedule.
+
+`REPLACE` tears down the OS-level task and re-creates it from the new request. Use it when the schedule itself (interval, cron expression, `runImmediately`) has changed.
 
 ```kotlin
-// Default: keep the existing schedule, just update input data
+// Default: ensure the task exists, but never touch it if it already does
 scheduler.enqueue(TaskRequest.periodic(SyncId, 1.hours))
 
-// Replace: unload the existing task and re-register with new settings
+// Refresh inputData on an existing task without re-creating the schedule
+scheduler.enqueue(
+    TaskRequest.periodic(SyncId, 1.hours) {
+        inputData(SyncInput(endpoint = "https://api.example.com", accountId = "primary"))
+        existingTaskPolicy(ExistingTaskPolicy.UPDATE_DATA)
+    }
+)
+
+// Re-create the task with a new interval
 scheduler.enqueue(
     TaskRequest.periodic(SyncId, 2.hours) {
         existingTaskPolicy(ExistingTaskPolicy.REPLACE)
     }
 )
 ```
-
 ### Constraints
 
 Constraints let you declare conditions that must be met before a task executes — similar to Android's WorkManager constraints. Constraints are checked **at execution time**: the OS still triggers the process on schedule, but `doWork()` is only called when all constraints are satisfied.
@@ -403,8 +441,8 @@ Builder DSL:
 | `inputData(value)` | Attach a `@Serializable` payload (reified inline — type resolved at the call site). |
 | `inputData(value, serializer)` | Attach a `@Serializable` payload with an explicit `KSerializer<T>`. |
 | `retryPolicy(policy)` | Set the retry strategy (`ExponentialBackoff` or `Linear`). |
-| `existingTaskPolicy(policy)` | `KEEP` (default) or `REPLACE` if same task ID exists. |
-| `runImmediately(enabled)` | Run the task immediately when scheduled (periodic tasks only). Default: `false`. |
+| `existingTaskPolicy(policy)` | `KEEP` (default), `UPDATE_DATA`, or `REPLACE` — see [Existing task policy](#existing-task-policy). |
+| `runImmediately(enabled)` | Fire one extra trigger as soon as the OS registers the task (periodic only — see [`runImmediately`](#runimmediately)). Default: `false`. |
 | `constraints { ... }` | Set execution constraints via DSL (see [Constraints](#constraints)). |
 | `constraints(constraints)` | Set a pre-built `Constraints` object. |
 

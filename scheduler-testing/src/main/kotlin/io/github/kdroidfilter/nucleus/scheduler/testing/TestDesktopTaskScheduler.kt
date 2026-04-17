@@ -112,8 +112,18 @@ public class TestDesktopTaskScheduler :
 
     override fun enqueue(request: TaskRequest): Boolean {
         val existing = tasks[request.taskId]
-        if (existing != null && request.existingTaskPolicy == ExistingTaskPolicy.KEEP) {
-            return true
+        if (existing != null) {
+            when (request.existingTaskPolicy) {
+                ExistingTaskPolicy.KEEP -> return true
+                ExistingTaskPolicy.UPDATE_DATA -> {
+                    // Replace the registered TaskRequest so getEnqueuedRequest reflects the new data,
+                    // but preserve the original enqueue time so periodic firing stays aligned with
+                    // the existing schedule.
+                    tasks[request.taskId] = request
+                    return true
+                }
+                ExistingTaskPolicy.REPLACE -> Unit // fall through to full replace
+            }
         }
         tasks[request.taskId] = request
         metadata.getOrPut(request.taskId) { TaskMetadata() }

@@ -58,14 +58,31 @@ internal object LinuxSystemdScheduler : PlatformScheduler {
 
     // -- PlatformScheduler implementation -------------------------------------
 
+    private fun persistMetadata(request: TaskRequest) {
+        if (request.inputData.isNotEmpty()) {
+            TaskMetadataStore.save(appId, request.taskId, request.inputData)
+        }
+        TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
+        if (request.constraints.hasConstraints()) {
+            TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
+        }
+    }
+
     override fun enqueue(request: TaskRequest): Boolean {
         if (!isAvailable) {
             logger.warning("Native library not loaded — task '${request.taskId}' not scheduled")
             return false
         }
 
-        if (request.existingTaskPolicy == ExistingTaskPolicy.KEEP && isScheduled(request.taskId)) {
-            return true
+        if (isScheduled(request.taskId)) {
+            when (request.existingTaskPolicy) {
+                ExistingTaskPolicy.KEEP -> return true
+                ExistingTaskPolicy.UPDATE_DATA -> {
+                    persistMetadata(request)
+                    return true
+                }
+                ExistingTaskPolicy.REPLACE -> Unit // fall through to full re-create
+            }
         }
 
         val execPath = executablePath
@@ -76,14 +93,7 @@ internal object LinuxSystemdScheduler : PlatformScheduler {
 
         systemdUserDir.mkdirs()
 
-        // Save inputData for later retrieval by DesktopBootReceiver
-        if (request.inputData.isNotEmpty()) {
-            TaskMetadataStore.save(appId, request.taskId, request.inputData)
-        }
-        TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
-        if (request.constraints.hasConstraints()) {
-            TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
-        }
+        persistMetadata(request)
 
         // Generate wrapper script
         val serviceFile = File(systemdUserDir, serviceFileName(request.taskId))

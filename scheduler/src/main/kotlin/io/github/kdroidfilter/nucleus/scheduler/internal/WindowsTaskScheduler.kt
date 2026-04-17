@@ -65,13 +65,15 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             return false
         }
 
-        if (request.existingTaskPolicy == ExistingTaskPolicy.KEEP && isScheduled(request.taskId)) {
-            TaskMetadataStore.save(appId, request.taskId, request.inputData)
-            TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
-            if (request.constraints.hasConstraints()) {
-                TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
+        if (isScheduled(request.taskId)) {
+            when (request.existingTaskPolicy) {
+                ExistingTaskPolicy.KEEP -> return true
+                ExistingTaskPolicy.UPDATE_DATA -> {
+                    persistMetadata(request)
+                    return true
+                }
+                ExistingTaskPolicy.REPLACE -> Unit // fall through to full re-create below
             }
-            return true
         }
 
         val execPath = executablePath
@@ -101,12 +103,16 @@ internal object WindowsTaskScheduler : PlatformScheduler {
             return false
         }
 
+        persistMetadata(request)
+        return true
+    }
+
+    private fun persistMetadata(request: TaskRequest) {
         TaskMetadataStore.save(appId, request.taskId, request.inputData)
         TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
         if (request.constraints.hasConstraints()) {
             TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
         }
-        return true
     }
 
     override fun cancel(taskId: TaskId): Boolean {

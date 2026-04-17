@@ -150,14 +150,24 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
 
     // -- PlatformScheduler implementation -------------------------------------
 
+    private fun persistMetadata(request: TaskRequest) {
+        TaskMetadataStore.save(appId, request.taskId, request.inputData)
+        TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
+        if (request.constraints.hasConstraints()) {
+            TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
+        }
+    }
+
     override fun enqueue(request: TaskRequest): Boolean {
-        if (request.existingTaskPolicy == ExistingTaskPolicy.KEEP && isScheduled(request.taskId)) {
-            TaskMetadataStore.save(appId, request.taskId, request.inputData)
-            TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
-            if (request.constraints.hasConstraints()) {
-                TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
+        if (isScheduled(request.taskId)) {
+            when (request.existingTaskPolicy) {
+                ExistingTaskPolicy.KEEP -> return true
+                ExistingTaskPolicy.UPDATE_DATA -> {
+                    persistMetadata(request)
+                    return true
+                }
+                ExistingTaskPolicy.REPLACE -> Unit // fall through to full re-create
             }
-            return true
         }
 
         val execPath = executablePath
@@ -171,11 +181,7 @@ internal object MacOSLaunchdScheduler : PlatformScheduler {
             unloadAndDelete(request.taskId)
         }
 
-        TaskMetadataStore.save(appId, request.taskId, request.inputData)
-        TaskMetadataStore.saveTaskType(appId, request.taskId, request.type.name)
-        if (request.constraints.hasConstraints()) {
-            TaskMetadataStore.saveConstraints(appId, request.taskId, request.constraints)
-        }
+        persistMetadata(request)
 
         return if (useNative) {
             enqueueNative(request, execPath)
