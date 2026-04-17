@@ -753,6 +753,7 @@ Everything from the official plugin works unchanged:
 - [Service Management (macOS)](https://nucleus.kdroidfilter.com/runtime/service-management-macos/)
 - [Native SSL](https://nucleus.kdroidfilter.com/runtime/native-ssl/)
 - [Native HTTP](https://nucleus.kdroidfilter.com/runtime/native-http/)
+- [Packaging](https://nucleus.kdroidfilter.com/comparison/packaging/)
 - [Migration from org.jetbrains.compose](https://nucleus.kdroidfilter.com/migration/)
 
 ## Full LLM Documentation
