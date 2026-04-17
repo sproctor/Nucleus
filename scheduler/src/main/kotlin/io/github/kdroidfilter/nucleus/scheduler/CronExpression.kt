@@ -57,7 +57,9 @@ public class CronExpression private constructor(
             CronExpression("Mon..Fri *-*-* ${time.toCalendarSuffix()}")
 
         /**
-         * Every hour at minute 0.
+         * Fires at the wall-clock top of every hour (00:00, 01:00, …, 23:00) — **not**
+         * "1 hour after enqueue". For a fixed-interval cadence relative to enqueue time,
+         * use `TaskRequest.periodic(id, 1.hours)` instead.
          *
          * Example: `everyHour()` → `*-*-* *:00:00`
          */

@@ -13,7 +13,16 @@ The `scheduler` module registers background tasks with the OS so they run even w
 | Calendar tasks | Task Scheduler triggers | launchd `StartCalendarInterval` | systemd `OnCalendar=` |
 | On-boot / login tasks | Task Scheduler logon trigger | launchd `RunAtLoad` | systemd `default.target` |
 | Retry scheduling | One-shot task | One-shot launchd agent | One-shot systemd timer |
-| Minimum interval | 15 minutes ([throws on violation](#minimum-interval)) | 15 minutes ([throws on violation](#minimum-interval)) | 15 minutes ([throws on violation](#minimum-interval)) |
+| Minimum interval[^min-interval] | 15 minutes | 15 minutes | 15 minutes |
+
+[^min-interval]: Enforced at request construction — see [Minimum interval](#minimum-interval) for the exact `IllegalArgumentException` behavior.
+
+### Orphan cleanup after uninstall
+
+Users uninstall apps without thinking about background scheduled tasks. Without explicit cleanup, the OS would keep firing schedules pointing to a missing executable forever. Nucleus handles this differently per platform:
+
+- **Linux** and **Windows** — the scheduler does *not* register the application binary directly. It writes a tiny wrapper script (`<taskId>.sh` in `nucleus/scheduler/<appId>/scripts/` on Linux, `<taskId>.vbs` in `%LOCALAPPDATA%\nucleus\scheduler\<appId>\scripts\` on Windows) and registers *that* with systemd / Task Scheduler. The wrapper checks whether the application binary still exists before invoking it. If it's gone, the wrapper **self-destructs**: it disables and deletes the systemd `.timer` / `.service` units (Linux) or removes the COM tasks under `\Nucleus\<appId>\` (Windows) via the same Schedule.Service API used to create them, deletes the persisted metadata, and finally removes itself. Net result: the next time the OS triggers a task whose app has been uninstalled, the schedule cleans itself up and stops firing.
+- **macOS** — handled by launchd itself: when an agent's `ProgramArguments` points to a binary that no longer exists, launchd fails the load, logs the error and stops trying. The orphaned `.plist` in `~/Library/LaunchAgents/` is harmless and gets reclaimed when the user removes the app's Application Support directory; if you ship an uninstaller, have it call `launchctl bootout`.
 
 ## Installation
 
@@ -459,7 +468,7 @@ All factory methods take a `java.time.LocalTime` for the time-of-day component.
 | `everyDayAt(time)` | `*-*-* HH:MM:00` | Every day at the given time. |
 | `everyWeekdayAt(time)` | `Mon..Fri *-*-* HH:MM:00` | Monday through Friday. |
 | `everyWeekdayAt(day, time)` | `Mon *-*-* HH:MM:00` | Specific day of the week. |
-| `everyHour()` | `*-*-* *:00:00` | Every hour at minute 0. |
+| `everyHour()` | `*-*-* *:00:00` | Wall-clock top of each hour (00:00, 01:00, 02:00, …). **Not** "1 hour after enqueue" — for a fixed delay since enqueue, use `TaskRequest.periodic(id, 1.hours)`. |
 
 ### `DesktopTask`
 
@@ -573,13 +582,6 @@ Task input data and run history are persisted per-platform:
 | Windows | `%LOCALAPPDATA%\nucleus\scheduler\<appId>\` |
 
 Each task gets a single `<taskId>.properties` file. The serialized input payload is stored as a JSON string under the reserved `_inputDataJson` key, the typed `LastTaskResult` is stored as JSON under `_lastResult`, alongside run-count, attempt count, timestamps and other internal bookkeeping keys (all prefixed with `_`).
-
-### Orphan cleanup after uninstall
-
-Users uninstall apps without thinking about background scheduled tasks. Without explicit cleanup, the OS will keep firing schedules that point to a missing executable forever. Nucleus handles this differently per platform:
-
-- **Linux** and **Windows** — the scheduler does *not* register the application binary directly. It writes a tiny wrapper script (`<taskId>.sh` in `nucleus/scheduler/<appId>/scripts/` on Linux, `<taskId>.vbs` in `%LOCALAPPDATA%\nucleus\scheduler\<appId>\scripts\` on Windows) and registers *that* with systemd / Task Scheduler. The wrapper checks whether the application binary still exists before invoking it. If it's gone, the wrapper **self-destructs**: it disables and deletes the systemd `.timer` / `.service` units (Linux) or removes the COM tasks under `\Nucleus\<appId>\` (Windows) via the same Schedule.Service API used to create them, deletes the persisted metadata, and finally removes itself. Net result: the next time the OS triggers a task whose app has been uninstalled, the schedule cleans itself up and stops firing.
-- **macOS** — handled by launchd itself: when an agent's `ProgramArguments` points to a binary that no longer exists, launchd fails the load, logs the error and stops trying. The orphaned `.plist` in `~/Library/LaunchAgents/` is harmless and gets reclaimed when the user removes the app's Application Support directory; if you ship an uninstaller, have it call `launchctl bootout`.
 
 ### Platform details
 
