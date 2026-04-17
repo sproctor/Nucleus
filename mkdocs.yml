@@ -117,6 +117,9 @@ nav:
               - Native HTTP: runtime/native-http.md
   - Comparison:
       - Packaging: comparison/packaging.md
+  - Ecosystem:
+      - File Dialog: ecosystem/file-dialog.md
+      - Spell Check: ecosystem/spell-check.md
   - Migration: migration.md
   - Changelog: changelog.md
   - LLM Documentation: llm.md
