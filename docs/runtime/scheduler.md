@@ -571,6 +571,34 @@ When a task fires, the OS re-launches your application binary with arguments:
 
 `DesktopBootReceiver.isSchedulerInvocation()` detects these arguments and `handle()` resolves the task from the registry, loads its context from the metadata store, checks any [constraints](#constraints) against the current system state, and — if all constraints are satisfied — calls `doWork()`. If the raw string from the command line does not match the `TaskId` regex, the invocation is rejected before any task lookup.
 
+```mermaid
+flowchart TD
+    Trigger([OS scheduler fires<br/>systemd / launchd / Task Scheduler])
+
+    Trigger -->|Linux / Windows| Wrapper{Wrapper script:<br/>app binary still exists?}
+    Trigger -->|macOS| Binary
+
+    Wrapper -- no --> SelfDestruct["Self-destruct:<br/>unregister timer/task<br/>+ delete metadata + script"]
+    Wrapper -- yes --> Binary
+
+    Binary["App binary launches with<br/>--nucleus-scheduler-run &lt;taskId&gt;"]
+    Binary --> CheckArg{isSchedulerInvocation args?}
+    CheckArg -- false --> NormalUI[Normal UI startup]
+    CheckArg -- true --> ParseId{Valid TaskId regex?}
+
+    ParseId -- no --> Reject[log warning + exit]
+    ParseId -- yes --> LoadCtx["Load TaskContext +<br/>Constraints from metadata"]
+
+    LoadCtx --> ConstraintCheck{All constraints<br/>satisfied?}
+    ConstraintCheck -- no --> RecordSkip["record ConstraintsNotMet<br/>(calendar/onBoot also schedule retry)"]
+    ConstraintCheck -- yes --> DoWork["task.doWork(context)"]
+
+    DoWork --> Result{TaskResult}
+    Result -- Success --> RecSuccess[recordSuccess]
+    Result -- Failure --> RecFail[recordFailure]
+    Result -- Retry --> RecRetry["recordRetry +<br/>scheduleRetry"]
+```
+
 ### Metadata storage
 
 Task input data and run history are persisted per-platform:
