@@ -41,27 +41,31 @@ import kotlin.time.Duration
  * }
  * ```
  */
+@InternalSchedulerApi
+internal object AllSatisfiedConstraintChecker : ConstraintChecker {
+    override fun check(constraints: Constraints): ConstraintResult =
+        ConstraintResult(satisfied = true, unsatisfied = emptySet())
+}
+
 @OptIn(InternalSchedulerApi::class)
-public class TestDesktopTaskScheduler :
-    PlatformScheduler,
+public class TestDesktopTaskScheduler(
+    /**
+     * Optional constraint checker used to simulate constraint failures.
+     *
+     * When non-null, its lifecycle (install / uninstall on `DesktopBootReceiver`) is
+     * co-managed with this scheduler — calling [install] / [close] also installs and
+     * uninstalls the checker. When null, all constraints are treated as satisfied.
+     */
+    public val constraintChecker: TestConstraintChecker? = null,
+) : PlatformScheduler,
     Closeable {
+    private val internalChecker: ConstraintChecker =
+        constraintChecker ?: AllSatisfiedConstraintChecker
     private val tasks = mutableMapOf<TaskId, TaskRequest>()
     private val metadata = mutableMapOf<TaskId, TaskMetadata>()
     private val executionHistories = mutableMapOf<TaskId, MutableList<ExecutionRecord>>()
     private var virtualTimeMs: Long = 0L
     private val enqueueTimeMs = mutableMapOf<TaskId, Long>()
-
-    /**
-     * Constraint checker used to evaluate task constraints before execution.
-     *
-     * Defaults to an all-satisfied checker. Set a [TestConstraintChecker] to
-     * simulate constraint failures.
-     */
-    public var constraintChecker: ConstraintChecker =
-        object : ConstraintChecker {
-            override fun check(constraints: Constraints): ConstraintResult =
-                ConstraintResult(satisfied = true, unsatisfied = emptySet())
-        }
 
     private data class TaskMetadata(
         var runCount: Int = 0,
@@ -71,16 +75,17 @@ public class TestDesktopTaskScheduler :
     )
 
     /**
-     * A recorded task execution.
+     * A recorded task execution or skip.
      *
-     * @property taskId the task that was executed
-     * @property result the outcome of `doWork()`
+     * @property taskId the task that fired
+     * @property result the outcome — `Success`, `Failure`, `Retry` (if `doWork()` ran) or
+     *   `ConstraintsNotMet` (if execution was skipped before `doWork()`)
      * @property runAttemptCount the attempt number at the time of execution (1-based)
-     * @property virtualTimeMs the virtual time at which the execution occurred
+     * @property virtualTimeMs the virtual time at which the firing occurred
      */
     public data class ExecutionRecord(
         public val taskId: TaskId,
-        public val result: TaskResult,
+        public val result: LastTaskResult,
         public val runAttemptCount: Int,
         public val virtualTimeMs: Long,
     )
@@ -91,16 +96,21 @@ public class TestDesktopTaskScheduler :
      * Installs this test scheduler as the active backend for [DesktopTaskScheduler].
      *
      * After calling this, all calls to `DesktopTaskScheduler.enqueue()`, `.cancel()`, etc.
-     * are routed to this in-memory implementation.
+     * are routed to this in-memory implementation. If [constraintChecker] is a
+     * [TestConstraintChecker], it is installed on `DesktopBootReceiver` as well so the
+     * production constraint-checking code path also routes through it.
      */
     public fun install() {
         DesktopTaskScheduler.setTestDelegate(this)
+        constraintChecker?.install()
     }
 
     /**
-     * Restores the platform-default scheduler backend.
+     * Restores the platform-default scheduler backend (and constraint checker, if a
+     * [TestConstraintChecker] was installed by [install]).
      */
     public fun uninstall() {
+        constraintChecker?.uninstall()
         DesktopTaskScheduler.resetDelegate()
     }
 
@@ -169,8 +179,12 @@ public class TestDesktopTaskScheduler :
      * Immediately executes the task identified by [taskId] using the given [registry].
      *
      * If the task has [Constraints] and the [constraintChecker] reports them as unsatisfied,
-     * the task is **not** executed. For periodic tasks this returns `null` (silent skip).
-     * For calendar/on-boot tasks this returns [TaskResult.Retry].
+     * `doWork()` is **not** invoked: an [ExecutionRecord] with
+     * [LastTaskResult.ConstraintsNotMet] is appended to the history and this method returns
+     * `null`. Calendar / on-boot tasks additionally bump the attempt counter (matching the
+     * production retry semantics in `DesktopBootReceiver`).
+     *
+     * Otherwise the return value is the [TaskResult] produced by `doWork()`.
      *
      * @throws IllegalStateException if the task is not enqueued
      * @throws io.github.kdroidfilter.nucleus.scheduler.TaskNotFoundException if [taskId] is not in [registry]
@@ -186,28 +200,23 @@ public class TestDesktopTaskScheduler :
 
         // Check constraints before executing
         if (request.constraints.hasConstraints()) {
-            val checkResult = constraintChecker.check(request.constraints)
+            val checkResult = internalChecker.check(request.constraints)
             if (!checkResult.satisfied) {
-                val isPeriodic = request.type == TaskRequest.Type.PERIODIC
-                if (isPeriodic) {
-                    meta.lastRunMs = virtualTimeMs
-                    meta.lastResult = LastTaskResult.ConstraintsNotMet(checkResult.unsatisfied)
-                    return null
-                } else {
-                    val retryResult = TaskResult.Retry("Constraints not met: ${checkResult.unsatisfied}")
-                    val record =
-                        ExecutionRecord(
-                            taskId = taskId,
-                            result = retryResult,
-                            runAttemptCount = meta.runAttemptCount,
-                            virtualTimeMs = virtualTimeMs,
-                        )
-                    executionHistories.getOrPut(taskId) { mutableListOf() }.add(record)
+                val skip = LastTaskResult.ConstraintsNotMet(checkResult.unsatisfied)
+                executionHistories.getOrPut(taskId) { mutableListOf() }.add(
+                    ExecutionRecord(
+                        taskId = taskId,
+                        result = skip,
+                        runAttemptCount = meta.runAttemptCount,
+                        virtualTimeMs = virtualTimeMs,
+                    ),
+                )
+                if (request.type != TaskRequest.Type.PERIODIC) {
                     meta.runAttemptCount++
-                    meta.lastRunMs = virtualTimeMs
-                    meta.lastResult = LastTaskResult.ConstraintsNotMet(checkResult.unsatisfied)
-                    return retryResult
                 }
+                meta.lastRunMs = virtualTimeMs
+                meta.lastResult = skip
+                return null
             }
         }
 
@@ -221,33 +230,32 @@ public class TestDesktopTaskScheduler :
         val task = registry.create(taskId)
         val result = task.doWork(context)
 
-        val record =
+        val typedResult: LastTaskResult =
+            when (result) {
+                is TaskResult.Success -> LastTaskResult.Success
+                is TaskResult.Retry -> LastTaskResult.Retry(result.message)
+                is TaskResult.Failure -> LastTaskResult.Failure(result.message)
+            }
+
+        executionHistories.getOrPut(taskId) { mutableListOf() }.add(
             ExecutionRecord(
                 taskId = taskId,
-                result = result,
+                result = typedResult,
                 runAttemptCount = meta.runAttemptCount,
                 virtualTimeMs = virtualTimeMs,
-            )
-        executionHistories.getOrPut(taskId) { mutableListOf() }.add(record)
+            ),
+        )
 
         when (result) {
             is TaskResult.Success -> {
                 meta.runCount++
                 meta.runAttemptCount = 1
-                meta.lastRunMs = virtualTimeMs
-                meta.lastResult = LastTaskResult.Success
             }
-            is TaskResult.Retry -> {
-                meta.runAttemptCount++
-                meta.lastRunMs = virtualTimeMs
-                meta.lastResult = LastTaskResult.Retry(result.message)
-            }
-            is TaskResult.Failure -> {
-                meta.runAttemptCount = 1
-                meta.lastRunMs = virtualTimeMs
-                meta.lastResult = LastTaskResult.Failure(result.message)
-            }
+            is TaskResult.Retry -> meta.runAttemptCount++
+            is TaskResult.Failure -> meta.runAttemptCount = 1
         }
+        meta.lastRunMs = virtualTimeMs
+        meta.lastResult = typedResult
 
         return result
     }
@@ -267,8 +275,9 @@ public class TestDesktopTaskScheduler :
      * occur at `T + I`, `T + 2I`, etc. Only periodic tasks are triggered;
      * calendar and on-boot tasks are skipped (use [runTask] for those).
      *
-     * Returns all [ExecutionRecord]s produced during the time advancement,
-     * in chronological order.
+     * Returns all [ExecutionRecord]s produced during the time advancement, in chronological
+     * order — including records for fires that were skipped because their constraints were
+     * not satisfied (their `result` is [LastTaskResult.ConstraintsNotMet]).
      *
      * ```kotlin
      * DesktopTaskScheduler.enqueue(TaskRequest.periodic("sync", 2.hours))
@@ -313,12 +322,12 @@ public class TestDesktopTaskScheduler :
 
         for (fire in fires) {
             // Task may have been cancelled by a previous execution
-            if (fire.taskId !in tasks) continue
-            virtualTimeMs = fire.fireAtMs
-            val result = runTask(fire.taskId, registry)
-            if (result != null) {
+            if (fire.taskId in tasks) {
+                virtualTimeMs = fire.fireAtMs
+                val sizeBefore = executionHistories[fire.taskId]?.size ?: 0
+                runTask(fire.taskId, registry)
                 val history = executionHistories[fire.taskId]
-                if (history != null && history.isNotEmpty()) {
+                if (history != null && history.size > sizeBefore) {
                     records.add(history.last())
                 }
             }

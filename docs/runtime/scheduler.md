@@ -13,7 +13,7 @@ The `scheduler` module registers background tasks with the OS so they run even w
 | Calendar tasks | Task Scheduler triggers | launchd `StartCalendarInterval` | systemd `OnCalendar=` |
 | On-boot / login tasks | Task Scheduler logon trigger | launchd `RunAtLoad` | systemd `default.target` |
 | Retry scheduling | One-shot task | One-shot launchd agent | One-shot systemd timer |
-| Minimum interval | 15 minutes ([throws on violation](#periodic-tasks)) | 15 minutes ([throws on violation](#periodic-tasks)) | 15 minutes ([throws on violation](#periodic-tasks)) |
+| Minimum interval | 15 minutes ([throws on violation](#minimum-interval)) | 15 minutes ([throws on violation](#minimum-interval)) | 15 minutes ([throws on violation](#minimum-interval)) |
 
 ## Installation
 
@@ -105,7 +105,11 @@ scheduler.enqueue(TaskRequest.onBoot(StartupCheckId))
 
 ### Periodic tasks
 
-Repeat at a fixed interval. The minimum interval is **15 minutes** — passing a smaller `Duration` to `TaskRequest.periodic(...)` throws `IllegalArgumentException` from the factory call (the validation happens when the request is built, not at `enqueue` time):
+Repeat at a fixed interval.
+
+#### Minimum interval
+
+The minimum interval is **15 minutes** — passing a smaller `Duration` to `TaskRequest.periodic(...)` throws `IllegalArgumentException` from the factory call (the validation happens when the request is built, not at `enqueue` time):
 
 ```kotlin
 @Serializable
@@ -685,15 +689,13 @@ TestDesktopTaskScheduler().use { testScheduler ->
 
 #### Testing constraints
 
-Use `TestConstraintChecker` to simulate system state and verify that tasks respect their constraints:
+Pass a `TestConstraintChecker` to the `TestDesktopTaskScheduler` constructor — both lifecycles are then co-managed by the same `use { }` block (`install` registers both, `close` uninstalls both):
 
 ```kotlin
-val constraintChecker = TestConstraintChecker()
-constraintChecker.install()
+val constraints = TestConstraintChecker()
 
-TestDesktopTaskScheduler().use { testScheduler ->
+TestDesktopTaskScheduler(constraintChecker = constraints).use { testScheduler ->
     testScheduler.install()
-    testScheduler.constraintChecker = constraintChecker
 
     DesktopTaskScheduler.enqueue(
         TaskRequest.periodic(SyncId, 1.hours) {
@@ -703,19 +705,22 @@ TestDesktopTaskScheduler().use { testScheduler ->
         }
     )
 
-    // Network is down — task should be skipped
-    constraintChecker.networkConnected = false
-    val results = testScheduler.advanceTimeBy(2.hours, registry)
-    assertEquals(0, results.size)
+    // Network is down — fires are skipped (one ConstraintsNotMet record per fire)
+    constraints.networkConnected = false
+    val skipped = testScheduler.advanceTimeBy(2.hours, registry)
+    assertEquals(2, skipped.size)
+    assertTrue(skipped.all { it.result is LastTaskResult.ConstraintsNotMet })
 
-    // Network is back — task executes
-    constraintChecker.networkConnected = true
-    val results2 = testScheduler.advanceTimeBy(1.hours, registry)
-    assertEquals(1, results2.size)
+    // Network is back — task actually executes
+    constraints.networkConnected = true
+    val ran = testScheduler.advanceTimeBy(1.hours, registry)
+    assertEquals(1, ran.size)
+    assertEquals(LastTaskResult.Success, ran.first().result)
 }
-
-constraintChecker.uninstall()
 ```
+
+!!! note "`ConstraintChecker` is `@InternalSchedulerApi`"
+    The interface that `TestConstraintChecker` implements (`ConstraintChecker`) is annotated `@InternalSchedulerApi` and exists purely as a test seam. It is **not** meant for production gating — for things like maintenance windows, gate at the `enqueue` / `cancel` call site instead.
 
 `TestConstraintChecker` exposes mutable properties matching each constraint:
 
@@ -740,9 +745,9 @@ constraintChecker.uninstall()
 |-------------------|---------|-------------|
 | `install()` | `Unit` | Swaps the `DesktopTaskScheduler` backend with this in-memory implementation. |
 | `uninstall()` | `Unit` | Restores the platform-default backend. Also called by `close()`. |
-| `constraintChecker` | `ConstraintChecker` | Constraint checker used before execution. Defaults to all-satisfied. Set a `TestConstraintChecker` to simulate failures. |
-| `runTask(taskId, registry)` | `TaskResult?` | Executes the task immediately. Returns `null` if a periodic task is skipped due to unsatisfied constraints. |
-| `advanceTimeBy(duration, registry)` | `List<ExecutionRecord>` | Advances virtual time and triggers all periodic tasks whose interval has elapsed. Tasks with unsatisfied constraints are skipped. |
+| `constraintChecker` | `TestConstraintChecker?` | Optional checker passed to the constructor. When non-null, `install()` / `close()` co-manage its lifecycle. When null, all constraints are treated as satisfied. |
+| `runTask(taskId, registry)` | `TaskResult?` | Executes the task immediately. Returns `null` when constraints are not satisfied (a `LastTaskResult.ConstraintsNotMet` `ExecutionRecord` is appended to the history in that case). |
+| `advanceTimeBy(duration, registry)` | `List<ExecutionRecord>` | Advances virtual time and triggers every periodic task whose interval has elapsed. Includes records for fires skipped due to unsatisfied constraints (`result is LastTaskResult.ConstraintsNotMet`). |
 | `getExecutionHistory(taskId)` | `List<ExecutionRecord>` | Full execution history for a task. |
 | `getAllExecutionHistory()` | `List<ExecutionRecord>` | Execution history across all tasks, sorted chronologically. |
 | `getEnqueuedRequest(taskId)` | `TaskRequest?` | Returns the enqueued request for assertions. |
@@ -755,10 +760,10 @@ Returned by `advanceTimeBy()`, `getExecutionHistory()`, and `getAllExecutionHist
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `taskId` | `TaskId` | The task that was executed. |
-| `result` | `TaskResult` | The outcome of `doWork()` (`Success`, `Failure`, or `Retry`). |
-| `runAttemptCount` | `Int` | The 1-based attempt number at the time of execution. |
-| `virtualTimeMs` | `Long` | The virtual time (in milliseconds) at which the execution occurred. |
+| `taskId` | `TaskId` | The task that fired. |
+| `result` | `LastTaskResult` | Typed outcome — `Success`, `Failure`, `Retry` (when `doWork()` ran) or `ConstraintsNotMet` (when execution was skipped before `doWork()`). |
+| `runAttemptCount` | `Int` | The 1-based attempt number at the time of the firing. |
+| `virtualTimeMs` | `Long` | The virtual time (in milliseconds) at which the firing occurred. |
 
 ### `TestConstraintChecker`
 
@@ -770,7 +775,6 @@ Returned by `advanceTimeBy()`, `getExecutionHistory()`, and `getAllExecutionHist
 | `isCharging` | `Boolean` | Simulated charging state (default: `false`). |
 | `idleTimeSeconds` | `Long` | Simulated idle time in seconds (default: `0`). |
 | `availableStorageBytes` | `Long` | Simulated disk space in bytes (default: `MAX_VALUE`). |
-| `install()` | `Unit` | Sets this checker as the active constraint checker in `DesktopBootReceiver`. |
-| `uninstall()` | `Unit` | Restores the production constraint checker. Also called by `close()`. |
+| `install()` / `uninstall()` | `Unit` | Lifecycle hooks. Usually called for you when you pass the checker to `TestDesktopTaskScheduler(constraintChecker = ...)`; call them manually only if you need to install the checker outside of a scheduler `use { }` block. |
 
 All standard `DesktopTaskScheduler` methods (`enqueue`, `cancel`, `isScheduled`, `getTaskInfo`, `getAllTasks`) work as expected after `install()`.
