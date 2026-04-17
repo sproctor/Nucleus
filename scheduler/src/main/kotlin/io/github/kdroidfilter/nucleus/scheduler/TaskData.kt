@@ -23,45 +23,47 @@ import kotlinx.serialization.serializer
  * val input = context.inputData<SyncInput>() ?: return TaskResult.Failure("no input")
  * ```
  */
-public class TaskData @PublishedApi internal constructor(
-    @PublishedApi internal val json: String?,
-) {
-    /** Returns `true` when no payload was attached. */
-    public fun isEmpty(): Boolean = json == null
+public class TaskData
+    @PublishedApi
+    internal constructor(
+        @PublishedApi internal val json: String?,
+    ) {
+        /** Returns `true` when no payload was attached. */
+        public fun isEmpty(): Boolean = json == null
 
-    /** Returns `true` when a payload was attached. */
-    public fun isNotEmpty(): Boolean = json != null
+        /** Returns `true` when a payload was attached. */
+        public fun isNotEmpty(): Boolean = json != null
 
-    /**
-     * Decodes the payload as [T] using the supplied [serializer].
-     *
-     * Returns `null` when no payload was attached.
-     */
-    public fun <T> decode(serializer: KSerializer<T>): T? = json?.let { JSON.decodeFromString(serializer, it) }
+        /**
+         * Decodes the payload as [T] using the supplied [serializer].
+         *
+         * Returns `null` when no payload was attached.
+         */
+        public fun <T> decode(serializer: KSerializer<T>): T? = json?.let { JSON.decodeFromString(serializer, it) }
 
-    override fun equals(other: Any?): Boolean = other is TaskData && json == other.json
+        override fun equals(other: Any?): Boolean = other is TaskData && json == other.json
 
-    override fun hashCode(): Int = json?.hashCode() ?: 0
+        override fun hashCode(): Int = json?.hashCode() ?: 0
 
-    override fun toString(): String = "TaskData(${json ?: "<empty>"})"
+        override fun toString(): String = "TaskData(${json ?: "<empty>"})"
 
-    public companion object {
-        /** A [TaskData] with no payload. */
-        public val EMPTY: TaskData = TaskData(null)
+        public companion object {
+            /** A [TaskData] with no payload. */
+            public val EMPTY: TaskData = TaskData(null)
 
-        @PublishedApi
-        internal val JSON: Json = Json { ignoreUnknownKeys = true }
+            @PublishedApi
+            internal val JSON: Json = Json { ignoreUnknownKeys = true }
 
-        /** Encodes [value] using the supplied [serializer]. */
-        public fun <T> of(
-            value: T,
-            serializer: KSerializer<T>,
-        ): TaskData = TaskData(JSON.encodeToString(serializer, value))
+            /** Encodes [value] using the supplied [serializer]. */
+            public fun <T> of(
+                value: T,
+                serializer: KSerializer<T>,
+            ): TaskData = TaskData(JSON.encodeToString(serializer, value))
 
-        /** Encodes [value] using the contextually-resolved serializer for [T]. */
-        public inline fun <reified T> of(value: T): TaskData = TaskData(JSON.encodeToString(serializer<T>(), value))
+            /** Encodes [value] using the contextually-resolved serializer for [T]. */
+            public inline fun <reified T> of(value: T): TaskData = TaskData(JSON.encodeToString(serializer<T>(), value))
+        }
     }
-}
 
 /**
  * Decodes the [TaskData] payload as [T] using the contextually-resolved serializer.

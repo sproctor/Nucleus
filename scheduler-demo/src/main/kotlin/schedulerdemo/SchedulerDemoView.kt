@@ -27,16 +27,16 @@ import io.github.kdroidfilter.nucleus.scheduler.CronExpression
 import io.github.kdroidfilter.nucleus.scheduler.DesktopTaskScheduler
 import io.github.kdroidfilter.nucleus.scheduler.TaskInfo
 import io.github.kdroidfilter.nucleus.scheduler.TaskRequest
+import org.jetbrains.jewel.ui.component.DefaultButton
+import org.jetbrains.jewel.ui.component.GroupHeader
+import org.jetbrains.jewel.ui.component.OutlinedButton
+import org.jetbrains.jewel.ui.component.Text
 import schedulerdemo.task.BackupInput
 import schedulerdemo.task.BackupTaskId
 import schedulerdemo.task.NotificationInput
 import schedulerdemo.task.NotificationTaskId
 import schedulerdemo.task.ReportTaskId
 import schedulerdemo.task.SyncTaskId
-import org.jetbrains.jewel.ui.component.DefaultButton
-import org.jetbrains.jewel.ui.component.GroupHeader
-import org.jetbrains.jewel.ui.component.OutlinedButton
-import org.jetbrains.jewel.ui.component.Text
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -115,7 +115,10 @@ fun SchedulerDemoView(openedByScheduler: Boolean = false) {
             }
 
             DefaultButton(onClick = {
-                val ok = scheduler.enqueue(TaskRequest.calendar(ReportTaskId, CronExpression.everyDayAt(LocalTime.of(9, 0))))
+                val ok =
+                    scheduler.enqueue(
+                        TaskRequest.calendar(ReportTaskId, CronExpression.everyDayAt(LocalTime.of(9, 0))),
+                    )
                 log(if (ok) "Enqueued 'report' (daily at 9h)" else "Failed to enqueue 'report'")
                 refreshTasks()
             }) {

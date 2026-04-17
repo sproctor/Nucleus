@@ -14,7 +14,9 @@ package io.github.kdroidfilter.nucleus.scheduler
  * ```
  */
 @JvmInline
-public value class TaskId(public val value: String) {
+public value class TaskId(
+    public val value: String,
+) {
     init {
         require(value.isNotEmpty()) { "taskId must not be empty" }
         require(PATTERN.matches(value)) { "taskId must match [a-zA-Z0-9_-]+, got '$value'" }

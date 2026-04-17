@@ -16,7 +16,9 @@ val NotificationTaskId: TaskId = TaskId("notification")
 val ReportTaskId: TaskId = TaskId("report")
 
 @Serializable
-data class BackupInput(val target: String)
+data class BackupInput(
+    val target: String,
+)
 
 @Serializable
 data class NotificationInput(

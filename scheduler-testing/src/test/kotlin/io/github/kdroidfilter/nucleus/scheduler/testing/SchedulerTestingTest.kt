@@ -42,13 +42,20 @@ private val UnknownId = TaskId("unknown")
 // -- Serializable payloads for testing ---------------------------------------
 
 @Serializable
-private data class KeyValue(val key: String)
+private data class KeyValue(
+    val key: String,
+)
 
 @Serializable
-private data class Versioned(val version: String)
+private data class Versioned(
+    val version: String,
+)
 
 @Serializable
-private data class Endpoint(val endpoint: String, val token: String)
+private data class Endpoint(
+    val endpoint: String,
+    val token: String,
+)
 
 // -- Sample tasks for testing -------------------------------------------------
 

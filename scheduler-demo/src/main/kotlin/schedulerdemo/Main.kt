@@ -6,9 +6,6 @@ import androidx.compose.ui.window.application
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.scheduler.DesktopBootReceiver
 import io.github.kdroidfilter.nucleus.scheduler.TaskRegistry
-import schedulerdemo.task.BackupTaskId
-import schedulerdemo.task.NotificationTaskId
-import schedulerdemo.task.SyncTaskId
 import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
 import org.jetbrains.jewel.foundation.theme.JewelTheme
@@ -20,8 +17,11 @@ import org.jetbrains.jewel.intui.standalone.theme.default
 import org.jetbrains.jewel.intui.standalone.theme.lightThemeDefinition
 import org.jetbrains.jewel.ui.ComponentStyling
 import schedulerdemo.task.BackupTask
+import schedulerdemo.task.BackupTaskId
 import schedulerdemo.task.NotificationTask
+import schedulerdemo.task.NotificationTaskId
 import schedulerdemo.task.SyncTask
+import schedulerdemo.task.SyncTaskId
 
 private fun buildRegistry() =
     TaskRegistry

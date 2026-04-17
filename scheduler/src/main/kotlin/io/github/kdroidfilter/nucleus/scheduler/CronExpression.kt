@@ -22,16 +22,14 @@ public class CronExpression private constructor(
     public companion object {
         private const val DAY_ABBREV_LENGTH = 3
 
-        private fun LocalTime.toCalendarSuffix(): String =
-            "%02d:%02d:00".format(hour, minute)
+        private fun LocalTime.toCalendarSuffix(): String = "%02d:%02d:00".format(hour, minute)
 
         /**
          * Every day at the given [time].
          *
          * Example: `everyDayAt(LocalTime.of(9, 0))` → `*-*-* 09:00:00`
          */
-        public fun everyDayAt(time: LocalTime): CronExpression =
-            CronExpression("*-*-* ${time.toCalendarSuffix()}")
+        public fun everyDayAt(time: LocalTime): CronExpression = CronExpression("*-*-* ${time.toCalendarSuffix()}")
 
         /**
          * Every Monday at the given [time].

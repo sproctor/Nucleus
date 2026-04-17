@@ -101,7 +101,9 @@ internal object TaskWrapperScript {
                 appendLine("Set shell = CreateObject(\"WScript.Shell\")")
                 // shell.Run expects a command string; inner quotes wrap the exe path for spaces.
                 // VBS string: "..." with doubled quotes inside → literal quotes in the value.
-                appendLine("shell.Run \"\"\"${vbsEscape(execPath)}\"\" --nucleus-scheduler-run ${taskId.value}\", 0, True")
+                appendLine(
+                    "shell.Run \"\"\"${vbsEscape(execPath)}\"\" --nucleus-scheduler-run ${taskId.value}\", 0, True",
+                )
             }
         file.writeText(content)
         return file
