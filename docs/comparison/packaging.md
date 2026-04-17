@@ -1,4 +1,4 @@
-# Comparison with Other JVM Packaging Tools
+# Packaging
 
 !!! info "About this comparison"
     This comparison was generated with the assistance of [Claude Code](https://claude.ai/claude-code) (Anthropic's AI coding agent). Every factual claim includes a source link to official documentation, GitHub repositories, or vendor pages. Nucleus-specific claims are verified against the project source code.

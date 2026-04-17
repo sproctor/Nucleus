@@ -115,7 +115,8 @@ nav:
           - Networking:
               - Native SSL: runtime/native-ssl.md
               - Native HTTP: runtime/native-http.md
-  - Comparison: comparison.md
+  - Comparison:
+      - Packaging: comparison/packaging.md
   - Migration: migration.md
   - Changelog: changelog.md
   - LLM Documentation: llm.md
