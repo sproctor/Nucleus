@@ -1,4 +1,4 @@
-# Media Control (Linux + macOS + Windows)
+# Media Control
 
 OS-level media controls (play/pause, next/previous, seek, metadata) for your desktop app, exposed through a single cross-platform Kotlin API:
 

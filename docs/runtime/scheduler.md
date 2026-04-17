@@ -17,19 +17,6 @@ The `scheduler` module registers background tasks with the OS so they run even w
 
 [^min-interval]: Enforced at request construction — see [Minimum interval](#minimum-interval) for the exact `IllegalArgumentException` behavior.
 
-### Orphan cleanup after uninstall
-
-Users uninstall apps without thinking about background scheduled tasks. Without explicit cleanup, the OS would keep firing schedules pointing to a missing executable forever. Nucleus handles this differently per platform:
-
-- **Linux** and **Windows** — the scheduler does *not* register the application binary directly. It writes a tiny wrapper script (`<taskId>.sh` in `nucleus/scheduler/<appId>/scripts/` on Linux, `<taskId>.vbs` in `%LOCALAPPDATA%\nucleus\scheduler\<appId>\scripts\` on Windows) and registers *that* with systemd / Task Scheduler. The wrapper checks whether the application binary still exists before invoking it. If it's gone, the wrapper **self-destructs**: it disables and deletes the systemd `.timer` / `.service` units (Linux) or removes the COM tasks under `\Nucleus\<appId>\` (Windows) via the same Schedule.Service API used to create them, deletes the persisted metadata, and finally removes itself. Net result: the next time the OS triggers a task whose app has been uninstalled, the schedule cleans itself up and stops firing.
-- **macOS** — **no automatic cleanup.** Unlike the Linux/Windows wrapper trick, the agent's `ProgramArguments` points directly at the application binary so the entry stays visible under its real name in System Settings → "Allow in the Background". The cost: when the user trashes the .app bundle, the orphaned `.plist` in `~/Library/LaunchAgents/` is **never** reclaimed by macOS, and launchd keeps attempting to spawn the missing binary forever — throttled by `ThrottleInterval` (10 s by default), logging `cannot spawn` to `system.log` on every attempt. SMAppService (macOS 13+) does not eliminate this either, and Apple ships no guidance for "graceful uninstall of a LaunchAgent" — the macOS ecosystem treats orphaned LaunchAgents as a known limitation that an explicit cleanup step has to handle. The mitigation Nucleus offers is **in-app**: call `DesktopTaskScheduler.cancelAll()` from your app's settings ("Disable background tasks") or from any in-app sign-out / reset flow — this unloads the agents and removes the plists cleanly while the binary is still around. If the user does a plain drag-to-trash without that step, the orphan leaks; the leftover plist then has to be removed manually:
-
-  ```bash
-  rm ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
-  ```
-
-  The failure mode in the meantime is the well-known throttled-log-spam — not a crash and not a security or correctness issue.
-
 ## Installation
 
 ```kotlin
@@ -630,6 +617,19 @@ Creates systemd user service and timer units in `~/.config/systemd/user/` (respe
 #### Windows (Task Scheduler)
 
 Registers tasks under `\Nucleus\<appId>\` via a JNI bridge (`WindowsTaskSchedulerJni`) that calls the Task Scheduler 2.0 COM API (`ITaskService`, `ITaskFolder`, `ITaskDefinition`) — no `schtasks.exe` subprocess. Supports periodic, daily, weekly, logon, and one-shot triggers natively. The task action runs the [self-destructing wrapper script](#orphan-cleanup-after-uninstall) via `wscript.exe` (Windows-subsystem host — no console window flashes when the task fires) instead of invoking the application binary directly.
+
+### Orphan cleanup after uninstall
+
+Users uninstall apps without thinking about background scheduled tasks. Without explicit cleanup, the OS would keep firing schedules pointing to a missing executable forever. Nucleus handles this differently per platform:
+
+- **Linux** and **Windows** — the scheduler does *not* register the application binary directly. It writes a tiny wrapper script (`<taskId>.sh` in `nucleus/scheduler/<appId>/scripts/` on Linux, `<taskId>.vbs` in `%LOCALAPPDATA%\nucleus\scheduler\<appId>\scripts\` on Windows) and registers *that* with systemd / Task Scheduler. The wrapper checks whether the application binary still exists before invoking it. If it's gone, the wrapper **self-destructs**: it disables and deletes the systemd `.timer` / `.service` units (Linux) or removes the COM tasks under `\Nucleus\<appId>\` (Windows) via the same Schedule.Service API used to create them, deletes the persisted metadata, and finally removes itself. Net result: the next time the OS triggers a task whose app has been uninstalled, the schedule cleans itself up and stops firing.
+- **macOS** — **no automatic cleanup.** Unlike the Linux/Windows wrapper trick, the agent's `ProgramArguments` points directly at the application binary so the entry stays visible under its real name in System Settings → "Allow in the Background". The cost: when the user trashes the .app bundle, the orphaned `.plist` in `~/Library/LaunchAgents/` is **never** reclaimed by macOS, and launchd keeps attempting to spawn the missing binary forever — throttled by `ThrottleInterval` (10 s by default), logging `cannot spawn` to `system.log` on every attempt. SMAppService (macOS 13+) does not eliminate this either, and Apple ships no guidance for "graceful uninstall of a LaunchAgent" — the macOS ecosystem treats orphaned LaunchAgents as a known limitation that an explicit cleanup step has to handle. The mitigation Nucleus offers is **in-app**: call `DesktopTaskScheduler.cancelAll()` from your app's settings ("Disable background tasks") or from any in-app sign-out / reset flow — this unloads the agents and removes the plists cleanly while the binary is still around. If the user does a plain drag-to-trash without that step, the orphan leaks; the leftover plist then has to be removed manually:
+
+  ```bash
+  rm ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
+  ```
+
+  The failure mode in the meantime is the well-known throttled-log-spam — not a crash and not a security or correctness issue.
 
 ## Testing
 
