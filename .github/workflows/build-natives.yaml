@@ -166,6 +166,27 @@ jobs:
           path: notification-windows/src/main/resources/nucleus/native/win32-*/
           retention-days: 1
 
+      - name: Build autolaunch Windows DLLs
+        shell: cmd
+        run: call autolaunch\src\main\native\windows\build.bat
+
+      - name: Verify autolaunch Windows natives
+        shell: bash
+        run: |
+          for f in \
+            autolaunch/src/main/resources/nucleus/native/win32-x64/nucleus_autolaunch.dll \
+            autolaunch/src/main/resources/nucleus/native/win32-aarch64/nucleus_autolaunch.dll; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload autolaunch Windows DLLs
+        uses: actions/upload-artifact@v4
+        with:
+          name: autolaunch
+          path: autolaunch/src/main/resources/nucleus/native/win32-*/
+          retention-days: 1
+
       - name: Build launcher-windows Windows DLLs
         shell: cmd
         run: call launcher-windows\src\main\native\windows\build.bat

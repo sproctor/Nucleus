@@ -20,6 +20,7 @@ public object NucleusApp {
     private const val PROP_APP_DESCRIPTION = "nucleus.app.description"
     private const val PROP_APP_NAME = "nucleus.app.name"
     private const val PROP_APP_AUMID = "nucleus.app.aumid"
+    private const val PROP_STARTUP_TASK_ID = "nucleus.app.startup.task.id"
 
     private const val RES_APP_ID = "app.id"
     private const val RES_APP_VERSION = "app.version"
@@ -27,6 +28,7 @@ public object NucleusApp {
     private const val RES_APP_DESCRIPTION = "app.description"
     private const val RES_APP_NAME = "app.name"
     private const val RES_APP_AUMID = "app.aumid"
+    private const val RES_STARTUP_TASK_ID = "startup.task.id"
 
     private val resourceProps: Properties? by lazy { loadResource() }
 
@@ -72,6 +74,17 @@ public object NucleusApp {
     @JvmStatic
     public val aumid: String by lazy {
         resolve(PROP_APP_AUMID, RES_APP_AUMID) ?: appId
+    }
+
+    /**
+     * MSIX `uap5:StartupTask` TaskId auto-injected by the Nucleus Gradle plugin when
+     * `appx { addAutoLaunchExtension = true }` is configured. `null` in all other cases
+     * (non-MSIX build, extension not enabled). Used as the default TaskId for the
+     * `autolaunch` module.
+     */
+    @JvmStatic
+    public val startupTaskId: String? by lazy {
+        resolve(PROP_STARTUP_TASK_ID, RES_STARTUP_TASK_ID)
     }
 
     /** `true` if the Nucleus plugin injected metadata (via system property or classpath resource). */

@@ -1,0 +1,8 @@
+{
+    "reflection": [
+        {
+            "type": "io.github.kdroidfilter.nucleus.autolaunch.windows.NativeAutoLaunchBridge",
+            "jniAccessible": true
+        }
+    ]
+}

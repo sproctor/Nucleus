@@ -64,6 +64,7 @@ import com.example.demo.icons.VscodeCodiconsColorMode
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
+import io.github.kdroidfilter.nucleus.autolaunch.AutoLaunch
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
@@ -94,10 +95,12 @@ import kotlin.system.exitProcess
 private const val AOT_TRAINING_DURATION_MS = 45_000L
 
 private val deepLinkUri = mutableStateOf<URI?>(null)
+private var startedAtLogin: Boolean = false
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 fun main(args: Array<String>) {
     GraalVmInitializer.initialize()
+    startedAtLogin = AutoLaunch.wasStartedAtLogin(args)
 
     // Set AUMID before any window is created (required for jump lists in non-APPX mode)
     if (Platform.Current == Platform.Windows) {
@@ -199,6 +202,7 @@ fun main(args: Array<String>) {
                                     add("Launcher")
                                 }
                                 add("Media Control")
+                                add("Auto-Launch")
 
                                 add("Hotkeys")
                                 if (Platform.Current == Platform.MacOS) {
@@ -347,6 +351,7 @@ fun main(args: Array<String>) {
                                 }
                             }
                             "Media Control" -> MediaControlScreen()
+                            "Auto-Launch" -> AutoLaunchScreen()
                             "Hotkeys" -> GlobalHotKeyScreen()
                             "Menu" -> MacOsMenuScreen()
                         }
@@ -446,6 +451,21 @@ fun NucleusContent() {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 NucleusAtom(atomSize = 200.dp)
+
+                if (startedAtLogin) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text(
+                            text = "Started automatically at login",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
 
                 if (currentDeepLink != null) {
                     Spacer(modifier = Modifier.height(16.dp))

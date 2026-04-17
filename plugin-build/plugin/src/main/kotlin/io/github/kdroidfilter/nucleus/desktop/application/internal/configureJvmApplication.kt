@@ -127,6 +127,16 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
                     ?.takeIf { it.isNotBlank() }
                     ?: app.mainClass?.replace('.', '-')
             wmClass?.let { startupWmClass.set(it) }
+            // Resolve AppX StartupTask TaskId (MSIX auto-launch injection).
+            // electron-builder hardcodes TaskId="SlackStartup" in the injected manifest
+            // (legacy from its Slack origins) — this is the TaskId the runtime must use
+            // to match the installed MSIX package. Custom overrides are possible but
+            // require the user to patch the generated manifest themselves.
+            val appxSettings = app.nativeDistributions.windows.appx
+            if (appxSettings.addAutoLaunchExtension) {
+                val taskId = appxSettings.startupTaskId ?: "SlackStartup"
+                startupTaskId.set(taskId)
+            }
             outputDir.set(appTmpDir.dir("app-properties"))
         }
 

@@ -39,6 +39,10 @@ abstract class AbstractGenerateAppPropertiesTask : DefaultTask() {
     @get:Optional
     abstract val startupWmClass: Property<String>
 
+    @get:Input
+    @get:Optional
+    abstract val startupTaskId: Property<String>
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -55,6 +59,7 @@ abstract class AbstractGenerateAppPropertiesTask : DefaultTask() {
         appName.orNull?.let { props["app.name"] = it }
         appAumid.orNull?.let { props["app.aumid"] = it }
         startupWmClass.orNull?.let { props["startup.wm.class"] = it }
+        startupTaskId.orNull?.let { props["startup.task.id"] = it }
 
         dir.resolve("nucleus-app.properties").writer().use { writer ->
             props.store(writer, null)
