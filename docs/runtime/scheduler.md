@@ -155,11 +155,17 @@ scheduler.enqueue(TaskRequest.onBoot(LoginSyncId))
 
 Attach a `@Serializable` payload at enqueue time and decode it inside `doWork()`. The scheduler stores the payload as JSON in the per-task metadata file, so a fresh process spawned by the OS can re-read it.
 
+!!! warning "Don't put secrets in `inputData`"
+    The payload is persisted as plain JSON in the per-task `.properties` file on disk
+    (see [Metadata storage](#metadata-storage)). Pass references — a config key, a
+    user ID, an account name — and resolve secrets at execution time from your
+    keychain / secure storage / env.
+
 ```kotlin
 @Serializable
 data class SyncInput(
     val endpoint: String,
-    val token: String,
+    val accountId: String,
     val retries: Int = 3,
     val verbose: Boolean = false,
 )
@@ -170,7 +176,7 @@ scheduler.enqueue(
         inputData(
             SyncInput(
                 endpoint = "https://api.example.com",
-                token = "abc123",
+                accountId = "primary",
             )
         )
     }
@@ -181,7 +187,10 @@ class SyncTask : DesktopTask {
     override suspend fun doWork(context: TaskContext): TaskResult {
         val input = context.inputData<SyncInput>()
             ?: return TaskResult.Failure("missing input")
-        // input.endpoint, input.token, input.retries, input.verbose
+        // Resolve the actual credentials from secure storage at run time:
+        val token = credentialStore.tokenFor(input.accountId)
+            ?: return TaskResult.Failure("no token for ${input.accountId}")
+        // ... use input.endpoint / input.retries / input.verbose / token
         return TaskResult.Success
     }
 }
