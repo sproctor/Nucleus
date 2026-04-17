@@ -739,7 +739,7 @@ Everything from the official plugin works unchanged:
 - [Launcher (macOS)](https://nucleus.kdroidfilter.com/runtime/launcher-macos/)
 - [Launcher (Windows)](https://nucleus.kdroidfilter.com/runtime/launcher-windows/)
 - [Launcher (Linux)](https://nucleus.kdroidfilter.com/runtime/launcher-linux/)
-- [Media Control (Linux + macOS + Windows)](https://nucleus.kdroidfilter.com/runtime/media-control/)
+- [Media Control](https://nucleus.kdroidfilter.com/runtime/media-control/)
 - [Dark Mode Detector](https://nucleus.kdroidfilter.com/runtime/darkmode-detector/)
 - [System Color](https://nucleus.kdroidfilter.com/runtime/system-color/)
 - [System Info](https://nucleus.kdroidfilter.com/runtime/system-info/)
