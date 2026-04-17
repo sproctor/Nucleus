@@ -2,9 +2,12 @@ package io.github.kdroidfilter.nucleus.scheduler.internal
 
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.scheduler.Constraints
+import io.github.kdroidfilter.nucleus.scheduler.LastTaskResult
 import io.github.kdroidfilter.nucleus.scheduler.NetworkType
 import io.github.kdroidfilter.nucleus.scheduler.TaskContext
 import io.github.kdroidfilter.nucleus.scheduler.TaskData
+import io.github.kdroidfilter.nucleus.scheduler.TaskId
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.Properties
 
@@ -14,6 +17,9 @@ import java.util.Properties
  */
 @Suppress("TooManyFunctions")
 internal object TaskMetadataStore {
+    private val JSON: Json = Json { ignoreUnknownKeys = true }
+
+    private const val KEY_INPUT_DATA = "_inputDataJson"
     private const val KEY_RUN_COUNT = "_runCount"
     private const val KEY_RUN_ATTEMPT = "_runAttemptCount"
     private const val KEY_LAST_RUN_MS = "_lastRunMs"
@@ -47,86 +53,90 @@ internal object TaskMetadataStore {
 
     private fun taskFile(
         appId: String,
-        taskId: String,
-    ): File = File(storeDir(appId), "$taskId.properties")
+        taskId: TaskId,
+    ): File = File(storeDir(appId), "${taskId.value}.properties")
 
     fun save(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         inputData: TaskData,
     ) {
         val file = taskFile(appId, taskId)
         file.parentFile.mkdirs()
         val existing = load(file)
-        inputData.map.forEach { (k, v) -> existing.setProperty(k, v) }
+        if (inputData.json != null) {
+            existing.setProperty(KEY_INPUT_DATA, inputData.json)
+        } else {
+            existing.remove(KEY_INPUT_DATA)
+        }
         file.outputStream().use { existing.store(it, null) }
     }
 
     fun loadContext(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): TaskContext {
         val props = load(taskFile(appId, taskId))
-        val dataMap =
-            props
-                .stringPropertyNames()
-                .filter { !it.startsWith("_") }
-                .associateWith { props.getProperty(it) }
         val runAttempt = props.getProperty(KEY_RUN_ATTEMPT)?.toIntOrNull() ?: 1
         return TaskContext(
             taskId = taskId,
-            inputData = TaskData(dataMap),
+            rawInputData = TaskData(props.getProperty(KEY_INPUT_DATA)),
             runAttemptCount = runAttempt,
         )
     }
 
+    private fun writeLastResult(
+        props: Properties,
+        result: LastTaskResult,
+    ) {
+        props.setProperty(KEY_LAST_RUN_MS, System.currentTimeMillis().toString())
+        props.setProperty(KEY_LAST_RESULT, JSON.encodeToString(LastTaskResult.serializer(), result))
+    }
+
     fun recordSuccess(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ) {
         val file = taskFile(appId, taskId)
         val props = load(file)
         val runCount = (props.getProperty(KEY_RUN_COUNT)?.toIntOrNull() ?: 0) + 1
         props.setProperty(KEY_RUN_COUNT, runCount.toString())
         props.setProperty(KEY_RUN_ATTEMPT, "1")
-        props.setProperty(KEY_LAST_RUN_MS, System.currentTimeMillis().toString())
-        props.setProperty(KEY_LAST_RESULT, "Success")
+        writeLastResult(props, LastTaskResult.Success)
         file.parentFile.mkdirs()
         file.outputStream().use { props.store(it, null) }
     }
 
     fun recordFailure(
         appId: String,
-        taskId: String,
-        message: String?,
+        taskId: TaskId,
+        message: String,
     ) {
         val file = taskFile(appId, taskId)
         val props = load(file)
-        props.setProperty(KEY_LAST_RUN_MS, System.currentTimeMillis().toString())
-        props.setProperty(KEY_LAST_RESULT, "Failure: ${message ?: "unknown"}")
         props.setProperty(KEY_RUN_ATTEMPT, "1")
+        writeLastResult(props, LastTaskResult.Failure(message))
         file.parentFile.mkdirs()
         file.outputStream().use { props.store(it, null) }
     }
 
     fun recordRetry(
         appId: String,
-        taskId: String,
-        message: String?,
+        taskId: TaskId,
+        message: String,
     ) {
         val file = taskFile(appId, taskId)
         val props = load(file)
         val attempt = (props.getProperty(KEY_RUN_ATTEMPT)?.toIntOrNull() ?: 1) + 1
         props.setProperty(KEY_RUN_ATTEMPT, attempt.toString())
-        props.setProperty(KEY_LAST_RUN_MS, System.currentTimeMillis().toString())
-        props.setProperty(KEY_LAST_RESULT, "Retry: ${message ?: "unknown"}")
+        writeLastResult(props, LastTaskResult.Retry(message))
         file.parentFile.mkdirs()
         file.outputStream().use { props.store(it, null) }
     }
 
     fun getRunCount(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): Int {
         val props = load(taskFile(appId, taskId))
         return props.getProperty(KEY_RUN_COUNT)?.toIntOrNull() ?: 0
@@ -134,7 +144,7 @@ internal object TaskMetadataStore {
 
     fun getLastRunMs(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): Long? {
         val props = load(taskFile(appId, taskId))
         return props.getProperty(KEY_LAST_RUN_MS)?.toLongOrNull()
@@ -142,15 +152,15 @@ internal object TaskMetadataStore {
 
     fun getLastResult(
         appId: String,
-        taskId: String,
-    ): String? {
-        val props = load(taskFile(appId, taskId))
-        return props.getProperty(KEY_LAST_RESULT)
+        taskId: TaskId,
+    ): LastTaskResult? {
+        val raw = load(taskFile(appId, taskId)).getProperty(KEY_LAST_RESULT) ?: return null
+        return runCatching { JSON.decodeFromString(LastTaskResult.serializer(), raw) }.getOrNull()
     }
 
     fun getRunAttemptCount(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): Int {
         val props = load(taskFile(appId, taskId))
         return props.getProperty(KEY_RUN_ATTEMPT)?.toIntOrNull() ?: 1
@@ -158,7 +168,7 @@ internal object TaskMetadataStore {
 
     fun delete(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ) {
         taskFile(appId, taskId).delete()
     }
@@ -176,7 +186,7 @@ internal object TaskMetadataStore {
      */
     fun saveScheduleHint(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         hint: ScheduleHint,
     ) {
         val file = taskFile(appId, taskId)
@@ -196,7 +206,7 @@ internal object TaskMetadataStore {
 
     fun loadScheduleHint(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): ScheduleHint? {
         val props = load(taskFile(appId, taskId))
         val interval = props.getProperty(KEY_SCHED_INTERVAL)?.toIntOrNull() ?: return null
@@ -243,7 +253,7 @@ internal object TaskMetadataStore {
 
     fun saveTaskType(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         type: String,
     ) {
         val file = taskFile(appId, taskId)
@@ -255,7 +265,7 @@ internal object TaskMetadataStore {
 
     fun loadTaskType(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): String? {
         val props = load(taskFile(appId, taskId))
         return props.getProperty(KEY_TASK_TYPE)
@@ -263,7 +273,7 @@ internal object TaskMetadataStore {
 
     fun saveConstraints(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         constraints: Constraints,
     ) {
         val file = taskFile(appId, taskId)
@@ -288,7 +298,7 @@ internal object TaskMetadataStore {
 
     fun loadConstraints(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
     ): Constraints {
         val props = load(taskFile(appId, taskId))
         return Constraints(
@@ -306,25 +316,29 @@ internal object TaskMetadataStore {
 
     fun recordConstraintSkip(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         unsatisfied: Set<String>,
+        incrementAttempt: Boolean = false,
     ) {
         val file = taskFile(appId, taskId)
         val props = load(file)
-        props.setProperty(KEY_LAST_RUN_MS, System.currentTimeMillis().toString())
-        props.setProperty(KEY_LAST_RESULT, "ConstraintsNotMet: $unsatisfied")
+        if (incrementAttempt) {
+            val attempt = (props.getProperty(KEY_RUN_ATTEMPT)?.toIntOrNull() ?: 1) + 1
+            props.setProperty(KEY_RUN_ATTEMPT, attempt.toString())
+        }
+        writeLastResult(props, LastTaskResult.ConstraintsNotMet(unsatisfied))
         file.parentFile.mkdirs()
         file.outputStream().use { props.store(it, null) }
     }
 
     /** Lists all task IDs that have metadata stored. */
-    fun listTaskIds(appId: String): List<String> {
+    fun listTaskIds(appId: String): List<TaskId> {
         val dir = storeDir(appId)
         if (!dir.isDirectory) return emptyList()
         return dir
             .listFiles()
             ?.filter { it.extension == "properties" }
-            ?.map { it.nameWithoutExtension }
+            ?.mapNotNull { runCatching { TaskId(it.nameWithoutExtension) }.getOrNull() }
             ?: emptyList()
     }
 

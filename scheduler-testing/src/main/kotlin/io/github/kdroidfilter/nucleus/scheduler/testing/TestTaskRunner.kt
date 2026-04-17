@@ -3,6 +3,7 @@ package io.github.kdroidfilter.nucleus.scheduler.testing
 import io.github.kdroidfilter.nucleus.scheduler.DesktopTask
 import io.github.kdroidfilter.nucleus.scheduler.TaskContext
 import io.github.kdroidfilter.nucleus.scheduler.TaskData
+import io.github.kdroidfilter.nucleus.scheduler.TaskId
 import io.github.kdroidfilter.nucleus.scheduler.TaskResult
 
 /**
@@ -13,8 +14,8 @@ import io.github.kdroidfilter.nucleus.scheduler.TaskResult
  * ```kotlin
  * val result = TestTaskRunner.runTask(
  *     task = SyncTask(),
- *     taskId = "sync",
- *     inputData = TaskData.Builder().putString("endpoint", "https://test.api").build(),
+ *     taskId = TaskId("sync"),
+ *     inputData = TaskData.of(SyncInput(endpoint = "https://test.api")),
  * )
  * assertEquals(TaskResult.Success, result)
  * ```
@@ -24,20 +25,21 @@ public object TestTaskRunner {
      * Executes [task]`.doWork()` with a fabricated [TaskContext] and returns the result.
      *
      * @param task the task to execute
-     * @param taskId the task identifier passed in the context (default: `"test-task"`)
-     * @param inputData typed key-value data available via [TaskContext.inputData]
+     * @param taskId the task identifier passed in the context (default: `TaskId("test-task")`)
+     * @param inputData serialized payload exposed as [TaskContext.rawInputData] and decoded via the
+     *   `context.inputData<T>()` extension (default: [TaskData.EMPTY])
      * @param runAttemptCount 1-based attempt counter (default: `1`)
      */
     public suspend fun runTask(
         task: DesktopTask,
-        taskId: String = "test-task",
+        taskId: TaskId = TaskId("test-task"),
         inputData: TaskData = TaskData.EMPTY,
         runAttemptCount: Int = 1,
     ): TaskResult {
         val context =
             TaskContext(
                 taskId = taskId,
-                inputData = inputData,
+                rawInputData = inputData,
                 runAttemptCount = runAttemptCount,
             )
         return task.doWork(context)

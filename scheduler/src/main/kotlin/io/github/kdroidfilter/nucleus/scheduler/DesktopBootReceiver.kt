@@ -68,11 +68,18 @@ public object DesktopBootReceiver {
         registry: TaskRegistry,
     ) {
         val argIndex = args.indexOf(SCHEDULER_ARG)
-        val taskId = args.getOrNull(argIndex + 1)
-        if (taskId == null) {
+        val rawTaskId = args.getOrNull(argIndex + 1)
+        if (rawTaskId == null) {
             logger.warning("$SCHEDULER_ARG flag present but no task ID provided")
             return
         }
+        val taskId =
+            try {
+                TaskId(rawTaskId)
+            } catch (e: IllegalArgumentException) {
+                logger.warning("$SCHEDULER_ARG received invalid task ID '$rawTaskId': ${e.message}")
+                return
+            }
 
         val appId = NucleusApp.appId
 
@@ -113,7 +120,7 @@ public object DesktopBootReceiver {
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     logger.log(Level.SEVERE, "Task '$taskId' threw an exception", e)
-                    TaskResult.Failure("Exception: ${e.message}")
+                    TaskResult.Failure("Exception: ${e.message ?: e::class.simpleName ?: "unknown"}")
                 }
             }
 
@@ -134,7 +141,7 @@ public object DesktopBootReceiver {
 
     private fun handleRetry(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         @Suppress("UnusedParameter") context: TaskContext,
         result: TaskResult.Retry,
     ) {
@@ -155,7 +162,7 @@ public object DesktopBootReceiver {
 
     private fun handleConstraintsNotMet(
         appId: String,
-        taskId: String,
+        taskId: TaskId,
         unsatisfied: Set<String>,
     ) {
         val taskType = TaskMetadataStore.loadTaskType(appId, taskId)
@@ -165,7 +172,7 @@ public object DesktopBootReceiver {
             logger.info("Periodic task '$taskId' skipped, will re-check next trigger")
         } else {
             // Calendar / on-boot: schedule retry with backoff
-            TaskMetadataStore.recordRetry(appId, taskId, "Constraints not met: $unsatisfied")
+            TaskMetadataStore.recordConstraintSkip(appId, taskId, unsatisfied, incrementAttempt = true)
             when (Platform.Current) {
                 Platform.Linux -> LinuxSystemdScheduler.scheduleRetry(taskId, DEFAULT_RETRY_DELAY_SECONDS)
                 Platform.Windows -> WindowsTaskScheduler.scheduleRetry(taskId, DEFAULT_RETRY_DELAY_SECONDS)

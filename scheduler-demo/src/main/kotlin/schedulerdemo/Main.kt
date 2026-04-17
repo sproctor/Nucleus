@@ -17,15 +17,18 @@ import org.jetbrains.jewel.intui.standalone.theme.default
 import org.jetbrains.jewel.intui.standalone.theme.lightThemeDefinition
 import org.jetbrains.jewel.ui.ComponentStyling
 import schedulerdemo.task.BackupTask
+import schedulerdemo.task.BackupTaskId
 import schedulerdemo.task.NotificationTask
+import schedulerdemo.task.NotificationTaskId
 import schedulerdemo.task.SyncTask
+import schedulerdemo.task.SyncTaskId
 
 private fun buildRegistry() =
     TaskRegistry
         .Builder()
-        .register("sync") { SyncTask() }
-        .register("backup") { BackupTask() }
-        .register("notification") { NotificationTask() }
+        .register(SyncTaskId) { SyncTask() }
+        .register(BackupTaskId) { BackupTask() }
+        .register(NotificationTaskId) { NotificationTask() }
         .build()
 
 fun main(args: Array<String>) {
