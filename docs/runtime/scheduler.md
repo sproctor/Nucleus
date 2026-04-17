@@ -455,7 +455,6 @@ All factory methods take a `java.time.LocalTime` for the time-of-day component.
 | `everyDayAt(time)` | `*-*-* HH:MM:00` | Every day at the given time. |
 | `everyWeekdayAt(time)` | `Mon..Fri *-*-* HH:MM:00` | Monday through Friday. |
 | `everyWeekdayAt(day, time)` | `Mon *-*-* HH:MM:00` | Specific day of the week. |
-| `everyMondayAt(time)` | `Mon *-*-* HH:MM:00` | Shorthand for every Monday. |
 | `everyHour()` | `*-*-* *:00:00` | Every hour at minute 0. |
 
 ### `DesktopTask`

@@ -32,14 +32,9 @@ public class CronExpression private constructor(
         public fun everyDayAt(time: LocalTime): CronExpression = CronExpression("*-*-* ${time.toCalendarSuffix()}")
 
         /**
-         * Every Monday at the given [time].
-         *
-         * Example: `everyMondayAt(LocalTime.of(9, 0))` → `Mon *-*-* 09:00:00`
-         */
-        public fun everyMondayAt(time: LocalTime): CronExpression = everyWeekdayAt(DayOfWeek.MONDAY, time)
-
-        /**
          * Every specified day of the week at the given [time].
+         *
+         * Example: `everyWeekdayAt(DayOfWeek.MONDAY, LocalTime.of(9, 0))` → `Mon *-*-* 09:00:00`
          */
         public fun everyWeekdayAt(
             day: DayOfWeek,
