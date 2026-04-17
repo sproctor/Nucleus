@@ -22,12 +22,20 @@ The `scheduler` module registers background tasks with the OS so they run even w
 Users uninstall apps without thinking about background scheduled tasks. Without explicit cleanup, the OS would keep firing schedules pointing to a missing executable forever. Nucleus handles this differently per platform:
 
 - **Linux** and **Windows** — the scheduler does *not* register the application binary directly. It writes a tiny wrapper script (`<taskId>.sh` in `nucleus/scheduler/<appId>/scripts/` on Linux, `<taskId>.vbs` in `%LOCALAPPDATA%\nucleus\scheduler\<appId>\scripts\` on Windows) and registers *that* with systemd / Task Scheduler. The wrapper checks whether the application binary still exists before invoking it. If it's gone, the wrapper **self-destructs**: it disables and deletes the systemd `.timer` / `.service` units (Linux) or removes the COM tasks under `\Nucleus\<appId>\` (Windows) via the same Schedule.Service API used to create them, deletes the persisted metadata, and finally removes itself. Net result: the next time the OS triggers a task whose app has been uninstalled, the schedule cleans itself up and stops firing.
-- **macOS** — **not** auto-cleaned. launchd does not give up on a missing binary: it enters its "penalty box" state, throttles respawn attempts to `ThrottleInterval` (10 s by default) and keeps trying forever, spamming `cannot spawn` lines into `system.log` on every attempt. The orphaned `.plist` in `~/Library/LaunchAgents/` is **never** reclaimed by macOS. If you ship an uninstaller, it should explicitly tear down each agent it created:
-  ```bash
-  launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
-  rm ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
-  ```
-  (`bootout` is the modern replacement for the deprecated `launchctl unload`; the explicit `gui/<uid>` domain avoids the root-vs-user ambiguity.)
+- **macOS** — **no automatic cleanup, by ecosystem convention.** Unlike the Linux/Windows wrapper trick, the agent's `ProgramArguments` points directly at the application binary so the entry stays visible under its real name in System Settings → "Allow in the Background". The cost: when the user trashes the .app bundle, the orphaned `.plist` in `~/Library/LaunchAgents/` is **never** reclaimed by macOS, and launchd keeps attempting to spawn the missing binary forever — throttled by `ThrottleInterval` (10 s by default), logging `cannot spawn` to `system.log` on every attempt. This is treated as harmless background noise across the macOS ecosystem; mature apps like Dropbox and Backblaze accept the same behavior and direct users to delete the plist manually. SMAppService (macOS 13+) does not eliminate the problem either, and Apple ships no guidance for "graceful uninstall of a LaunchAgent". The two practical mitigations:
+
+    - **In-app**: call `DesktopTaskScheduler.cancelAll()` from your app's settings ("Disable background tasks") or from any in-app uninstall / sign-out flow. This unloads the agents and removes the plists cleanly while the binary is still around.
+    - **External uninstaller**: if you ship one (e.g. an "Uninstall MyApp" `.app`), have it run, for each task:
+
+      ```bash
+      launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
+      rm ~/Library/LaunchAgents/io.github.kdroidfilter.nucleus.<appId>.<taskId>.plist
+      rm ~/Library/Application\ Support/nucleus/scheduler/<appId>/<taskId>.properties
+      ```
+
+      (`bootout` is the modern replacement for the deprecated `launchctl unload`; the explicit `gui/<uid>` domain avoids the root-vs-user ambiguity.)
+
+    Drag-to-trash uninstalls without one of these will leak the orphan, but the failure mode is the well-known throttled-log-spam — not a crash and not a security or correctness issue.
 
 ## Installation
 
