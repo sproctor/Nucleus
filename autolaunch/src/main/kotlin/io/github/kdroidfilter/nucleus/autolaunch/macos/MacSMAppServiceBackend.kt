@@ -78,13 +78,18 @@ internal object MacSMAppServiceBackend : AutoLaunchBackend {
     override fun openSystemSettings(): Boolean = AppServiceManager.openSystemSettingsLoginItems()
 
     /**
-     * Apple does not expose an API to detect `SMAppService.mainApp` launches
-     * (open feedback FB10207829, filed June 2022). The `kAELaunchedAsLogInItem`
-     * AppleEvent fires only for legacy `SMLoginItemSetEnabled` launches, not
-     * `SMAppService`. We return `false` to avoid falsely matching a user-launched
-     * process that happens to carry the `--nucleus-autostart` marker.
+     * Apple exposes no public API to detect `SMAppService.mainApp` launches
+     * (open feedback FB10207829, filed June 2022) and `kAELaunchedAsLogInItem`
+     * fires only for legacy `SMLoginItemSetEnabled`.
+     *
+     * Empirical signal: `launchd` injects `LaunchInstanceID` into the
+     * environment of every process it spawns as a managed job — including
+     * `SMAppService.mainApp` login items. Launches initiated by the user
+     * (Finder, Dock, Spotlight, `open(1)`) go through LaunchServices and do
+     * not carry this variable.
      */
-    override fun wasStartedAtLogin(args: Array<String>): Boolean = false
+    override fun wasStartedAtLogin(args: Array<String>): Boolean =
+        System.getenv(LAUNCHD_INSTANCE_ENV) != null
 
     override fun diagnosticSummary(): String =
         buildString {
@@ -94,7 +99,10 @@ internal object MacSMAppServiceBackend : AutoLaunchBackend {
             if (available) {
                 appendLine("rawStatus: ${AppServiceManager.status(service)}")
             }
+            appendLine("$LAUNCHD_INSTANCE_ENV present: ${System.getenv(LAUNCHD_INSTANCE_ENV) != null}")
         }
+
+    private const val LAUNCHD_INSTANCE_ENV = "LaunchInstanceID"
 
     private const val WAIT_NANOS: Long = 2_000_000_000L
     private const val WAIT_POLL_MS: Long = 25L

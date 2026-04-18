@@ -106,6 +106,7 @@ fun main(args: Array<String>) {
 
     nucleusMainArgs = args
     AutoLaunch.wasStartedAtLogin(args) // prime the cache for Win32 / MSIX
+    MacLaunchDiagnostic.capture(args)
 
     // Set AUMID before any window is created (required for jump lists in non-APPX mode)
     if (Platform.Current == Platform.Windows) {

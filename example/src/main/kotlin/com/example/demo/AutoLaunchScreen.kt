@@ -1,11 +1,22 @@
 package com.example.demo
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import io.github.kdroidfilter.nucleus.core.runtime.Platform.MacOS
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -98,6 +109,49 @@ fun AutoLaunchScreen() {
             Text(
                 text = diag.ifBlank { "(no diagnostic info yet)" },
                 style = MaterialTheme.typography.bodySmall,
+            )
+
+            if (Platform.Current == MacOS) {
+                Spacer(Modifier.height(24.dp))
+                MacLaunchProbe()
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacLaunchProbe() {
+    val clipboard = LocalClipboardManager.current
+    val text = remember { MacLaunchDiagnostic.text }
+    val vScroll = rememberScrollState()
+    val hScroll = rememberScrollState()
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("macOS launch probe", style = MaterialTheme.typography.titleSmall)
+        OutlinedButton(onClick = { clipboard.setText(AnnotatedString(text)) }) {
+            Text("Copy")
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    Surface(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .verticalScroll(vScroll)
+                .horizontalScroll(hScroll)
+                .padding(12.dp),
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
