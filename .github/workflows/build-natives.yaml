@@ -764,6 +764,22 @@ jobs:
           path: launcher-linux/src/main/resources/nucleus/native/linux-*/
           retention-days: 1
 
+      - name: Build autolaunch Linux native shared library
+        run: bash autolaunch/src/main/native/linux/build.sh
+
+      - name: Verify autolaunch Linux native
+        run: |
+          f="autolaunch/src/main/resources/nucleus/native/linux-${{ matrix.arch }}/libnucleus_autolaunch_linux.so"
+          if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+          echo "OK: $f ($(wc -c < "$f") bytes)"
+
+      - name: Upload autolaunch Linux shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: autolaunch-linux-${{ matrix.arch }}
+          path: autolaunch/src/main/resources/nucleus/native/linux-*/
+          retention-days: 1
+
       - name: Build decorated-window-core Linux native shared library
         run: bash decorated-window-core/src/main/native/linux/build.sh
 
