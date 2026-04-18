@@ -55,6 +55,14 @@ internal object MsixStartupTaskBackend : AutoLaunchBackend {
         return if (rc == 0) AutoLaunchResult.OK else AutoLaunchResult.ERROR
     }
 
+    /**
+     * MSIX auto-launches are issued by `sihost.exe` via the Shell Infrastructure Host;
+     * the helper DLL walks the process tree (skipping self-spawned jpackage launcher
+     * chains) to detect this. Manual launches come from `explorer.exe` / `runtimebroker.exe`.
+     */
+    override fun wasStartedAtLogin(args: Array<String>): Boolean =
+        NativeAutoLaunchBridge.isLaunchedByTaskScheduler() == 1
+
     private fun taskId(): String =
         AutoLaunchConfig.taskId
             ?: NucleusApp.startupTaskId

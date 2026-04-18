@@ -17,14 +17,15 @@ internal object WindowsAutoLaunch : AutoLaunchBackend {
 
     override fun disable(): AutoLaunchResult = delegate.disable()
 
-    override fun openSystemSettings(): Boolean {
-        return try {
+    override fun wasStartedAtLogin(args: Array<String>): Boolean = delegate.wasStartedAtLogin(args)
+
+    override fun openSystemSettings(): Boolean =
+        try {
             Runtime.getRuntime().exec(arrayOf("cmd", "/c", "start", "ms-settings:startupapps"))
             true
         } catch (_: Exception) {
             false
         }
-    }
 
     private fun resolveDelegate(): AutoLaunchBackend {
         if (!NativeAutoLaunchBridge.isLoaded) return Win32RegistryBackend

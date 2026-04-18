@@ -2,13 +2,14 @@
 
 Cross-platform auto-launch at user login for JVM desktop applications.
 
-On Windows, Nucleus auto-detects at runtime whether the process is running from an MSIX package or a classic Win32 install (MSI / NSIS / portable) and dispatches to the correct API:
+Nucleus auto-detects the runtime packaging at startup (via `ExecutableRuntime`) and dispatches to the correct backend:
 
 | Packaging | API used | Detection signal |
 |---|---|---|
 | MSIX | `Windows.ApplicationModel.StartupTask` (WinRT) | `GetCurrentPackageFullName` succeeds |
 | Win32 (MSI / NSIS) | `HKCU\...\Run` + `HKCU\...\Explorer\StartupApproved\Run` | Process is not packaged |
-| macOS | — (no-op in this version) | — |
+| macOS DMG / PKG | `SMAppService.mainApp` (macOS 13+) | Always routed to SMAppService — works for DMG (Developer ID) and PKG (Mac App Store, sandboxed) |
+| macOS < 13 | — (returns `UNSUPPORTED`) | — |
 | Linux | — (no-op in this version) | — |
 
 The runtime exposes a single unified API — consumers don't need to branch on packaging themselves.
@@ -64,7 +65,7 @@ Switch(
 | `isUserLocked()` | `Boolean` | `true` when state is `DISABLED_BY_USER` |
 | `enable()` | `AutoLaunchResult` | See rules below |
 | `disable()` | `AutoLaunchResult` | — |
-| `openSystemSettings()` | `Boolean` | Opens `ms-settings:startupapps` on Windows |
+| `openSystemSettings()` | `Boolean` | Opens `ms-settings:startupapps` on Windows; `com.apple.LoginItems-Settings.extension` on macOS |
 | `wasStartedAtLogin(args)` | `Boolean` | `true` if the process was launched by auto-launch. Works on both Win32 and MSIX |
 
 ### `AutoLaunchState`
@@ -76,7 +77,7 @@ Switch(
 | `DISABLED_BY_USER` | **User toggled off via Task Manager / Settings — programmatic re-enable is blocked** |
 | `DISABLED_BY_POLICY` | Blocked by Group Policy (MSIX only) |
 | `ENABLED_BY_POLICY` | Forced on by Group Policy (MSIX only) |
-| `UNSUPPORTED` | Platform not supported (macOS / Linux in this version) |
+| `UNSUPPORTED` | Platform or packaging not supported (Linux, sandboxed macOS PKG) |
 
 ### `AutoLaunchResult`
 
@@ -149,6 +150,45 @@ Offset:  0  1  2  3   4  5  6  7  8  9  A  B
 
 Nucleus uses the **parity rule** for robustness: `flag & 1 == 0` → enabled, `flag & 1 == 1` → disabled by user. In practice the values you'll see are `0x02` (enabled), `0x03` (disabled by user), and occasionally `0x06` (enabled, variant written by some installers).
 
+## macOS behavior
+
+Nucleus registers the main application with `SMAppService.mainApp` — the modern ServiceManagement API that Apple recommends since Ventura, and the one used by `sindresorhus/LaunchAtLogin-Modern`. The entry appears under **System Settings → General → Login Items → Open at Login** for both DMG (Developer ID) and PKG (Mac App Store, sandboxed) distributions. No helper app, no bundled plist, no build-time plugin configuration.
+
+### Dependencies
+
+The macOS path relies on a companion module for the JNI bridge to `SMAppService`:
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.autolaunch:<version>")
+    implementation("io.github.kdroidfilter:nucleus.service-management-macos:<version>")
+}
+```
+
+`autolaunch` loads the macOS backend reflectively — if `service-management-macos` is absent from the classpath, `AutoLaunch.state()` returns `UNSUPPORTED` and the Windows / Linux paths remain unaffected.
+
+### Status mapping
+
+| `SMAppServiceStatus` | `AutoLaunchState` | Notes |
+|---|---|---|
+| `enabled` | `ENABLED` | User approved; launches at next login |
+| `notRegistered` / `notFound` | `DISABLED` | No record in BackgroundTaskManagement yet — call `enable()` |
+| `requiresApproval` | `DISABLED_BY_USER` | User must approve in System Settings |
+
+### First-run approval
+
+After `enable()`, macOS may leave the service in `requiresApproval` until the user opens **System Settings → Login Items** and flips the switch. Call `AutoLaunch.openSystemSettings()` to deep-link there.
+
+### Detection of an auto-launched start
+
+`AutoLaunch.wasStartedAtLogin(args)` on macOS reads the `keyAELaunchedAsLogInItem` marker carried by the `kAEOpenApplication` AppleEvent that `loginwindow` dispatches at login. The detection is independent of the CLI `args` parameter — it is kept for API symmetry with Windows, where a marker argument is injected into the launch entry.
+
+The native observer is installed at dylib-load time (`__attribute__((constructor))`), so it is in place before AWT's `NSApplication` starts its run loop and consumes the event. Call `AutoLaunch.wasStartedAtLogin(args)` anywhere in `main()` once the native library is loaded.
+
+### macOS < 13
+
+`SMAppService` requires macOS 13.0+ (Ventura). On older releases, `AppServiceManager.isAvailable` returns `false` and every call reports `UNSUPPORTED` — there is no legacy fallback in the runtime.
+
 ## Configuration overrides
 
 All defaults fall back to `NucleusApp`. Override any of them **before** the first `AutoLaunch` call:
@@ -177,6 +217,7 @@ Detection is transparent across packaging types and uses the **signal that is de
 | Backend | Mechanism |
 |---|---|
 | Win32 (MSI / NSIS) | Looks for the marker argument (`--nucleus-autostart` by default, configurable via `AutoLaunchConfig.autostartArgument`) written into the `HKCU\...\Run` command line |
+| macOS user-dir LaunchAgent | Same marker argument, injected into the plist's `ProgramArguments` at `enable()` time |
 | MSIX packaged desktop | Walks up the process tree (skipping self-spawned jpackage launcher chains) and checks if the external ancestor is `sihost.exe` — the Shell Infrastructure Host that launches MSIX startup-task activations. Manual launches (Start menu, Explorer, taskbar) come from `explorer.exe` or `runtimebroker.exe` |
 
 Both paths are fully deterministic — no heuristics, no timing guesses, no runtime dependencies beyond the shipped native DLL.

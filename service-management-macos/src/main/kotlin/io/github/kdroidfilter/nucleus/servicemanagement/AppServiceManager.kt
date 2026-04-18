@@ -109,4 +109,16 @@ public object AppServiceManager {
         if (!isAvailable) return false
         return NativeMacServiceManagementBridge.nativeOpenSystemSettingsLoginItems()
     }
+
+    /**
+     * `true` if this process was launched at user login by `loginwindow`.
+     *
+     * Reads the `keyAELaunchedAsLogInItem` marker from the `kAEOpenApplication`
+     * AppleEvent delivered at process start. The native library installs its
+     * observer at dylib-load time, so this method is safe to call from any
+     * thread at any point after [isAvailable] returns `true`.
+     */
+    @JvmStatic
+    public val wasLaunchedAtLogin: Boolean
+        get() = isAvailable && NativeMacServiceManagementBridge.nativeWasLaunchedAsLoginItem()
 }

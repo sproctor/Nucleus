@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":notification-linux"))
     implementation(project(":notification-windows"))
     implementation(project(":autolaunch"))
+    implementation(project(":service-management-macos"))
     implementation(project(":launcher-windows"))
     implementation(project(":launcher-linux"))
     implementation(project(":launcher-macos"))

@@ -9,6 +9,7 @@ private const val LIBRARY_NAME = "nucleus_autolaunch"
  * Kotlin side maps them to [io.github.kdroidfilter.nucleus.autolaunch.AutoLaunchState] /
  * [io.github.kdroidfilter.nucleus.autolaunch.AutoLaunchResult].
  */
+@Suppress("TooManyFunctions")
 internal object NativeAutoLaunchBridge {
     private val loaded = NativeLibraryLoader.load(LIBRARY_NAME, NativeAutoLaunchBridge::class.java)
 

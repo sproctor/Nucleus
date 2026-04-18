@@ -29,9 +29,11 @@ import io.github.kdroidfilter.nucleus.core.runtime.Platform
 fun AutoLaunchScreen() {
     var state by remember { mutableStateOf(AutoLaunch.state()) }
     var lastResult by remember { mutableStateOf<AutoLaunchResult?>(null) }
+    var diag by remember { mutableStateOf(AutoLaunch.diagnostic()) }
 
     fun refresh() {
         state = AutoLaunch.state()
+        diag = AutoLaunch.diagnostic()
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -68,19 +70,19 @@ fun AutoLaunchScreen() {
             when (state) {
                 AutoLaunchState.DISABLED_BY_USER -> {
                     Text(
-                        "Disabled by you via Task Manager / Settings. " +
-                            "Programmatic re-enable is blocked by Windows.",
+                        "Disabled via system settings. Programmatic re-enable is blocked by the OS.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { AutoLaunch.openSystemSettings() }) {
-                        Text("Open Windows Startup Apps settings")
+                        Text("Open system settings")
                     }
                 }
                 AutoLaunchState.UNSUPPORTED -> {
                     Text(
-                        "Auto-launch is not supported on this platform in the current version.",
+                        "Auto-launch is not supported in this build. " +
+                            "Sandboxed macOS (PKG / Mac App Store) and Linux are not covered yet.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -91,11 +93,10 @@ fun AutoLaunchScreen() {
             Button(onClick = { refresh() }) { Text("Refresh") }
 
             Spacer(Modifier.height(24.dp))
-            Text("Native diagnostic:", style = MaterialTheme.typography.titleSmall)
+            Text("Diagnostic:", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
-            val diag = remember { AutoLaunch.diagnostic() }
             Text(
-                text = diag.ifBlank { "(no native calls yet)" },
+                text = diag.ifBlank { "(no diagnostic info yet)" },
                 style = MaterialTheme.typography.bodySmall,
             )
         }

@@ -15,6 +15,7 @@ val publishVersion =
 
 dependencies {
     compileOnly(project(":core-runtime"))
+    compileOnly(project(":service-management-macos"))
 
     testImplementation(kotlin("test"))
     testImplementation(project(":core-runtime"))

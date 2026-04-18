@@ -2,6 +2,10 @@ package io.github.kdroidfilter.nucleus.autolaunch
 
 import io.github.kdroidfilter.nucleus.autolaunch.windows.NativeAutoLaunchBridge
 import io.github.kdroidfilter.nucleus.autolaunch.windows.WindowsAutoLaunch
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
+
+private const val MAC_SMAPPSERVICE_BACKEND_CLASS =
+    "io.github.kdroidfilter.nucleus.autolaunch.macos.MacSMAppServiceBackend"
 
 /**
  * Cross-platform auto-launch at user login.
@@ -20,19 +24,52 @@ import io.github.kdroidfilter.nucleus.autolaunch.windows.WindowsAutoLaunch
  * the appropriate API (`Windows.ApplicationModel.StartupTask` for MSIX,
  * `HKCU\...\Run` + `StartupApproved\Run` for MSI/NSIS).
  *
- * macOS and Linux backends are no-op in this version; APIs return
- * [AutoLaunchState.UNSUPPORTED] / [AutoLaunchResult.UNSUPPORTED].
+ * macOS builds (DMG and PKG alike) register themselves via
+ * `SMAppService.mainApp` — the entry appears under **System Settings → Login
+ * Items → Open at Login**. Requires macOS 13+; older releases return
+ * [AutoLaunchState.UNSUPPORTED].
+ *
+ * Linux is no-op in this version.
  */
+@Suppress("TooManyFunctions")
 public object AutoLaunch {
     private val backend: AutoLaunchBackend by lazy { resolveBackend() }
+
+    /**
+     * Eagerly resolves the platform backend and loads any JNI library it requires.
+     *
+     * The first call into any `AutoLaunch` method triggers `System.load()` on the
+     * calling thread. On macOS that first dlopen can take 100–300 ms due to AMFI
+     * code-signature validation. Call [preload] from a background daemon thread
+     * in `main()` to avoid blocking the UI thread later.
+     */
+    @JvmStatic
+    public fun preload() {
+        backend
+    }
 
     /** Current auto-launch state. */
     @JvmStatic
     public fun state(): AutoLaunchState = backend.state()
 
-    /** Diagnostic log of native auto-launch operations (Windows only, empty on other platforms). */
+    /**
+     * Diagnostic string summarizing the resolved backend, the detected executable
+     * type, and on Windows the underlying native JNI operations log. Safe to show
+     * in debug UI; intended for troubleshooting a stuck `UNSUPPORTED` state.
+     */
     @JvmStatic
-    public fun diagnostic(): String = NativeAutoLaunchBridge.getDiagnostic()
+    public fun diagnostic(): String =
+        buildString {
+            appendLine("backend: ${backend.javaClass.simpleName}")
+            appendLine("os.name: ${System.getProperty("os.name")}")
+            appendLine("executableType: ${ExecutableRuntime.type()}")
+            macBackendResolutionError?.let { appendLine("macBackendError: $it") }
+            append(backend.diagnosticSummary())
+            append(NativeAutoLaunchBridge.getDiagnostic())
+        }
+
+    @Volatile
+    private var macBackendResolutionError: String? = null
 
     /** `true` if the app is configured to launch at login. */
     @JvmStatic
@@ -66,7 +103,8 @@ public object AutoLaunch {
 
     /**
      * Opens the platform system settings page for managing startup apps.
-     * On Windows, opens `ms-settings:startupapps`.
+     * On Windows, opens `ms-settings:startupapps`. On macOS, opens
+     * System Settings → General → Login Items.
      *
      * @return `true` if the system UI was launched successfully.
      */
@@ -76,49 +114,47 @@ public object AutoLaunch {
     /**
      * Detects whether this process was started by the auto-launch mechanism.
      *
-     * Detection strategy:
-     * - **Win32 / MSI / NSIS**: looks for the marker argument written by Nucleus
-     *   into the `HKCU\...\Run` entry (default `--nucleus-autostart`, configurable
-     *   via [AutoLaunchConfig.autostartArgument]).
-     * - **MSIX packaged desktop**: calls
-     *   `Windows.ApplicationModel.AppInstance.GetActivatedEventArgs()` and checks
-     *   for `ActivationKind.StartupTask`. Supported since Windows 10 v1809.
+     * Detection strategy is delegated to the resolved backend:
+     * - **Win32 / MSI / NSIS** and **macOS user-dir LaunchAgent**: looks for the
+     *   marker argument ([AutoLaunchConfig.autostartArgument], default
+     *   `--nucleus-autostart`) written into the launch entry.
+     * - **MSIX packaged desktop**: walks the process tree and checks whether an
+     *   external ancestor is `sihost.exe` (Shell Infrastructure Host — how MSIX
+     *   startup-task activations are issued). Supported since Windows 10 v1809.
      *
-     * **Call this early** in `main()` — on MSIX the activation context is a
-     * one-shot query; the result is cached after the first call.
+     * **Call this early** in `main()` — the result is cached after the first call.
      *
      * @param args the application's `main(args: Array<String>)` arguments
      */
     @JvmStatic
-    public fun wasStartedAtLogin(args: Array<String>): Boolean = startedAtLogin(args)
-
-    private var startupCheck: Boolean? = null
-
-    private fun startedAtLogin(args: Array<String>): Boolean {
+    public fun wasStartedAtLogin(args: Array<String>): Boolean {
         startupCheck?.let { return it }
-        val result = checkStartedAtLogin(args)
+        val result = backend.wasStartedAtLogin(args)
         startupCheck = result
         return result
     }
 
-    private fun checkStartedAtLogin(args: Array<String>): Boolean {
-        val packaged = NativeAutoLaunchBridge.isLoaded && NativeAutoLaunchBridge.isPackaged()
-        return if (packaged) {
-            // MSIX: windows.startupTask is implemented via Task Scheduler,
-            // so the parent process is taskhostw.exe for auto-launches.
-            NativeAutoLaunchBridge.isLaunchedByTaskScheduler() == 1
-        } else {
-            // Win32 / MSI / NSIS / portable / dev → CLI marker injected by enable().
-            val marker = AutoLaunchConfig.autostartArgument?.takeIf { it.isNotBlank() }
-            marker != null && args.any { it == marker }
-        }
-    }
+    private var startupCheck: Boolean? = null
 
     private fun resolveBackend(): AutoLaunchBackend {
         val os = System.getProperty("os.name", "").lowercase()
         return when {
             os.contains("win") -> WindowsAutoLaunch
+            os.contains("mac") -> loadMacSMAppServiceBackendOrFallback()
             else -> NoOpAutoLaunchBackend
         }
     }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun loadMacSMAppServiceBackendOrFallback(): AutoLaunchBackend =
+        try {
+            val klass = Class.forName(MAC_SMAPPSERVICE_BACKEND_CLASS)
+            klass.getField("INSTANCE").get(null) as AutoLaunchBackend
+        } catch (t: Throwable) {
+            // service-management-macos not on classpath — auto-launch on macOS
+            // requires that dependency. The backend itself returns UNSUPPORTED
+            // on macOS < 13 via AppServiceManager.isAvailable.
+            macBackendResolutionError = "${t.javaClass.simpleName}: ${t.message}"
+            NoOpAutoLaunchBackend
+        }
 }

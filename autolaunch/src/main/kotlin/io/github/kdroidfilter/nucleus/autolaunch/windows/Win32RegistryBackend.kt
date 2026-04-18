@@ -66,7 +66,11 @@ internal object Win32RegistryBackend : AutoLaunchBackend {
     @Suppress("TooGenericExceptionCaught")
     private fun resolveExecutablePath(): String? =
         try {
-            ProcessHandle.current().info().command().orElse(null)
+            ProcessHandle
+                .current()
+                .info()
+                .command()
+                .orElse(null)
         } catch (_: Exception) {
             null
         }

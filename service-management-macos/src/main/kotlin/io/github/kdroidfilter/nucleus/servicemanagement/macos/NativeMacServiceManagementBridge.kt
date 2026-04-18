@@ -80,6 +80,20 @@ internal object NativeMacServiceManagementBridge {
     @JvmStatic
     external fun nativeOpenSystemSettingsLoginItems(): Boolean
 
+    /**
+     * Returns `true` if this process was launched at user login by `loginwindow`
+     * (typically triggered by a registered [io.github.kdroidfilter.nucleus.servicemanagement.AppService.MainApp]
+     * login item). Detection is based on the `kAEOpenApplication` AppleEvent whose
+     * `keyAEPropData` parameter equals `keyAELaunchedAsLogInItem` — the same signal
+     * Cocoa apps read from `NSAppleEventManager.currentAppleEvent`.
+     *
+     * The dylib installs its observer during `__attribute__((constructor))`, so the
+     * flag is captured before AWT's `NSApplication` replaces the handler. Callers
+     * can invoke this safely at any point after the native library is loaded.
+     */
+    @JvmStatic
+    external fun nativeWasLaunchedAsLoginItem(): Boolean
+
     // -- Callbacks from native code -------------------------------------------
 
     /** Called by native code when [nativeUnregister] completes. */

@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <ServiceManagement/ServiceManagement.h>
+#import <Carbon/Carbon.h>
 #include <jni.h>
 
 // ============================================================================
@@ -257,4 +258,63 @@ Java_io_github_kdroidfilter_nucleus_servicemanagement_macos_NativeMacServiceMana
     }
 
     return JNI_FALSE;
+}
+
+// ============================================================================
+// Launched-as-login-item detection
+// ============================================================================
+//
+// When `loginwindow` launches an app registered via SMAppService.mainApp,
+// it delivers a `kAEOpenApplication` AppleEvent whose `keyAEPropData`
+// parameter equals `keyAELaunchedAsLogInItem` ('lgit'). We install a handler
+// at dylib-load time (before AWT's NSApplication starts its event loop) so
+// we reliably observe that first event and cache the flag.
+
+static BOOL g_wasLaunchedAsLoginItem = NO;
+static BOOL g_loginItemHandlerInstalled = NO;
+
+@interface NucleusLoginItemObserver : NSObject
+- (void)handleOpenAppEvent:(NSAppleEventDescriptor *)event
+            withReplyEvent:(NSAppleEventDescriptor *)reply;
+@end
+
+@implementation NucleusLoginItemObserver
+- (void)handleOpenAppEvent:(NSAppleEventDescriptor *)event
+            withReplyEvent:(NSAppleEventDescriptor *)reply {
+    (void)reply;
+    NSAppleEventDescriptor *param = [event paramDescriptorForKeyword:keyAEPropData];
+    if (param != nil && [param enumCodeValue] == keyAELaunchedAsLogInItem) {
+        g_wasLaunchedAsLoginItem = YES;
+    }
+}
+@end
+
+__attribute__((constructor))
+static void nucleus_install_login_item_observer(void) {
+    static NucleusLoginItemObserver *observer;
+    observer = [[NucleusLoginItemObserver alloc] init];
+    [[NSAppleEventManager sharedAppleEventManager]
+        setEventHandler:observer
+            andSelector:@selector(handleOpenAppEvent:withReplyEvent:)
+          forEventClass:kCoreEventClass
+             andEventID:kAEOpenApplication];
+    g_loginItemHandlerInstalled = YES;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_github_kdroidfilter_nucleus_servicemanagement_macos_NativeMacServiceManagementBridge_nativeWasLaunchedAsLoginItem(
+    JNIEnv *env, jclass clazz) {
+    (void)env; (void)clazz;
+    // Also probe currentAppleEvent in case the call happens during the initial
+    // event dispatch (e.g. from applicationDidFinishLaunching on a Cocoa app).
+    @autoreleasepool {
+        NSAppleEventDescriptor *event = [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
+        if (event != nil && [event eventID] == kAEOpenApplication) {
+            NSAppleEventDescriptor *param = [event paramDescriptorForKeyword:keyAEPropData];
+            if (param != nil && [param enumCodeValue] == keyAELaunchedAsLogInItem) {
+                g_wasLaunchedAsLoginItem = YES;
+            }
+        }
+    }
+    return g_wasLaunchedAsLoginItem ? JNI_TRUE : JNI_FALSE;
 }

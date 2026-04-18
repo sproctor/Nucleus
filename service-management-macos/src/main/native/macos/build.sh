@@ -36,6 +36,7 @@ COMMON_FLAGS=(
     -dynamiclib
     -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN"
     -framework Cocoa
+    -framework Carbon
     -framework ServiceManagement
     -mmacosx-version-min=13.0
     -fobjc-arc
