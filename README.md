@@ -114,6 +114,7 @@ Each module is published independently to Maven Central — use them together or
 | `nucleus.taskbar-progress` | Cross-platform taskbar progress bar & attention requests |
 | `nucleus.global-hotkey` | System-wide keyboard shortcuts |
 | `nucleus.energy-manager` | Energy efficiency & screen-awake APIs |
+| `nucleus.autolaunch` | Start the app at user login — MSIX `StartupTask`, Win32 `HKCU\...\Run`, `SMAppService`, systemd user units, Flatpak portal |
 | `nucleus.native-ssl` | OS trust store integration |
 | `nucleus.native-http` | HTTP client with native SSL |
 | `nucleus.linux-hidpi` | Native HiDPI scale detection on Linux |
@@ -127,7 +128,6 @@ Modules planned for upcoming releases. Contributions welcome.
 
 | Module | Description | macOS | Windows | Linux |
 |--------|-------------|-------|---------|-------|
-| `auto-launch` | Start the app at user login | `SMAppService` / `LaunchAgent` | Run registry / Startup folder | `.desktop` autostart |
 | `secure-storage` | Hardware-backed secret storage for tokens, passwords, keys | Keychain | Credential Manager / DPAPI | Secret Service (`libsecret`) |
 | `biometric-auth` | Prompt for fingerprint / face authentication | `LocalAuthentication` (Touch ID / Face ID) | Windows Hello | `fprintd` via D-Bus / polkit |
 | `share-sheet` | OS share sheet (URL, file, text) | `NSSharingService` | Windows `DataTransferManager` | xdg-desktop-portal `Share` |

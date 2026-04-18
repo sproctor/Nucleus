@@ -34,6 +34,7 @@ Nucleus provides runtime libraries for use in your application code. All are pub
 | Linux HiDPI | `io.github.kdroidfilter:nucleus.linux-hidpi` | Native HiDPI scale factor detection on Linux |
 | Scheduler | `io.github.kdroidfilter:nucleus.scheduler` | Background task scheduling — periodic, calendar, and on-boot tasks via OS-native schedulers (launchd, systemd, Task Scheduler) |
 | Service Management (macOS) | `io.github.kdroidfilter:nucleus.service-management-macos` | macOS SMAppService binding — login items, launch agents, launch daemons (macOS 13+) |
+| Auto-Launch | `io.github.kdroidfilter:nucleus.autolaunch` | Cross-platform start-at-login — MSIX `StartupTask`, Win32 `HKCU\...\Run`, `SMAppService`, systemd user units, Flatpak portal |
 | GraalVM Runtime | `io.github.kdroidfilter:nucleus.graalvm-runtime` | GraalVM native-image bootstrap + font substitutions (includes linux-hidpi) |
 
 ```kotlin
@@ -67,6 +68,7 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.linux-hidpi:<version>")
     implementation("io.github.kdroidfilter:nucleus.scheduler:<version>")
     implementation("io.github.kdroidfilter:nucleus.service-management-macos:<version>")
+    implementation("io.github.kdroidfilter:nucleus.autolaunch:<version>")
     implementation("io.github.kdroidfilter:nucleus.graalvm-runtime:<version>")
 }
 ```
