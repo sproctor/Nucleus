@@ -95,12 +95,17 @@ import kotlin.system.exitProcess
 private const val AOT_TRAINING_DURATION_MS = 45_000L
 
 private val deepLinkUri = mutableStateOf<URI?>(null)
-private var startedAtLogin: Boolean = false
+// macOS resolves the AppleEvent only after NSApp.run starts (i.e. after AWT
+// init), so the early call from main() returns false. We stash args here and
+// re-query from Compose to pick up the late signal.
+private var nucleusMainArgs: Array<String> = emptyArray()
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 fun main(args: Array<String>) {
     GraalVmInitializer.initialize()
-    startedAtLogin = AutoLaunch.wasStartedAtLogin(args)
+
+    nucleusMainArgs = args
+    AutoLaunch.wasStartedAtLogin(args) // prime the cache for Win32 / MSIX
 
     // Set AUMID before any window is created (required for jump lists in non-APPX mode)
     if (Platform.Current == Platform.Windows) {
@@ -399,6 +404,11 @@ fun main(args: Array<String>) {
 @Composable
 fun NucleusContent() {
     val currentDeepLink by deepLinkUri
+    // macOS: the kAEOpenApplication AppleEvent is delivered after NSApp.run()
+    // starts processing — which is exactly when this composable first runs.
+    // Reading the flag here is the JVM equivalent of checking in Cocoa's
+    // applicationDidFinishLaunching delegate.
+    val startedAtLogin = remember { AutoLaunch.wasStartedAtLogin(nucleusMainArgs) }
     val updater =
         remember {
             NucleusUpdater {
@@ -611,3 +621,4 @@ private fun io.github.kdroidfilter.nucleus.window.TitleBarScope.TitleBarIconButt
         }
     }
 }
+

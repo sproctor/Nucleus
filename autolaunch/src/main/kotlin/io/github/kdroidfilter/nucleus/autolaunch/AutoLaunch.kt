@@ -115,26 +115,34 @@ public object AutoLaunch {
      * Detects whether this process was started by the auto-launch mechanism.
      *
      * Detection strategy is delegated to the resolved backend:
-     * - **Win32 / MSI / NSIS** and **macOS user-dir LaunchAgent**: looks for the
-     *   marker argument ([AutoLaunchConfig.autostartArgument], default
-     *   `--nucleus-autostart`) written into the launch entry.
+     * - **Win32 / MSI / NSIS**: looks for the marker argument
+     *   ([AutoLaunchConfig.autostartArgument], default `--nucleus-autostart`)
+     *   written into the launch entry by the registry write at `enable()` time.
      * - **MSIX packaged desktop**: walks the process tree and checks whether an
      *   external ancestor is `sihost.exe` (Shell Infrastructure Host — how MSIX
      *   startup-task activations are issued). Supported since Windows 10 v1809.
+     * - **macOS**: reads the `keyAELaunchedAsLogInItem` marker from the
+     *   `kAEOpenApplication` AppleEvent that `loginwindow` dispatches at login.
      *
-     * **Call this early** in `main()` — the result is cached after the first call.
+     * **macOS timing note**: the AppleEvent is processed by `NSApplication.run()`,
+     * so the first call from `main()` (before any AWT/Compose code runs) typically
+     * returns `false`. Subsequent calls — once the Compose application loop is
+     * up — will return `true` if the app was login-launched. This method only
+     * caches positive results, so it is safe to poll it from a `LaunchedEffect`
+     * or `remember` block to learn the actual value.
      *
      * @param args the application's `main(args: Array<String>)` arguments
      */
     @JvmStatic
     public fun wasStartedAtLogin(args: Array<String>): Boolean {
-        startupCheck?.let { return it }
+        if (startedAtLoginSticky) return true
         val result = backend.wasStartedAtLogin(args)
-        startupCheck = result
+        if (result) startedAtLoginSticky = true
         return result
     }
 
-    private var startupCheck: Boolean? = null
+    @Volatile
+    private var startedAtLoginSticky: Boolean = false
 
     private fun resolveBackend(): AutoLaunchBackend {
         val os = System.getProperty("os.name", "").lowercase()
