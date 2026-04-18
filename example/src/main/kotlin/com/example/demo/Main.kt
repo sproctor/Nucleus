@@ -64,6 +64,7 @@ import com.example.demo.icons.VscodeCodiconsColorMode
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
+import io.github.kdroidfilter.nucleus.autolaunch.AutoLaunch
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.NucleusApp
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
@@ -95,9 +96,18 @@ private const val AOT_TRAINING_DURATION_MS = 45_000L
 
 private val deepLinkUri = mutableStateOf<URI?>(null)
 
+// macOS resolves the AppleEvent only after NSApp.run starts (i.e. after AWT
+// init), so the early call from main() returns false. We stash args here and
+// re-query from Compose to pick up the late signal.
+private var nucleusMainArgs: Array<String> = emptyArray()
+
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 fun main(args: Array<String>) {
     GraalVmInitializer.initialize()
+
+    nucleusMainArgs = args
+    AutoLaunch.wasStartedAtLogin(args) // prime the cache for Win32 / MSIX
+    MacLaunchDiagnostic.capture(args)
 
     // Set AUMID before any window is created (required for jump lists in non-APPX mode)
     if (Platform.Current == Platform.Windows) {
@@ -199,6 +209,7 @@ fun main(args: Array<String>) {
                                     add("Launcher")
                                 }
                                 add("Media Control")
+                                add("Auto-Launch")
 
                                 add("Hotkeys")
                                 if (Platform.Current == Platform.MacOS) {
@@ -347,6 +358,7 @@ fun main(args: Array<String>) {
                                 }
                             }
                             "Media Control" -> MediaControlScreen()
+                            "Auto-Launch" -> AutoLaunchScreen()
                             "Hotkeys" -> GlobalHotKeyScreen()
                             "Menu" -> MacOsMenuScreen()
                         }
@@ -394,6 +406,11 @@ fun main(args: Array<String>) {
 @Composable
 fun NucleusContent() {
     val currentDeepLink by deepLinkUri
+    // macOS: the kAEOpenApplication AppleEvent is delivered after NSApp.run()
+    // starts processing — which is exactly when this composable first runs.
+    // Reading the flag here is the JVM equivalent of checking in Cocoa's
+    // applicationDidFinishLaunching delegate.
+    val startedAtLogin = remember { AutoLaunch.wasStartedAtLogin(nucleusMainArgs) }
     val updater =
         remember {
             NucleusUpdater {
@@ -446,6 +463,21 @@ fun NucleusContent() {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 NucleusAtom(atomSize = 200.dp)
+
+                if (startedAtLogin) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text(
+                            text = "Started automatically at login",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
 
                 if (currentDeepLink != null) {
                     Spacer(modifier = Modifier.height(16.dp))

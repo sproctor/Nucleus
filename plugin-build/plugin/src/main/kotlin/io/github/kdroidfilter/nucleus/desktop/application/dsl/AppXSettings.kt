@@ -35,6 +35,19 @@ abstract class AppXSettings {
     /** Add auto-launch on startup capability. Default: false */
     var addAutoLaunchExtension: Boolean = false
 
+    /**
+     * StartupTask TaskId used by the auto-launch extension. Exposed at runtime via
+     * `NucleusApp.startupTaskId` so `AutoLaunch` can address the correct task.
+     *
+     * Default when [addAutoLaunchExtension] is `true`: `"SlackStartup"` — this is the
+     * value electron-builder hardcodes in the generated manifest (legacy leftover from
+     * its Slack origins). **Overriding this property alone does NOT change the manifest** —
+     * it only changes the TaskId the runtime looks up, which would cause MSIX
+     * `StartupTask.GetAsync` to fail. Only override if you are also post-processing
+     * the generated `AppxManifest.xml` to match.
+     */
+    var startupTaskId: String? = null
+
     /** Background color of the app tile (e.g. "#464646"). Default: null */
     var backgroundColor: String? = null
 

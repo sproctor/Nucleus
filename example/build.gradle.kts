@@ -33,6 +33,8 @@ dependencies {
     implementation(project(":notification-macos"))
     implementation(project(":notification-linux"))
     implementation(project(":notification-windows"))
+    implementation(project(":autolaunch"))
+    implementation(project(":service-management-macos"))
     implementation(project(":launcher-windows"))
     implementation(project(":launcher-linux"))
     implementation(project(":launcher-macos"))
@@ -239,6 +241,10 @@ nucleus.application {
                 applicationId = "NucleusDemo"
                 publisherDisplayName = "KDroidFilter"
                 displayName = "Nucleus Demo"
+                // Auto-inject <desktop4:Extension Category="windows.startupTask"> in Package.appxmanifest.
+                // TaskId is auto-resolved to "${applicationId}StartupId" and exposed via NucleusApp.startupTaskId,
+                // which AutoLaunch picks up automatically on MSIX builds.
+                addAutoLaunchExtension = true
                 // Publisher: "CN=..."
                 publisher = "CN=D541E802-6D30-446A-864E-2E8ABD2DAA5E"
                 identityName = "KDroidFilter.NucleusDemo"

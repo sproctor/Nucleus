@@ -112,6 +112,7 @@ nav:
           - Scheduling:
               - Scheduler: runtime/scheduler.md
               - Service Management (macOS): runtime/service-management-macos.md
+              - Auto-Launch: runtime/autolaunch.md
           - Networking:
               - Native SSL: runtime/native-ssl.md
               - Native HTTP: runtime/native-http.md
