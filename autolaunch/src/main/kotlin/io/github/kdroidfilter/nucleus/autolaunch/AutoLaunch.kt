@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.autolaunch
 
+import io.github.kdroidfilter.nucleus.autolaunch.linux.LinuxAutoLaunch
 import io.github.kdroidfilter.nucleus.autolaunch.windows.NativeAutoLaunchBridge
 import io.github.kdroidfilter.nucleus.autolaunch.windows.WindowsAutoLaunch
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
@@ -60,12 +61,15 @@ public object AutoLaunch {
     @JvmStatic
     public fun diagnostic(): String =
         buildString {
+            val os = System.getProperty("os.name", "")
             appendLine("backend: ${backend.javaClass.simpleName}")
-            appendLine("os.name: ${System.getProperty("os.name")}")
+            appendLine("os.name: $os")
             appendLine("executableType: ${ExecutableRuntime.type()}")
             macBackendResolutionError?.let { appendLine("macBackendError: $it") }
             append(backend.diagnosticSummary())
-            append(NativeAutoLaunchBridge.getDiagnostic())
+            if (os.lowercase().contains("win")) {
+                append(NativeAutoLaunchBridge.getDiagnostic())
+            }
         }
 
     @Volatile
@@ -123,6 +127,12 @@ public object AutoLaunch {
      *   startup-task activations are issued). Supported since Windows 10 v1809.
      * - **macOS**: reads the `keyAELaunchedAsLogInItem` marker from the
      *   `kAEOpenApplication` AppleEvent that `loginwindow` dispatches at login.
+     * - **Linux (host)**: checks the `INVOCATION_ID` env var that systemd injects
+     *   for every unit invocation — equivalent to MSIX `StartupTask` activation.
+     * - **Linux (Flatpak)**: looks for the CLI marker
+     *   ([AutoLaunchConfig.autostartArgument]) injected into the portal's
+     *   `commandline`. The XDG Desktop Portal exposes no login-launch signal to
+     *   sandboxed apps — this is the only available mechanism.
      *
      * **macOS timing note**: the AppleEvent is processed by `NSApplication.run()`,
      * so the first call from `main()` (before any AWT/Compose code runs) typically
@@ -149,6 +159,7 @@ public object AutoLaunch {
         return when {
             os.contains("win") -> WindowsAutoLaunch
             os.contains("mac") -> loadMacSMAppServiceBackendOrFallback()
+            os.contains("linux") -> LinuxAutoLaunch
             else -> NoOpAutoLaunchBackend
         }
     }

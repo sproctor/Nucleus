@@ -39,4 +39,12 @@ public object AutoLaunchConfig {
      */
     @JvmStatic
     public var registryValueName: String? = null
+
+    /**
+     * Human-readable reason displayed by `org.freedesktop.portal.Background` when
+     * prompting for autostart consent (Linux Flatpak only). If `null`, defaults to
+     * `"Launch <appName> at login"`.
+     */
+    @JvmStatic
+    public var backgroundReason: String? = null
 }

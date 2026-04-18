@@ -3,6 +3,10 @@
         {
             "type": "io.github.kdroidfilter.nucleus.autolaunch.windows.NativeAutoLaunchBridge",
             "jniAccessible": true
+        },
+        {
+            "type": "io.github.kdroidfilter.nucleus.autolaunch.linux.NativeAutoLaunchLinuxBridge",
+            "jniAccessible": true
         }
     ]
 }

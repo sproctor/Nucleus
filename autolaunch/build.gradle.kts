@@ -51,13 +51,26 @@ val buildNativeWindows by tasks.registering(Exec::class) {
     commandLine("cmd", "/c", File(nativeDir, "build.bat").absolutePath)
 }
 
+val buildNativeLinux by tasks.registering(Exec::class) {
+    description = "Compiles the C JNI bridge into a Linux shared library"
+    group = "build"
+    val nativeDir = file("src/main/native/linux")
+    val outputDir = file("src/main/resources/nucleus/native")
+    val hasPrebuilt = File(outputDir, "linux-x64/libnucleus_autolaunch_linux.so").exists()
+    enabled = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC) && !hasPrebuilt
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
 tasks.processResources {
-    dependsOn(buildNativeWindows)
+    dependsOn(buildNativeWindows, buildNativeLinux)
 }
 
 tasks.configureEach {
     if (name == "sourcesJar") {
-        dependsOn(buildNativeWindows)
+        dependsOn(buildNativeWindows, buildNativeLinux)
     }
 }
 
