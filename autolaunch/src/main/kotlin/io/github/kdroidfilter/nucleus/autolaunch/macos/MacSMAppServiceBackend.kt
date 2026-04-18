@@ -77,7 +77,14 @@ internal object MacSMAppServiceBackend : AutoLaunchBackend {
 
     override fun openSystemSettings(): Boolean = AppServiceManager.openSystemSettingsLoginItems()
 
-    override fun wasStartedAtLogin(args: Array<String>): Boolean = AppServiceManager.wasLaunchedAtLogin
+    /**
+     * Apple does not expose an API to detect `SMAppService.mainApp` launches
+     * (open feedback FB10207829, filed June 2022). The `kAELaunchedAsLogInItem`
+     * AppleEvent fires only for legacy `SMLoginItemSetEnabled` launches, not
+     * `SMAppService`. We return `false` to avoid falsely matching a user-launched
+     * process that happens to carry the `--nucleus-autostart` marker.
+     */
+    override fun wasStartedAtLogin(args: Array<String>): Boolean = false
 
     override fun diagnosticSummary(): String =
         buildString {
@@ -86,7 +93,6 @@ internal object MacSMAppServiceBackend : AutoLaunchBackend {
             appendLine("service: SMAppService.mainApp")
             if (available) {
                 appendLine("rawStatus: ${AppServiceManager.status(service)}")
-                appendLine("wasLaunchedAtLogin: ${AppServiceManager.wasLaunchedAtLogin}")
             }
         }
 
