@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -101,7 +100,6 @@ fun GenericTitleBarImpl(
         modifier =
             modifier
                 .background(backgroundBrush)
-                .focusProperties { canFocus = false }
                 .layoutId(TITLE_BAR_LAYOUT_ID)
                 .height(style.metrics.height)
                 .onSizeChanged { with(density) { applyTitleBar(it.height.toDp(), state) } }
