@@ -751,6 +751,7 @@ Everything from the official plugin works unchanged:
 - [Freedesktop Icons](https://nucleus.kdroidfilter.com/runtime/freedesktop-icons/)
 - [Scheduler](https://nucleus.kdroidfilter.com/runtime/scheduler/)
 - [Service Management (macOS)](https://nucleus.kdroidfilter.com/runtime/service-management-macos/)
+- [Auto-Launch](https://nucleus.kdroidfilter.com/runtime/autolaunch/)
 - [Native SSL](https://nucleus.kdroidfilter.com/runtime/native-ssl/)
 - [Native HTTP](https://nucleus.kdroidfilter.com/runtime/native-http/)
 - [Packaging](https://nucleus.kdroidfilter.com/comparison/packaging/)
