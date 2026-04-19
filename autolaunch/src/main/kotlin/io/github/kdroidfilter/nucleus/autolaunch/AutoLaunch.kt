@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.autolaunch.linux.LinuxAutoLaunch
 import io.github.kdroidfilter.nucleus.autolaunch.windows.NativeAutoLaunchBridge
 import io.github.kdroidfilter.nucleus.autolaunch.windows.WindowsAutoLaunch
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableType
 
 private const val MAC_SMAPPSERVICE_BACKEND_CLASS =
     "io.github.kdroidfilter.nucleus.autolaunch.macos.MacSMAppServiceBackend"
@@ -141,10 +142,21 @@ public object AutoLaunch {
      * caches positive results, so it is safe to poll it from a `LaunchedEffect`
      * or `remember` block to learn the actual value.
      *
+     * **Dev-mode short-circuit**: when [ExecutableRuntime.isDev] is `true`
+     * (Gradle `:run`, IDE launches), this method returns `false` unconditionally.
+     * Backends rely on env vars or AppleEvents inherited from the parent shell
+     * (notably macOS's `LaunchInstanceID`, which is inherited from Terminal),
+     * which would otherwise produce false positives. **Production builds must
+     * configure either the `nucleus.executable.type` system property or the
+     * `.nucleus-executable-type` marker file** — otherwise [ExecutableRuntime]
+     * defaults to [ExecutableType.DEV] and this method will always return
+     * `false`, masking real login launches.
+     *
      * @param args the application's `main(args: Array<String>)` arguments
      */
     @JvmStatic
     public fun wasStartedAtLogin(args: Array<String>): Boolean {
+        if (ExecutableRuntime.isDev()) return false
         if (startedAtLoginSticky) return true
         val result = backend.wasStartedAtLogin(args)
         if (result) startedAtLoginSticky = true

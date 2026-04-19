@@ -34,6 +34,8 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.window.internal.InstallMinimumSizeAfterCentering
+import io.github.kdroidfilter.nucleus.window.internal.inflateToMinimumSize
 import io.github.kdroidfilter.nucleus.window.utils.linux.JniLinuxWindowBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsDecorationBridge
 import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsWindowUtil
@@ -81,6 +83,7 @@ fun DecoratedWindow(
     enabled: Boolean = true,
     focusable: Boolean = true,
     alwaysOnTop: Boolean = false,
+    minimumSize: DpSize? = null,
     onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
     onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable DecoratedWindowScope.() -> Unit,
@@ -101,6 +104,8 @@ fun DecoratedWindow(
         } else {
             state
         }
+
+    state.inflateToMinimumSize(minimumSize)
 
     // ── First-frame maximized fix ──────────────────────────────────────
     // When starting with WindowPlacement.Maximized, Compose's Window
@@ -138,6 +143,8 @@ fun DecoratedWindow(
         onPreviewKeyEvent,
         onKeyEvent,
     ) {
+        InstallMinimumSizeAfterCentering(minimumSize)
+
         if (useNativeFullscreen) {
             NativeFullscreenEffect(state, windowState)
             if (Platform.Current == Platform.Windows) {
