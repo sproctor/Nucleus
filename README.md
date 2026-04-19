@@ -11,9 +11,9 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-7F52FF?logo=kotlin&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 
-**Nucleus is the native desktop platform for the JVM.** Combined with Compose Multiplatform, it forms the most complete, most performant, and most deeply integrated desktop application stack ever built.
+**Nucleus is the Kotlin framework for native desktop apps.** Combined with Compose Multiplatform, it forms the most complete, most performant, and most deeply integrated desktop application stack ever built.
 
-Java evolved into Kotlin. JavaScript evolved into TypeScript. Desktop development is going through the same shift: Electron was the pioneer. **Nucleus + Compose** is what comes next.
+Java evolved into Kotlin. JavaScript evolved into TypeScript. Desktop development is going through the same shift: Electron was the pioneer. **Kotlin + Compose + Nucleus** is what comes next.
 
 ---
 
