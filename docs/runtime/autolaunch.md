@@ -10,8 +10,8 @@ Nucleus auto-detects the runtime packaging at startup (via `ExecutableRuntime`) 
 | Win32 (MSI / NSIS) | `HKCU\...\Run` + `HKCU\...\Explorer\StartupApproved\Run` | Process is not packaged |
 | macOS DMG / PKG | `SMAppService.mainApp` (macOS 13+) | Always routed to SMAppService — works for DMG (Developer ID) and PKG (Mac App Store, sandboxed) |
 | macOS < 13 | — (returns `UNSUPPORTED`) | — |
-| Linux (deb / rpm / AppImage / dev) | systemd user service via `org.freedesktop.systemd1` | `ExecutableRuntime.isFlatpak() == false` |
-| Linux (Flatpak) | `org.freedesktop.portal.Background.RequestBackground` | `ExecutableRuntime.isFlatpak() == true` |
+| Linux (deb / rpm / AppImage / dev) | systemd user service | Not running inside Flatpak |
+| Linux (Flatpak) | XDG Desktop Portal (Background) | Running inside Flatpak |
 
 The runtime exposes a single unified API — consumers don't need to branch on packaging themselves.
 
@@ -66,8 +66,8 @@ Switch(
 | `isUserLocked()` | `Boolean` | `true` when state is `DISABLED_BY_USER` |
 | `enable()` | `AutoLaunchResult` | See rules below |
 | `disable()` | `AutoLaunchResult` | — |
-| `openSystemSettings()` | `Boolean` | Opens `ms-settings:startupapps` on Windows; `com.apple.LoginItems-Settings.extension` on macOS; no-op on Linux (no cross-DE "startup apps" URL) |
-| `wasStartedAtLogin(args)` | `Boolean` | `true` if the process was launched by auto-launch. Works on both Win32 and MSIX |
+| `openSystemSettings()` | `Boolean` | Opens `ms-settings:startupapps` on Windows; `SMAppService.openSystemSettingsLoginItems()` on macOS; best-effort on Linux (tries `gnome-control-center`, `systemadm`, `xdg-open ~/.config/autostart`). Returns `false` if nothing worked |
+| `wasStartedAtLogin(args)` | `Boolean` | `true` if the process was launched by auto-launch. Supported on all backends (Win32, MSIX, macOS, Linux systemd, Linux Flatpak) |
 
 ### `AutoLaunchState`
 
@@ -139,34 +139,13 @@ No manifest is involved; the backend reads and writes two registry keys under `H
 
 The value name defaults to `NucleusApp.appName` (or `appId` if missing). The `Run` value is written as `"<exe>" --nucleus-autostart`. You can inspect the `--nucleus-autostart` argument in your own `main()` to differentiate an auto-launched start from a manual one.
 
-### `StartupApproved\Run` format (read-only)
-
-Each entry is a 12-byte `REG_BINARY`:
-
-```
-Offset:  0  1  2  3   4  5  6  7  8  9  A  B
-         └── DWORD ─┘ └────── FILETIME (QWORD LE) ──────┘
-          flag (LE)   last user toggle timestamp
-```
-
-Nucleus uses the **parity rule** for robustness: `flag & 1 == 0` → enabled, `flag & 1 == 1` → disabled by user. In practice the values you'll see are `0x02` (enabled), `0x03` (disabled by user), and occasionally `0x06` (enabled, variant written by some installers).
+When the user toggles your app off via Task Manager → Startup, Windows records that in `StartupApproved\Run`. Nucleus reads this so `state()` returns `DISABLED_BY_USER` and `enable()` returns `BLOCKED_BY_USER` instead of silently overwriting the user's choice.
 
 ## macOS behavior
 
 Nucleus registers the main application with `SMAppService.mainApp` — the modern ServiceManagement API that Apple recommends since Ventura, and the one used by `sindresorhus/LaunchAtLogin-Modern`. The entry appears under **System Settings → General → Login Items → Open at Login** for both DMG (Developer ID) and PKG (Mac App Store, sandboxed) distributions. No helper app, no bundled plist, no build-time plugin configuration.
 
-### Dependencies
-
-The macOS path relies on a companion module for the JNI bridge to `SMAppService`:
-
-```kotlin
-dependencies {
-    implementation("io.github.kdroidfilter:nucleus.autolaunch:<version>")
-    implementation("io.github.kdroidfilter:nucleus.service-management-macos:<version>")
-}
-```
-
-`autolaunch` loads the macOS backend reflectively — if `service-management-macos` is absent from the classpath, `AutoLaunch.state()` returns `UNSUPPORTED` and the Windows / Linux paths remain unaffected.
+The macOS JNI bridge ships as a companion module (`nucleus.service-management-macos`) and is pulled in automatically — no extra dependency to declare.
 
 ### Status mapping
 
@@ -182,12 +161,11 @@ After `enable()`, macOS may leave the service in `requiresApproval` until the us
 
 ### Detection of an auto-launched start
 
-`AutoLaunch.wasStartedAtLogin(args)` on macOS combines two independent signals:
+Apple ships no public API to detect an `SMAppService.mainApp` login launch — the legacy `keyAELaunchedAsLogInItem` AppleEvent fires only for the deprecated `SMLoginItemSetEnabled`, not for modern `SMAppService` (radar FB10207829).
 
-1. The `keyAELaunchedAsLogInItem` marker carried by the `kAEOpenApplication` AppleEvent that `loginwindow` dispatches at login. The native observer is installed at dylib-load time (`__attribute__((constructor))`), so it is in place before AWT's `NSApplication` starts its run loop and consumes the event.
-2. The `LaunchInstanceID` environment variable that `launchd` injects into every process it spawns via `SMAppService`. Present at login-time start, absent on manual launches.
+Nucleus uses the empirical `LaunchInstanceID` environment variable that `launchd` injects into every process it spawns as a managed job, including `SMAppService.mainApp` login items. Launches issued by the user (Finder, Dock, Spotlight, `open(1)`) don't carry it.
 
-Either signal returning `true` is enough. The CLI `args` parameter is unused on macOS and kept for API symmetry with Windows.
+The CLI `args` parameter is unused on macOS and kept for API symmetry with Windows.
 
 ### macOS < 13
 
@@ -195,29 +173,15 @@ Either signal returning `true` is enough. The CLI `args` parameter is unused on 
 
 ## Linux behavior
 
-Two backends, chosen at first access based on `ExecutableRuntime.isFlatpak()`. Both ride on a JNI bridge to GLib's GIO for D-Bus — no external library is linked at compile time.
+Nucleus picks the right backend automatically — nothing to configure:
 
-### Host (deb / rpm / AppImage / dev runs) — systemd user service
+- **Host installs (deb / rpm / AppImage / dev runs)** — registered as a systemd user service.
+- **Flatpak** — registered via `org.freedesktop.portal.Background.RequestBackground`. The portal writes a standard autostart `.desktop` file to `~/.config/autostart/`. Whether the user sees a confirmation is backend-dependent: GNOME 45+ grants silently, other backends may show a dialog, and a dialog always appears if the app's background permission was previously denied.
 
-`enable()` writes a transient unit at `~/.config/systemd/user/<app>.service`, calls `Reload` on `org.freedesktop.systemd1.Manager`, then `EnableUnitFiles` + `StartUnit`. `disable()` stops and disables the unit, then removes the file. `state()` is read from `ActiveState` / `UnitFileState` so the result reflects what systemd will actually do at next login — not just what is on disk.
+`AutoLaunchConfig.backgroundReason` sets the `reason` string passed to the portal — used by backends that do surface a dialog (defaults to `"Launch <appName> at login"`).
 
-The generated unit uses `Type=simple` with `WantedBy=default.target` and the process's own `ProcessHandle.current().info().command()` as `ExecStart` (override via `AutoLaunchConfig.executablePath`). The `--nucleus-autostart` marker is appended to `ExecStart` so `wasStartedAtLogin` works symmetrically with the other backends.
-
-Login detection uses `INVOCATION_ID` — systemd injects it into every unit it spawns and it is not inherited across re-exec, so it is a reliable "started by systemd" signal even if the CLI marker is stripped.
-
-### Flatpak — `org.freedesktop.portal.Background`
-
-Inside a Flatpak sandbox, the user's systemd is unreachable — the portal is the only supported path. `enable()` calls `org.freedesktop.portal.Background.RequestBackground` with `autostart=true`, a `commandline` of `["flatpak", "run", "<app-id>", "--nucleus-autostart"]`, and the user-facing reason from `AutoLaunchConfig.backgroundReason` (default: `"Launch <appName> at login"`).
-
-`state()` inspects the `~/.var/app/<id>/.../autostart/<id>.desktop` file exposed to the sandbox. `disable()` calls the same portal method with `autostart=false`. Both operations are asynchronous at the portal level; the bridge waits for the `Response` signal so calls are effectively synchronous from Kotlin.
-
-### Dependencies
-
-No extra module is required — the Linux native library ships inside `nucleus.autolaunch`. The backend uses `dlopen` on `libgio-2.0.so.0` at runtime, so the JAR runs unchanged on any modern Linux distribution (GLib 2.56+).
-
-### `openSystemSettings()` on Linux
-
-Returns `false`. There is no cross-desktop "startup apps" URL (GNOME, KDE, XFCE each manage autostart differently). Consumers that want to surface a shortcut can open `gnome-session-properties` or the distribution's equivalent themselves.
+!!! info "`openSystemSettings()` on Linux"
+    Best-effort, no single desktop-neutral API. The systemd backend tries `gnome-control-center applications` → `systemadm --user` → `xdg-open ~/.config/systemd/user`. The Flatpak backend tries `gnome-control-center applications` → `xdg-open ~/.config/autostart`. Returns `true` as soon as one command launches successfully, `false` if none of them exist.
 
 ## Configuration overrides
 
@@ -226,10 +190,11 @@ All defaults fall back to `NucleusApp`. Override any of them **before** the firs
 ```kotlin
 import io.github.kdroidfilter.nucleus.autolaunch.AutoLaunchConfig
 
-AutoLaunchConfig.taskId            = "MyCustomMsixTaskId"              // MSIX
-AutoLaunchConfig.executablePath    = "C:\\Program Files\\MyApp\\MyApp.exe" // Win32
-AutoLaunchConfig.autostartArgument = "--autostart"                      // Win32, pass null to omit
-AutoLaunchConfig.registryValueName = "MyApp"                            // Win32 HKCU\...\Run key
+AutoLaunchConfig.taskId            = "MyCustomMsixTaskId"                 // MSIX
+AutoLaunchConfig.executablePath    = "C:\\Program Files\\MyApp\\MyApp.exe" // Win32, Linux systemd (full path), Linux Flatpak (basename used)
+AutoLaunchConfig.autostartArgument = "--autostart"                         // Win32 + Linux Flatpak, pass null to omit
+AutoLaunchConfig.registryValueName = "MyApp"                               // Win32 HKCU\...\Run key
+AutoLaunchConfig.backgroundReason  = "Keep MyApp ready at login"           // Linux Flatpak portal prompt
 ```
 
 ## Detecting an auto-launched start
@@ -247,12 +212,12 @@ Detection is transparent across packaging types and uses the **signal that is de
 | Backend | Mechanism |
 |---|---|
 | Win32 (MSI / NSIS) | Looks for the marker argument (`--nucleus-autostart` by default, configurable via `AutoLaunchConfig.autostartArgument`) written into the `HKCU\...\Run` command line |
-| macOS `SMAppService.mainApp` | Two signals — (1) the `kAEOpenApplication` AppleEvent carrying `keyAELaunchedAsLogInItem`, intercepted at dylib-load time before AWT consumes it; (2) the `LaunchInstanceID` env var that `launchd` injects into SMAppService-spawned processes. Either one fires `true` |
+| macOS `SMAppService.mainApp` | Reads the `LaunchInstanceID` env var that `launchd` injects into processes it spawns as login items. User-initiated launches (Finder, Dock, Spotlight) don't carry it |
 | MSIX packaged desktop | Walks up the process tree (skipping self-spawned jpackage launcher chains) and checks if the external ancestor is `sihost.exe` — the Shell Infrastructure Host that launches MSIX startup-task activations. Manual launches (Start menu, Explorer, taskbar) come from `explorer.exe` or `runtimebroker.exe` |
-| Linux systemd user unit | Reads `INVOCATION_ID` — systemd injects it into every unit it spawns. Present at login-time start, absent on manual launches from a terminal or `.desktop` entry |
-| Linux Flatpak portal | Looks for the marker argument injected into the portal's `commandline` at `enable()` time. `flatpak run <app-id>` is a single token so the portal's historical `Exec=` quoting bug does not apply |
+| Linux (systemd) | `true` when the process was spawned by systemd at login; `false` when launched manually from a terminal or `.desktop` entry |
+| Linux (Flatpak) | `true` when launched by the portal's autostart entry; `false` on a manual `flatpak run` |
 
-Both paths are fully deterministic — no heuristics, no timing guesses, no runtime dependencies beyond the shipped native DLL.
+Note on macOS: `LaunchInstanceID` is undocumented — Apple provides no public API to detect an `SMAppService.mainApp` login launch (feedback FB10207829, unresolved since June 2022). Treat this signal as empirical but reliable in practice across current macOS releases.
 
 ## Rules to respect
 
