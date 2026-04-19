@@ -184,7 +184,7 @@ fun main(args: Array<String>) {
                     state = state,
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
-                    minimumSize = DpSize(1100.dp, 480.dp),
+                    minimumSize = DpSize(1200.dp, 480.dp),
                 ) {
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,

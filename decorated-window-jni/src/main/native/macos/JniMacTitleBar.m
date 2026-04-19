@@ -1377,6 +1377,12 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                 }
             } else if (w.toolbar) {
                 w.toolbar = nil;
+                // Symmetrically revert the style/appearance changes applied
+                // when the toolbar was installed, so toggling the modifier
+                // off at runtime restores the standard title bar instead of
+                // leaving a transparent / full-size-content-view residue.
+                [w setStyleMask:([w styleMask] & ~NSWindowStyleMaskFullSizeContentView)];
+                [w setTitlebarAppearsTransparent:NO];
             }
             // Re-apply constraints so button positions update for the new inset
             NSNumber *storedHeight = objc_getAssociatedObject(w, &kTitleBarHeightKey);
