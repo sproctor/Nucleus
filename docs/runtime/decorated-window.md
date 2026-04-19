@@ -252,6 +252,7 @@ DecoratedWindow(
     title = "My App",
     icon = null,
     resizable = true,
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     TitleBar { state -> /* title bar content */ }
     // window content
@@ -262,6 +263,11 @@ The `content` lambda receives a `DecoratedWindowScope` which exposes:
 
 - `window: ComposeWindow` — the underlying AWT window
 - `state: DecoratedWindowState` — current window state (`.isActive`, `.isFullscreen`, `.isMinimized`, `.isMaximized`)
+
+!!! note "`minimumSize` parameter — preferred over `window.minimumSize`"
+    Always pass `minimumSize: DpSize?` to `DecoratedWindow` instead of setting `window.minimumSize` from a `LaunchedEffect`. Setting it manually after composition causes the frame to grow **after** Compose has centered it, which on macOS anchors the growth at the bottom-left corner and visibly shifts the window off-center on first display.
+
+    Internally, `DecoratedWindow` inflates `state.size` up-front so Compose centers the already-final dimensions, then applies `window.minimumSize` once the AWT frame has reached the target size. The value is in logical pixels (Dp) — DPI scaling is handled correctly on Retina/HiDPI screens. The same parameter is available on `MaterialDecoratedWindow` (Material 2 / Material 3) and `JewelDecoratedWindow`.
 
 ### `DecoratedDialog`
 

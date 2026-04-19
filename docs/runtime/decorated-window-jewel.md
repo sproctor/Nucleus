@@ -45,13 +45,14 @@ JewelDecoratedWindow(
     onCloseRequest = ::exitApplication,
     state = rememberWindowState(),
     title = "My App",
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     JewelTitleBar { state -> /* ... */ }
     // content
 }
 ```
 
-The `isDark` flag for `NucleusDecoratedWindowTheme` is read directly from `JewelTheme.isDark`.
+The `isDark` flag for `NucleusDecoratedWindowTheme` is read directly from `JewelTheme.isDark`. The `minimumSize` parameter sets a DPI-correct minimum window size and avoids the off-center first-frame issue described in [DecoratedWindow](decorated-window.md#decoratedwindow).
 
 ### `JewelDecoratedDialog`
 

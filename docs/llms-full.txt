@@ -5374,6 +5374,7 @@ DecoratedWindow(
     title = "My App",
     icon = null,
     resizable = true,
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     TitleBar { state -> /* title bar content */ }
     // window content
@@ -5384,6 +5385,9 @@ The `content` lambda receives a `DecoratedWindowScope` which exposes:
 
 - `window: ComposeWindow` — the underlying AWT window
 - `state: DecoratedWindowState` — current window state (`.isActive`, `.isFullscreen`, `.isMinimized`, `.isMaximized`)
+
+**`minimumSize` parameter — preferred over `window.minimumSize`:** Always pass `minimumSize: DpSize?` to `DecoratedWindow` instead of setting `window.minimumSize` from a `LaunchedEffect`. Setting it manually after composition causes the frame to grow **after** Compose has centered it, which on macOS anchors the growth at the bottom-left corner and visibly shifts the window off-center on first display.
+    Internally, `DecoratedWindow` inflates `state.size` up-front so Compose centers the already-final dimensions, then applies `window.minimumSize` once the AWT frame has reached the target size. The value is in logical pixels (Dp) — DPI scaling is handled correctly on Retina/HiDPI screens. The same parameter is available on `MaterialDecoratedWindow` (Material 2 / Material 3) and `JewelDecoratedWindow`.
 
 ### `DecoratedDialog`
 
@@ -5871,13 +5875,14 @@ JewelDecoratedWindow(
     onCloseRequest = ::exitApplication,
     state = rememberWindowState(),
     title = "My App",
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     JewelTitleBar { state -> /* ... */ }
     // content
 }
 ```
 
-The `isDark` flag for `NucleusDecoratedWindowTheme` is read directly from `JewelTheme.isDark`.
+The `isDark` flag for `NucleusDecoratedWindowTheme` is read directly from `JewelTheme.isDark`. The `minimumSize` parameter sets a DPI-correct minimum window size and avoids the off-center first-frame issue described in [DecoratedWindow](decorated-window.md#decoratedwindow).
 
 ### `JewelDecoratedDialog`
 
@@ -6028,13 +6033,14 @@ MaterialDecoratedWindow(
     onCloseRequest = ::exitApplication,
     state = rememberWindowState(),
     title = "My App",
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     MaterialTitleBar { state -> /* ... */ }
     // content
 }
 ```
 
-The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred from `Colors.isLight`.
+The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred from `Colors.isLight`. The `minimumSize` parameter sets a DPI-correct minimum window size and avoids the off-center first-frame issue described in [DecoratedWindow](decorated-window.md#decoratedwindow).
 
 ### `MaterialDecoratedDialog`
 
@@ -6172,13 +6178,14 @@ MaterialDecoratedWindow(
     onCloseRequest = ::exitApplication,
     state = rememberWindowState(),
     title = "My App",
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     MaterialTitleBar { state -> /* ... */ }
     // content
 }
 ```
 
-The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred automatically from the luminance of `colorScheme.background`.
+The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred automatically from the luminance of `colorScheme.background`. The `minimumSize` parameter sets a DPI-correct minimum window size and avoids the off-center first-frame issue described in [DecoratedWindow](decorated-window.md#decoratedwindow).
 
 ### `MaterialDecoratedDialog`
 
@@ -12905,6 +12912,9 @@ Detection is transparent across packaging types and uses the **signal that is de
 | Linux (Flatpak) | `true` when launched by the portal's autostart entry; `false` on a manual `flatpak run` |
 
 Note on macOS: `LaunchInstanceID` is undocumented — Apple provides no public API to detect an `SMAppService.mainApp` login launch (feedback FB10207829, unresolved since June 2022). Treat this signal as empirical but reliable in practice across current macOS releases.
+
+**Dev-mode short-circuit:** `wasStartedAtLogin()` returns `false` unconditionally when [`ExecutableRuntime.isDev()`](executable-type.md) is `true` (Gradle `:run`, IDE launches). Backends rely on env vars or AppleEvents inherited from the parent shell — notably macOS's `LaunchInstanceID` inherited from Terminal — which would otherwise produce false positives.
+    **Production builds must configure** either the `nucleus.executable.type` system property or the `.nucleus-executable-type` marker file. Otherwise `ExecutableRuntime` defaults to `DEV` and `wasStartedAtLogin()` will always return `false`, masking real login launches. The Nucleus Gradle plugin writes the marker automatically for packaged distributions — only custom packaging needs manual setup.
 
 ## Rules to respect
 

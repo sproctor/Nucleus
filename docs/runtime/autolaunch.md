@@ -219,6 +219,11 @@ Detection is transparent across packaging types and uses the **signal that is de
 
 Note on macOS: `LaunchInstanceID` is undocumented — Apple provides no public API to detect an `SMAppService.mainApp` login launch (feedback FB10207829, unresolved since June 2022). Treat this signal as empirical but reliable in practice across current macOS releases.
 
+!!! warning "Dev-mode short-circuit"
+    `wasStartedAtLogin()` returns `false` unconditionally when [`ExecutableRuntime.isDev()`](executable-type.md) is `true` (Gradle `:run`, IDE launches). Backends rely on env vars or AppleEvents inherited from the parent shell — notably macOS's `LaunchInstanceID` inherited from Terminal — which would otherwise produce false positives.
+
+    **Production builds must configure** either the `nucleus.executable.type` system property or the `.nucleus-executable-type` marker file. Otherwise `ExecutableRuntime` defaults to `DEV` and `wasStartedAtLogin()` will always return `false`, masking real login launches. The Nucleus Gradle plugin writes the marker automatically for packaged distributions — only custom packaging needs manual setup.
+
 ## Rules to respect
 
 Three invariants are enforced by the API — trying to work around them is counter-productive:

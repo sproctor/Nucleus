@@ -51,13 +51,14 @@ MaterialDecoratedWindow(
     onCloseRequest = ::exitApplication,
     state = rememberWindowState(),
     title = "My App",
+    minimumSize = DpSize(1100.dp, 480.dp),
 ) {
     MaterialTitleBar { state -> /* ... */ }
     // content
 }
 ```
 
-The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred from `Colors.isLight`.
+The `isDark` flag for `NucleusDecoratedWindowTheme` is inferred from `Colors.isLight`. The `minimumSize` parameter sets a DPI-correct minimum window size and avoids the off-center first-frame issue described in [DecoratedWindow](decorated-window.md#decoratedwindow).
 
 ### `MaterialDecoratedDialog`
 
