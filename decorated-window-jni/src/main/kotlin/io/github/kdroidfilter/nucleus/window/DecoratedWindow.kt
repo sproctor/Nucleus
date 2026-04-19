@@ -81,6 +81,7 @@ fun DecoratedWindow(
     enabled: Boolean = true,
     focusable: Boolean = true,
     alwaysOnTop: Boolean = false,
+    minimumSize: DpSize? = null,
     onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
     onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable DecoratedWindowScope.() -> Unit,
@@ -101,6 +102,25 @@ fun DecoratedWindow(
         } else {
             state
         }
+
+    // ── Minimum-size pre-centering fix ────────────────────────────────
+    // Setting window.minimumSize from a LaunchedEffect grows the frame
+    // AFTER Compose has centered it, which on macOS anchors the growth
+    // at the bottom-left and visibly shifts the window off center.
+    // Inflate state.size up-front so Compose centers the already-final
+    // size, then apply the native minimumSize (see LaunchedEffect below).
+    remember(state, minimumSize) {
+        if (minimumSize != null) {
+            val current = state.size
+            if (current.width < minimumSize.width || current.height < minimumSize.height) {
+                state.size =
+                    DpSize(
+                        maxOf(current.width, minimumSize.width),
+                        maxOf(current.height, minimumSize.height),
+                    )
+            }
+        }
+    }
 
     // ── First-frame maximized fix ──────────────────────────────────────
     // When starting with WindowPlacement.Maximized, Compose's Window
@@ -138,6 +158,21 @@ fun DecoratedWindow(
         onPreviewKeyEvent,
         onKeyEvent,
     ) {
+        if (minimumSize != null) {
+            LaunchedEffect(window, minimumSize) {
+                // Yield so Compose Desktop's internal `update` block commits
+                // state.size/position first — otherwise setMinimumSize runs on
+                // the unsized AWT frame and AWT re-anchors it at (0, 0) when
+                // it later grows to state.size.
+                kotlinx.coroutines.yield()
+                // AWT window bounds are in logical pixels (= Dp). Do NOT convert
+                // via Density.roundToPx() — that applies the screen scale factor
+                // and would double the size on Retina/HiDPI displays.
+                window.minimumSize =
+                    java.awt.Dimension(minimumSize.width.value.toInt(), minimumSize.height.value.toInt())
+            }
+        }
+
         if (useNativeFullscreen) {
             NativeFullscreenEffect(state, windowState)
             if (Platform.Current == Platform.Windows) {

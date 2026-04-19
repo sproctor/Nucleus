@@ -1360,6 +1360,14 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             if (flag) {
                 if (!w.toolbar) {
+                    // Enable full-size content view and transparent title bar BEFORE
+                    // adding the toolbar, so AppKit treats the toolbar as part of the
+                    // existing content area instead of growing the window frame to
+                    // accommodate it. Without this, assigning w.toolbar expands the
+                    // frame height by the toolbar chrome, which later causes Compose's
+                    // center alignment to be off by half that extra height.
+                    [w setStyleMask:([w styleMask] | NSWindowStyleMaskFullSizeContentView)];
+                    [w setTitlebarAppearsTransparent:YES];
                     NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"NucleusToolbar"];
                     toolbar.showsBaselineSeparator = NO;
                     // Keep toolbar.visible = YES (default) so macOS renders 26pt corners
@@ -1367,7 +1375,7 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
                     // the empty toolbar is visually invisible.
                     w.toolbar = toolbar;
                 }
-            } else {
+            } else if (w.toolbar) {
                 w.toolbar = nil;
             }
             // Re-apply constraints so button positions update for the new inset

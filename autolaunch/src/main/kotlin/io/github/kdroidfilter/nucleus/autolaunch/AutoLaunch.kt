@@ -145,6 +145,10 @@ public object AutoLaunch {
      */
     @JvmStatic
     public fun wasStartedAtLogin(args: Array<String>): Boolean {
+        // In development runs (Gradle :run, IDE), backends rely on env vars or
+        // AppleEvents inherited from the parent shell, which produces false
+        // positives (e.g. macOS LaunchInstanceID is inherited from the Terminal).
+        if (ExecutableRuntime.isDev()) return false
         if (startedAtLoginSticky) return true
         val result = backend.wasStartedAtLogin(args)
         if (result) startedAtLoginSticky = true
