@@ -15,7 +15,7 @@ val publishVersion =
 
 dependencies {
     api(project(":freedesktop-icons"))
-    compileOnly(project(":core-runtime"))
+    implementation(project(":core-runtime"))
 }
 
 java {

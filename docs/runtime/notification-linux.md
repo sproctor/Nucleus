@@ -13,7 +13,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader` and `freedesktop-icons` (transitive) for typesafe icon names.
+Depends on `core-runtime` for `NativeLibraryLoader` and `freedesktop-icons` for typesafe icon names (both pulled in transitively).
 
 ## Quick Start
 

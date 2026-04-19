@@ -14,10 +14,8 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    compileOnly(project(":core-runtime"))
-    compileOnly(libs.coroutines.core)
-    testImplementation(project(":core-runtime"))
-    testImplementation(libs.coroutines.core)
+    implementation(project(":core-runtime"))
+    implementation(libs.coroutines.core)
     testImplementation(kotlin("test"))
 }
 

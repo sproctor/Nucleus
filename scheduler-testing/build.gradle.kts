@@ -15,8 +15,6 @@ val publishVersion =
 
 dependencies {
     api(project(":scheduler"))
-    compileOnly(project(":core-runtime"))
-    compileOnly(libs.coroutines.core)
     testImplementation(project(":core-runtime"))
     testImplementation(libs.coroutines.core)
     testImplementation(kotlin("test"))

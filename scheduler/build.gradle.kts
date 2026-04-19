@@ -15,12 +15,10 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    compileOnly(project(":core-runtime"))
+    implementation(project(":core-runtime"))
     api(project(":system-info"))
     api(libs.kotlinx.serialization.json)
-    compileOnly(libs.coroutines.core)
-    testImplementation(project(":core-runtime"))
-    testImplementation(libs.coroutines.core)
+    implementation(libs.coroutines.core)
     testImplementation(kotlin("test"))
 }
 

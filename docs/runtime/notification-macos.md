@@ -13,7 +13,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader` and `ExecutableRuntime`.
+Depends on `core-runtime` for `NativeLibraryLoader` and `ExecutableRuntime` (pulled in transitively).
 
 ## Quick Start
 

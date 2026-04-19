@@ -7038,7 +7038,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader` and `ExecutableRuntime`.
+Depends on `core-runtime` for `NativeLibraryLoader` and `ExecutableRuntime` (pulled in transitively).
 
 ## Quick Start
 
@@ -7552,7 +7552,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader`, `ExecutableRuntime`, and `NucleusApp`.
+Depends on `core-runtime` for `NativeLibraryLoader`, `ExecutableRuntime`, and `NucleusApp` (pulled in transitively).
 
 ## Quick Start
 
@@ -7892,7 +7892,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader` and `freedesktop-icons` (transitive) for typesafe icon names.
+Depends on `core-runtime` for `NativeLibraryLoader` and `freedesktop-icons` for typesafe icon names (both pulled in transitively).
 
 ## Quick Start
 
@@ -8366,7 +8366,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader`.
+Depends on `core-runtime` for `NativeLibraryLoader` (pulled in transitively).
 
 ## Quick Start
 
@@ -9017,7 +9017,7 @@ dependencies {
 }
 ```
 
-Depends on `core-runtime` (compile-only) for `NativeLibraryLoader` and `freedesktop-icons` (transitive) for typesafe icon names.
+Depends on `core-runtime` for `NativeLibraryLoader` and `freedesktop-icons` for typesafe icon names (both pulled in transitively).
 
 ## Quick Start
 
@@ -10624,7 +10624,7 @@ dependencies {
 }
 ```
 
-`taskbar-progress` depends on `core-runtime` (compile-only) for `Platform` detection and `NativeLibraryLoader`.
+`taskbar-progress` depends on `core-runtime` for `Platform` detection and `NativeLibraryLoader` (pulled in transitively).
 
 ## Quick Start
 
@@ -11024,11 +11024,10 @@ Declarative, Compose-reactive macOS application menu bar via JNI. Build a fully 
 ```kotlin
 dependencies {
     implementation("io.github.kdroidfilter:nucleus.menu-macos:<version>")
-    implementation("io.github.kdroidfilter:nucleus.sf-symbols:<version>") // optional — type-safe SF Symbol constants
 }
 ```
 
-Requires Compose Desktop on the classpath. Depends on `core-runtime` (compile-only) for `NativeLibraryLoader`. The `sf-symbols` module is optional but recommended for type-safe icon references.
+Pulls in `core-runtime`, `compose.desktop.common`, and `sf-symbols` transitively. Consumers can use type-safe SF Symbol constants via `io.github.kdroidfilter.nucleus.sfsymbols.*` without declaring `sf-symbols` explicitly.
 
 ## Quick Start
 

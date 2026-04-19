@@ -14,9 +14,8 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    compileOnly(project(":core-runtime"))
+    implementation(project(":core-runtime"))
     api(project(":launcher-linux"))
-    testImplementation(project(":core-runtime"))
     testImplementation(kotlin("test"))
 }
 

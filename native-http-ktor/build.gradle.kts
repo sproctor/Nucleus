@@ -15,12 +15,12 @@ val publishVersion =
 dependencies {
     api(project(":native-ssl"))
     api(libs.ktor.client.core)
+    // Engine-agnostic: user picks their own engine; we only need them on compile classpath
+    // to configure SSL when present at runtime.
     compileOnly(libs.ktor.client.cio)
     compileOnly(libs.ktor.client.java)
     compileOnly(libs.ktor.client.okhttp)
     compileOnly(libs.ktor.client.apache5)
-    compileOnly(project(":core-runtime"))
-    testImplementation(project(":core-runtime"))
     testImplementation(libs.ktor.client.cio)
     testImplementation(libs.ktor.client.java)
     testImplementation(libs.junit)

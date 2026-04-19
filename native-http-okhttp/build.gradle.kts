@@ -15,8 +15,6 @@ val publishVersion =
 dependencies {
     api(project(":native-ssl"))
     api(libs.okhttp)
-    compileOnly(project(":core-runtime"))
-    testImplementation(project(":core-runtime"))
     testImplementation(libs.junit)
 }
 

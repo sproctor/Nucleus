@@ -10,7 +10,7 @@ dependencies {
 }
 ```
 
-`taskbar-progress` depends on `core-runtime` (compile-only) for `Platform` detection and `NativeLibraryLoader`.
+`taskbar-progress` depends on `core-runtime` for `Platform` detection and `NativeLibraryLoader` (pulled in transitively).
 
 ## Quick Start
 

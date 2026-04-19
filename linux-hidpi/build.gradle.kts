@@ -15,7 +15,7 @@ val publishVersion =
 
 dependencies {
     implementation(kotlin("stdlib"))
-    compileOnly(project(":core-runtime"))
+    implementation(project(":core-runtime"))
 }
 
 java {

@@ -19,8 +19,8 @@ dependencies {
     // implementation: either :decorated-window-jbr (JBR) or :decorated-window-jni.
     compileOnly(project(":decorated-window-jbr"))
     api(project(":core-runtime"))
-    compileOnly(libs.compose.desktop.common)
-    compileOnly(libs.compose.material)
+    api(libs.compose.desktop.common)
+    implementation(libs.compose.material)
 }
 
 java {

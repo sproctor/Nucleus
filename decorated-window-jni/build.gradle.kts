@@ -17,8 +17,8 @@ val publishVersion =
 
 dependencies {
     api(project(":decorated-window-core"))
-    compileOnly(project(":core-runtime"))
-    compileOnly(libs.compose.desktop.common)
+    implementation(project(":core-runtime"))
+    implementation(libs.compose.desktop.common)
 }
 
 java {

@@ -7,11 +7,10 @@ Declarative, Compose-reactive macOS application menu bar via JNI. Build a fully 
 ```kotlin
 dependencies {
     implementation("io.github.kdroidfilter:nucleus.menu-macos:<version>")
-    implementation("io.github.kdroidfilter:nucleus.sf-symbols:<version>") // optional — type-safe SF Symbol constants
 }
 ```
 
-Requires Compose Desktop on the classpath. Depends on `core-runtime` (compile-only) for `NativeLibraryLoader`. The `sf-symbols` module is optional but recommended for type-safe icon references.
+Pulls in `core-runtime`, `compose.desktop.common`, and `sf-symbols` transitively. Consumers can use type-safe SF Symbol constants via `io.github.kdroidfilter.nucleus.sfsymbols.*` without declaring `sf-symbols` explicitly.
 
 ## Quick Start
 

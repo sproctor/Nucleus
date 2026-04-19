@@ -16,9 +16,9 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    compileOnly(project(":core-runtime"))
-    compileOnly(project(":sf-symbols"))
-    compileOnly(libs.compose.desktop.common)
+    implementation(project(":core-runtime"))
+    api(project(":sf-symbols"))
+    api(libs.compose.desktop.common)
 }
 
 java {
