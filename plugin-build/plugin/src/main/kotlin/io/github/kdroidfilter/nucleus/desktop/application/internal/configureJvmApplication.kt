@@ -971,6 +971,12 @@ private fun JvmApplicationContext.configureRunTask(
             // and skip the JavaExec action.
             exec.doFirst {
                 val je = it as JavaExec
+                // Skip the patched-JVM indirection when the JVM debugger is attached
+                // (IntelliJ debug button or `--debug-jvm`). The patched binary only
+                // affects AppKit SDK-gated visuals (Liquid Glass); bypassing it lets
+                // Gradle's standard JavaExec fork handle JDWP wiring and process
+                // lifecycle so breakpoints and the IDE stop button work.
+                if (je.debugOptions.enabled.get()) return@doFirst
                 val patchedJava = getOrCreatePatchedJvm(javaHome, minVersion, sdkVersion, je.logger)
                 val cmd = mutableListOf(patchedJava)
                 je.jvmArgs.let { cmd.addAll(it) }
