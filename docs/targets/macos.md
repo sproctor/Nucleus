@@ -201,6 +201,9 @@ nucleus {
 !!! note "How it works"
     `vtool` modifies the `LC_BUILD_VERSION` load command in the Mach-O binary, setting the SDK version to 26.0. This is the same header that the linker writes when you compile with `-sdk_version 26.0`. The modification only affects metadata — no code is changed. For distributable builds, the launcher is patched before signing, so the code signature covers the patched binary. For the `run` task, a patched copy of the JVM is cached at `~/Library/Caches/nucleus/patched-jvm/` and invalidated when the source JDK changes.
 
+!!! info "Debugging with `run`"
+    When the JVM debugger is attached (IntelliJ IDEA's debug button, or `./gradlew run --debug-jvm`), the `run` task bypasses the patched JVM and uses the standard `JavaExec` fork instead. This is required so the IDE can inject JDWP args and manage the process lifecycle (breakpoints, stop button). As a side effect, Liquid Glass is not applied during active debug sessions. Regular `./gradlew run` and the IntelliJ ▶ run button are unaffected.
+
 ### GraalVM Native Image
 
 For applications compiled with GraalVM Native Image, the native binary is linked directly by the system toolchain. Select **Xcode 26** before building:
