@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.offset
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import kotlinx.coroutines.currentCoroutineContext
@@ -100,7 +102,17 @@ fun GenericTitleBarImpl(
         modifier =
             modifier
                 .background(backgroundBrush)
-                .layoutId(TITLE_BAR_LAYOUT_ID)
+                .then(
+                    // Block focus on Windows/Linux so Tab navigation cannot enter the Compose-driven
+                    // title bar drag area. On macOS the traffic-light buttons are native (outside the
+                    // Compose hit-test area), and focus must remain enabled so TextField/TextArea
+                    // children in the title bar can receive keyboard input (issue #206 / PR #208).
+                    if (Platform.Current == Platform.MacOS) {
+                        Modifier
+                    } else {
+                        Modifier.focusProperties { canFocus = false }
+                    },
+                ).layoutId(TITLE_BAR_LAYOUT_ID)
                 .height(style.metrics.height)
                 .onSizeChanged { with(density) { applyTitleBar(it.height.toDp(), state) } }
                 .fillMaxWidth(),
