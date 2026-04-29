@@ -293,7 +293,14 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     val v3 = versionParts.getOrElse(2) { 0 }
                     val v4 = versionParts.getOrElse(3) { 0 }
 
-                    // Generate DPI-aware application manifest
+                    // Generate Windows side-by-side fusion manifest:
+                    //  - DPI awareness (Per-Monitor V2)
+                    //  - activeCodePage = UTF-8 (Windows 10 1903+) — works around a SubstrateVM
+                    //    bug where LoadLibraryA receives UTF-8 bytes interpreted as the system
+                    //    ANSI codepage, breaking native-image apps installed under non-ASCII
+                    //    paths (Hebrew/Arabic/Cyrillic/CJK usernames). See oracle/graal#8095
+                    //    and #10237 — the GraalVM team explicitly recommends this manifest.
+                    //  - longPathAware: opt into >MAX_PATH paths.
                     val manifestFile = File(rcDir, "dpiaware.manifest")
                     manifestFile.writeText(
                         """
@@ -304,6 +311,8 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         |    <asmv3:windowsSettings>
                         |      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/PM</dpiAware>
                         |      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+                        |      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+                        |      <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
                         |    </asmv3:windowsSettings>
                         |  </asmv3:application>
                         |</assembly>
