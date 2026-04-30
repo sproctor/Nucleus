@@ -34,12 +34,19 @@ abstract class WindowsSigningSettings {
     /** Signing hash algorithm. Default: [SigningAlgorithm.Sha256] */
     var algorithm: SigningAlgorithm = SigningAlgorithm.Sha256
 
-    // --- Azure Trusted Signing ---
+    /**
+     * Publisher name, exactly as in the code signing certificate.
+     * Required by electron-builder when signing with Azure Artifact Signing.
+     * If unset, falls back to `nativeDistributions.vendor`.
+     */
+    var publisherName: String? = null
 
-    /** Azure tenant ID for Trusted Signing */
+    // --- Azure Artifact Signing ---
+
+    /** Azure tenant ID for Artifact Signing */
     var azureTenantId: String? = null
 
-    /** Azure Trusted Signing endpoint URL */
+    /** Azure Artifact Signing endpoint URL */
     var azureEndpoint: String? = null
 
     /** Azure certificate profile name */
