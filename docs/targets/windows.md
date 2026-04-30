@@ -217,7 +217,7 @@ Create an `.msixbundle` containing both amd64 and arm64 `.appx` files. See [CI/C
 
 ## Code Signing
 
-See [Code Signing](../code-signing.md#windows) for full details on PFX certificates and Azure Trusted Signing.
+See [Code Signing](../code-signing.md#windows) for full details on PFX certificates and Azure Artifact Signing.
 
 ```kotlin
 windows {
