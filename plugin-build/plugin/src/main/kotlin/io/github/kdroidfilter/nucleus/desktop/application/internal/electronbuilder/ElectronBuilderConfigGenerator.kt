@@ -285,6 +285,7 @@ internal class ElectronBuilderConfigGenerator {
             TargetFormat.Msi -> {
                 yaml.appendLine("msi:")
                 appendIfNotNull(yaml, "  upgradeCode", distributions.windows.upgradeUuid)
+                yaml.appendLine("  perMachine: ${!distributions.windows.perUserInstall}")
             }
             TargetFormat.AppX -> generateAppXConfig(yaml, distributions.windows.appx)
             TargetFormat.Portable -> yaml.appendLine("portable: {}")
