@@ -66,6 +66,41 @@ abstract class MacOSNotarizationSettings {
             set(NucleusProperties.macNotarizationKeychainPath(providers))
         }
 
+    /**
+     * Path to the App Store Connect API key file (`.p8`).
+     * Forwarded to `notarytool` as `--key <path>`.
+     * Mutually exclusive with the apple-id and keychain-profile modes; the trio
+     * [apiKey], [apiKeyId] and [apiIssuer] must all be set together.
+     */
+    @get:Input
+    @get:Optional
+    val apiKey: Property<String> =
+        objects.nullableProperty<String>().apply {
+            set(NucleusProperties.macNotarizationApiKey(providers))
+        }
+
+    /**
+     * App Store Connect API key ID (the 10-character identifier shown in App Store Connect).
+     * Forwarded to `notarytool` as `--key-id <id>`.
+     */
+    @get:Input
+    @get:Optional
+    val apiKeyId: Property<String> =
+        objects.nullableProperty<String>().apply {
+            set(NucleusProperties.macNotarizationApiKeyId(providers))
+        }
+
+    /**
+     * App Store Connect API issuer ID (the team's issuer UUID).
+     * Forwarded to `notarytool` as `--issuer <uuid>`.
+     */
+    @get:Input
+    @get:Optional
+    val apiIssuer: Property<String> =
+        objects.nullableProperty<String>().apply {
+            set(NucleusProperties.macNotarizationApiIssuer(providers))
+        }
+
     @Deprecated("This option is no longer supported and got replaced by teamID", level = DeprecationLevel.ERROR)
     @get:Internal
     val ascProvider: Property<String> =

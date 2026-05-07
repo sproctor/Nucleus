@@ -132,8 +132,86 @@ class ValidatedMacOSNotarizationSettingsTest {
         settings.password.set("")
         settings.teamID.set("")
         settings.keychainProfile.set("")
+        settings.apiKey.set("")
+        settings.apiKeyId.set("")
+        settings.apiIssuer.set("")
 
         assertFailsWith("no authentication mode configured") {
+            settings.validate()
+        }
+    }
+
+    @Test
+    fun `complete api-key mode validates as ApiKey auth`() {
+        val settings = newSettings()
+        settings.apiKey.set("/path/to/AuthKey_ABC123.p8")
+        settings.apiKeyId.set("ABC123")
+        settings.apiIssuer.set("12345678-90ab-cdef-1234-567890abcdef")
+
+        val validated = settings.validate()
+        val auth = validated.auth as NotarizationAuth.ApiKey
+        assertEquals("/path/to/AuthKey_ABC123.p8", auth.keyPath)
+        assertEquals("ABC123", auth.keyId)
+        assertEquals("12345678-90ab-cdef-1234-567890abcdef", auth.issuerId)
+    }
+
+    @Test
+    fun `api-key missing apiKey fails`() {
+        val settings = newSettings()
+        settings.apiKeyId.set("ABC123")
+        settings.apiIssuer.set("issuer-uuid")
+
+        assertFailsWith("apiKey is null or empty") {
+            settings.validate()
+        }
+    }
+
+    @Test
+    fun `api-key missing apiKeyId fails`() {
+        val settings = newSettings()
+        settings.apiKey.set("/path/to/AuthKey.p8")
+        settings.apiIssuer.set("issuer-uuid")
+
+        assertFailsWith("apiKeyId is null or empty") {
+            settings.validate()
+        }
+    }
+
+    @Test
+    fun `api-key missing apiIssuer fails`() {
+        val settings = newSettings()
+        settings.apiKey.set("/path/to/AuthKey.p8")
+        settings.apiKeyId.set("ABC123")
+
+        assertFailsWith("apiIssuer is null or empty") {
+            settings.validate()
+        }
+    }
+
+    @Test
+    fun `api-key combined with apple-id fails with mutual-exclusivity error`() {
+        val settings = newSettings()
+        settings.appleID.set("dev@example.com")
+        settings.password.set("pwd")
+        settings.teamID.set("TEAMID")
+        settings.apiKey.set("/path/to/AuthKey.p8")
+        settings.apiKeyId.set("ABC123")
+        settings.apiIssuer.set("issuer-uuid")
+
+        assertFailsWith("mutually exclusive") {
+            settings.validate()
+        }
+    }
+
+    @Test
+    fun `api-key combined with keychainProfile fails with mutual-exclusivity error`() {
+        val settings = newSettings()
+        settings.keychainProfile.set("AC_PASSWORD")
+        settings.apiKey.set("/path/to/AuthKey.p8")
+        settings.apiKeyId.set("ABC123")
+        settings.apiIssuer.set("issuer-uuid")
+
+        assertFailsWith("mutually exclusive") {
             settings.validate()
         }
     }
@@ -160,6 +238,26 @@ class ValidatedMacOSNotarizationSettingsTest {
         val (args, stdin) = auth.toNotaryToolArgs()
         assertEquals(
             listOf("--keychain-profile", "AC_PASSWORD", "--keychain", "/path/to/login.keychain-db"),
+            args,
+        )
+        assertNull(stdin)
+    }
+
+    @Test
+    fun `toNotaryToolArgs builds api-key args with no stdin`() {
+        val auth =
+            NotarizationAuth.ApiKey(
+                keyPath = "/path/to/AuthKey.p8",
+                keyId = "ABC123",
+                issuerId = "issuer-uuid",
+            )
+        val (args, stdin) = auth.toNotaryToolArgs()
+        assertEquals(
+            listOf(
+                "--key", "/path/to/AuthKey.p8",
+                "--key-id", "ABC123",
+                "--issuer", "issuer-uuid",
+            ),
             args,
         )
         assertNull(stdin)

@@ -877,7 +877,11 @@ internal fun JvmApplicationContext.configureCommonNotarizationSettings(notarizat
                 !notarization.password.orNull.isNullOrEmpty() &&
                 !notarization.teamID.orNull.isNullOrEmpty()
         val hasKeychainProfile = !notarization.keychainProfile.orNull.isNullOrEmpty()
-        val configured = hasAppleId || hasKeychainProfile
+        val hasApiKey =
+            !notarization.apiKey.orNull.isNullOrEmpty() &&
+                !notarization.apiKeyId.orNull.isNullOrEmpty() &&
+                !notarization.apiIssuer.orNull.isNullOrEmpty()
+        val configured = hasAppleId || hasKeychainProfile || hasApiKey
         if (!configured) {
             it.logger.info("Notarization skipped: macOS notarization settings are not configured")
         }
