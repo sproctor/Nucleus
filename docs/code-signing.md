@@ -122,7 +122,7 @@ macOS {
 
 ### Notarization
 
-Apple notarization is required for distributing outside the Mac App Store on macOS 10.15+. Two authentication modes are supported (mutually exclusive — App Store Connect API key support is planned):
+Apple notarization is required for distributing outside the Mac App Store on macOS 10.15+. Three authentication modes are supported (mutually exclusive):
 
 #### Mode 1 — Apple ID + app-specific password
 
@@ -130,7 +130,7 @@ Apple notarization is required for distributing outside the Mac App Store on mac
 macOS {
     notarization {
         appleID.set("dev@example.com")
-        password.set("@keychain:AC_PASSWORD")
+        password.set(System.getenv("MAC_NOTARIZATION_PASSWORD"))
         teamID.set("TEAMID")
     }
 }
@@ -141,7 +141,7 @@ Equivalent Gradle properties:
 | Gradle property | Description |
 |-----------------|-------------|
 | `compose.desktop.mac.notarization.appleID` | Apple ID email |
-| `compose.desktop.mac.notarization.password` | App-specific password (or `@keychain:` reference) |
+| `compose.desktop.mac.notarization.password` | App-specific password |
 | `compose.desktop.mac.notarization.teamID` | Apple Team ID |
 
 #### Mode 2 — `notarytool` keychain profile
@@ -172,7 +172,31 @@ Equivalent Gradle properties:
 | `compose.desktop.mac.notarization.keychainProfile` | Profile name created via `store-credentials` |
 | `compose.desktop.mac.notarization.keychainPath` | Optional path to the keychain holding the profile |
 
-> Configuring both modes in the same build is rejected at validation time. Pick one.
+#### Mode 3 — App Store Connect API key
+
+Generate a key in [App Store Connect → Users and Access → Integrations → Team Keys](https://appstoreconnect.apple.com/access/integrations/api), download the `.p8` file once, then reference it:
+
+```kotlin
+macOS {
+    notarization {
+        apiKey.set("/path/to/AuthKey_ABC123.p8")
+        apiKeyId.set("ABC123")          // 10-char Key ID
+        apiIssuer.set("12345678-90ab-cdef-1234-567890abcdef") // Issuer UUID
+    }
+}
+```
+
+Equivalent Gradle properties:
+
+| Gradle property | Description |
+|-----------------|-------------|
+| `compose.desktop.mac.notarization.apiKey` | Path to the `.p8` API key file |
+| `compose.desktop.mac.notarization.apiKeyId` | Key ID (the 10-character identifier) |
+| `compose.desktop.mac.notarization.apiIssuer` | Issuer UUID for the team |
+
+This mode is recommended for CI/CD: API keys can be revoked independently of the Apple ID, support role-based scoping, and are not affected by 2FA.
+
+> Configuring more than one mode in the same build is rejected at validation time. Pick one.
 
 ### CI/CD: macOS Signing
 
