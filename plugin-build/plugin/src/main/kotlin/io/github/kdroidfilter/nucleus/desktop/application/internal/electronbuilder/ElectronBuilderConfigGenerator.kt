@@ -317,6 +317,7 @@ internal class ElectronBuilderConfigGenerator {
 
         if (signing.azureTenantId != null) {
             yaml.appendLine("  azureSignOptions:")
+            appendIfNotNull(yaml, "    publisherName", signing.publisherName ?: distributions.vendor)
             appendIfNotNull(yaml, "    endpoint", signing.azureEndpoint)
             appendIfNotNull(yaml, "    certificateProfileName", signing.azureCertificateProfileName)
             appendIfNotNull(yaml, "    codeSigningAccountName", signing.azureCodeSigningAccountName)

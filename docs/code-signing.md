@@ -48,14 +48,15 @@ windows {
 | Sectigo | `http://timestamp.sectigo.com` |
 | GlobalSign | `http://timestamp.globalsign.com` |
 
-### Azure Trusted Signing
+### Azure Artifact Signing
 
-For cloud-based signing with [Azure Trusted Signing](https://learn.microsoft.com/en-us/azure/trusted-signing/):
+For cloud-based signing with [Azure Artifact Signing](https://learn.microsoft.com/en-us/azure/artifact-signing/):
 
 ```kotlin
 windows {
     signing {
         enabled = true
+        publisherName = "Your Publisher Name"
         azureTenantId = "your-tenant-id"
         azureEndpoint = "https://your-region.codesigning.azure.net"
         azureCertificateProfileName = "your-profile"
