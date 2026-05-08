@@ -14,6 +14,40 @@ dependencies {
 
 ## Usage
 
+### Manual usage
+
+This is the core functionality - it’s totally up to you how you want to use it. Just don’t forget to dispose its callback (`removeListener`) when you don’t need it anymore.
+
+You can use Compose states, RxJava/Kotlin, or anything else you prefer.
+
+Here we’re using a coroutines Flow wrapper just for demonstration.
+
+```kt
+val isSystemDarkFlow: Flow<Boolean> = callbackFlow<Boolean> {
+    val listener: Consumer<Boolean> = { isDark: Boolean ->
+        trySend(isDark)
+    }
+
+    val darkModeDetector = getPlatformDarkModeDetector()
+
+    // emit initial value
+    trySend(darkModeDetector.isDark())
+
+    // listen to dark mode change events
+    darkModeDetector.registerListener(listener)
+    awaitClose {
+        darkModeDetector.removeListener(listener)
+    }
+}
+isSystemDarkFlow.collect {
+    println("dark mode changes, isDark: $it")
+}
+```
+
+### In compose
+
+There is already a composable function available out of the box, which you can use it in your compose applications.
+
 ```kotlin
 @Composable
 fun App() {
