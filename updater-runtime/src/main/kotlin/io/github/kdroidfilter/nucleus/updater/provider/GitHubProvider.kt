@@ -1,6 +1,7 @@
 package io.github.kdroidfilter.nucleus.updater.provider
 
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.updater.exception.NetworkException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -77,15 +78,16 @@ class GitHubProvider(
         val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
         val status = response.statusCode()
         if (status != HTTP_OK) {
-            val rateLimitRemaining =
-                response.headers().firstValue("X-RateLimit-Remaining").orElse(null)
-            if (status == HTTP_FORBIDDEN && rateLimitRemaining == "0") {
-                throw RuntimeException(
-                    "GitHub API rate limit exceeded while listing releases for $owner/$repo. " +
-                        "Configure a token to raise the limit.",
-                )
-            }
-            throw RuntimeException("GitHub API returned HTTP $status while listing releases for $owner/$repo.")
+            val rateLimited =
+                status == HTTP_FORBIDDEN &&
+                    response.headers().firstValue("X-RateLimit-Remaining").orElse(null) == "0"
+            val detail =
+                if (rateLimited) {
+                    "rate limit exceeded — configure a token to raise the limit"
+                } else {
+                    "HTTP $status"
+                }
+            throw NetworkException("GitHub API failed while listing releases for $owner/$repo: $detail")
         }
 
         val releases = json.decodeFromString<List<GitHubRelease>>(response.body())
