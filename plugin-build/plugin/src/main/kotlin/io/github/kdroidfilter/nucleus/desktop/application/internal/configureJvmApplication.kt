@@ -708,8 +708,7 @@ private fun JvmApplicationContext.configurePackageTask(
         packageTask.packageDescription.set(executables.description)
         packageTask.packageCopyright.set(executables.copyright)
         packageTask.packageVendor.set(executables.vendor)
-        // jpackage app-image: use the jpackage-safe version. electron-builder formats keep the full
-        // SemVer (see configureElectronBuilderPackageTask, which uses packageVersionFor).
+        // jpackage app-image: use the jpackage-safe version.
         packageTask.packageVersion.set(jpackageVersionFor(packageTask.targetFormat))
     }
 

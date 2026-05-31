@@ -19,19 +19,6 @@ abstract class AbstractPlatformSettings {
     val iconFile: RegularFileProperty = objects.fileProperty()
     var packageVersion: String? = null
 
-    /**
-     * Version passed to jpackage when it builds the app-image (`--app-version`).
-     *
-     * jpackage enforces strict, platform-specific version rules — notably Windows requires
-     * `MAJOR.MINOR.BUILD` and rejects SemVer pre-release/build metadata such as `2.3.5-beta.7`.
-     * [packageVersion] is forwarded unchanged to electron-builder (which accepts full SemVer), so
-     * use this to give jpackage a compatible version without altering [packageVersion].
-     *
-     * When unset, it defaults to [packageVersion]; the value is passed to jpackage as-is and
-     * jpackage reports an error if it is not compatible.
-     */
-    var jpackageVersion: String? = null
-
     internal val fileAssociations: MutableSet<FileAssociation> = mutableSetOf()
 
     @JvmOverloads

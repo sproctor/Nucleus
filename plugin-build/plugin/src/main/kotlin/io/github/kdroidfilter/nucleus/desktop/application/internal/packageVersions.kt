@@ -24,26 +24,13 @@ internal fun JvmApplicationContext.packageVersionFor(targetFormat: TargetFormat)
  * step ([TargetFormat.RawAppImage]) and enforces strict platform version rules — notably Windows
  * rejects SemVer pre-release/build metadata such as `2.3.5-beta.7`. All real installer formats run
  * through electron-builder and keep the full SemVer via [packageVersionFor].
- *
- * Resolves the platform's explicit
- * [io.github.kdroidfilter.nucleus.desktop.application.dsl.AbstractPlatformSettings.jpackageVersion],
- * falling back to the normal package version. The value is passed to jpackage as-is; jpackage
- * reports an error if it is not compatible.
  */
 internal fun JvmApplicationContext.jpackageVersionFor(targetFormat: TargetFormat): Provider<String> =
-    project.provider {
-        app.nativeDistributions.jpackageVersionFor(targetFormat)
-            ?: app.nativeDistributions.packageVersionFor(targetFormat)
-            ?: project.version.toString().takeIf { it != "unspecified" }
-            ?: "1.0.0"
-    }
+    packageVersionFor(targetFormat).map { it.toJpackageVersion() }
 
-private fun JvmApplicationDistributions.jpackageVersionFor(targetFormat: TargetFormat): String? =
-    when (targetFormat.targetOS) {
-        OS.Linux -> linux.jpackageVersion
-        OS.MacOS -> macOS.jpackageVersion
-        OS.Windows -> windows.jpackageVersion
-    }
+// jpackage rejects SemVer pre-release/build metadata; keep only the MAJOR.MINOR.PATCH core.
+private fun String.toJpackageVersion(): String =
+    substringBefore('-').substringBefore('+')
 
 @Suppress("CyclomaticComplexMethod") // Exhaustive when on TargetFormat enum
 private fun JvmApplicationDistributions.packageVersionFor(targetFormat: TargetFormat): String? {
