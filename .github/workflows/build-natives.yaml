@@ -8,10 +8,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -34,7 +34,7 @@ jobs:
           done
 
       - name: Upload darkmode-detector Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-natives
           path: darkmode-detector/src/main/resources/nucleus/native/win32-*/
@@ -55,7 +55,7 @@ jobs:
           done
 
       - name: Upload native-ssl Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ssl-windows
           path: native-ssl/src/main/resources/nucleus/native/win32-*/
@@ -76,7 +76,7 @@ jobs:
           done
 
       - name: Upload decorated-window-jni Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-jni-windows
           path: decorated-window-jni/src/main/resources/nucleus/native/win32-*/
@@ -97,7 +97,7 @@ jobs:
           done
 
       - name: Upload system-color Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-color-windows
           path: system-color/src/main/resources/nucleus/native/win32-*/
@@ -118,7 +118,7 @@ jobs:
           done
 
       - name: Upload energy-manager Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: energy-manager-windows
           path: energy-manager/src/main/resources/nucleus/native/win32-*/
@@ -139,7 +139,7 @@ jobs:
           done
 
       - name: Upload taskbar-progress Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskbar-progress-windows
           path: taskbar-progress/src/main/resources/nucleus/native/win32-*/
@@ -160,7 +160,7 @@ jobs:
           done
 
       - name: Upload notification-windows Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: notification-windows
           path: notification-windows/src/main/resources/nucleus/native/win32-*/
@@ -181,7 +181,7 @@ jobs:
           done
 
       - name: Upload autolaunch Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autolaunch
           path: autolaunch/src/main/resources/nucleus/native/win32-*/
@@ -202,7 +202,7 @@ jobs:
           done
 
       - name: Upload launcher-windows Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: launcher-windows
           path: launcher-windows/src/main/resources/nucleus/native/win32-*/
@@ -223,7 +223,7 @@ jobs:
           done
 
       - name: Upload global-hotkey Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: global-hotkey-windows
           path: global-hotkey/src/main/resources/nucleus/native/win32-*/
@@ -244,7 +244,7 @@ jobs:
           done
 
       - name: Upload decorated-window-core Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-core-windows
           path: decorated-window-core/src/main/resources/nucleus/native/win32-*/
@@ -265,7 +265,7 @@ jobs:
           done
 
       - name: Upload system-info Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-info-windows
           path: system-info/src/main/resources/nucleus/native/win32-*/
@@ -286,7 +286,7 @@ jobs:
           done
 
       - name: Upload scheduler Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scheduler-windows
           path: scheduler/src/main/resources/nucleus/native/win32-*/
@@ -307,7 +307,7 @@ jobs:
           done
 
       - name: Upload media-control Windows DLLs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: media-control-windows
           path: media-control/src/main/resources/nucleus/native/win32-*/
@@ -317,10 +317,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -338,7 +338,7 @@ jobs:
           done
 
       - name: Upload darkmode-detector macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-natives
           path: darkmode-detector/src/main/resources/nucleus/native/darwin-*/
@@ -357,7 +357,7 @@ jobs:
           done
 
       - name: Upload native-ssl macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ssl-macos
           path: native-ssl/src/main/resources/nucleus/native/darwin-*/
@@ -376,7 +376,7 @@ jobs:
           done
 
       - name: Upload decorated-window-jbr macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-jbr-macos
           path: decorated-window-jbr/src/main/resources/nucleus/native/darwin-*/
@@ -395,7 +395,7 @@ jobs:
           done
 
       - name: Upload decorated-window-jni macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-jni-macos
           path: decorated-window-jni/src/main/resources/nucleus/native/darwin-*/
@@ -414,7 +414,7 @@ jobs:
           done
 
       - name: Upload system-color macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-color-macos
           path: system-color/src/main/resources/nucleus/native/darwin-*/
@@ -433,7 +433,7 @@ jobs:
           done
 
       - name: Upload energy-manager macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: energy-manager-macos
           path: energy-manager/src/main/resources/nucleus/native/darwin-*/
@@ -452,7 +452,7 @@ jobs:
           done
 
       - name: Upload taskbar-progress macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskbar-progress-macos
           path: taskbar-progress/src/main/resources/nucleus/native/darwin-*/
@@ -471,7 +471,7 @@ jobs:
           done
 
       - name: Upload notification-macos macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: notification-macos
           path: notification-macos/src/main/resources/nucleus/native/darwin-*/
@@ -490,7 +490,7 @@ jobs:
           done
 
       - name: Upload service-management-macos macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: service-management-macos
           path: service-management-macos/src/main/resources/nucleus/native/darwin-*/
@@ -509,7 +509,7 @@ jobs:
           done
 
       - name: Upload scheduler macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scheduler-macos
           path: scheduler/src/main/resources/nucleus/native/darwin-*/
@@ -528,7 +528,7 @@ jobs:
           done
 
       - name: Upload launcher-macos macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: launcher-macos
           path: launcher-macos/src/main/resources/nucleus/native/darwin-*/
@@ -547,7 +547,7 @@ jobs:
           done
 
       - name: Upload global-hotkey macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: global-hotkey-macos
           path: global-hotkey/src/main/resources/nucleus/native/darwin-*/
@@ -566,7 +566,7 @@ jobs:
           done
 
       - name: Upload menu-macos macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: menu-macos
           path: menu-macos/src/main/resources/nucleus/native/darwin-*/
@@ -585,7 +585,7 @@ jobs:
           done
 
       - name: Upload decorated-window-core macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-core-macos
           path: decorated-window-core/src/main/resources/nucleus/native/darwin-*/
@@ -604,7 +604,7 @@ jobs:
           done
 
       - name: Upload system-info macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-info-macos
           path: system-info/src/main/resources/nucleus/native/darwin-*/
@@ -623,7 +623,7 @@ jobs:
           done
 
       - name: Upload media-control macOS dylibs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: media-control-macos
           path: media-control/src/main/resources/nucleus/native/darwin-*/
@@ -641,10 +641,10 @@ jobs:
             arch: aarch64
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -662,7 +662,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload darkmode-detector Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-natives-${{ matrix.arch }}
           path: darkmode-detector/src/main/resources/nucleus/native/linux-*/
@@ -678,7 +678,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload decorated-window-jni Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-jni-linux-${{ matrix.arch }}
           path: decorated-window-jni/src/main/resources/nucleus/native/linux-*/
@@ -694,7 +694,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload linux-hidpi shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-hidpi-${{ matrix.arch }}
           path: linux-hidpi/src/main/resources/nucleus/native/linux-*/
@@ -710,7 +710,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload system-color Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-color-linux-${{ matrix.arch }}
           path: system-color/src/main/resources/nucleus/native/linux-*/
@@ -726,7 +726,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload energy-manager Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: energy-manager-linux-${{ matrix.arch }}
           path: energy-manager/src/main/resources/nucleus/native/linux-*/
@@ -742,7 +742,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload notification-linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: notification-linux-${{ matrix.arch }}
           path: notification-linux/src/main/resources/nucleus/native/linux-*/
@@ -758,7 +758,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload launcher-linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: launcher-linux-${{ matrix.arch }}
           path: launcher-linux/src/main/resources/nucleus/native/linux-*/
@@ -774,7 +774,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload autolaunch Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autolaunch-linux-${{ matrix.arch }}
           path: autolaunch/src/main/resources/nucleus/native/linux-*/
@@ -790,7 +790,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload decorated-window-core Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decorated-window-core-linux-${{ matrix.arch }}
           path: decorated-window-core/src/main/resources/nucleus/native/linux-*/
@@ -806,7 +806,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload system-info Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-info-linux-${{ matrix.arch }}
           path: system-info/src/main/resources/nucleus/native/linux-*/
@@ -822,7 +822,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload global-hotkey Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: global-hotkey-linux-${{ matrix.arch }}
           path: global-hotkey/src/main/resources/nucleus/native/linux-*/
@@ -838,7 +838,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload scheduler Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scheduler-linux-${{ matrix.arch }}
           path: scheduler/src/main/resources/nucleus/native/linux-*/
@@ -854,7 +854,7 @@ jobs:
           echo "OK: $f ($(wc -c < "$f") bytes)"
 
       - name: Upload media-control Linux shared library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: media-control-linux-${{ matrix.arch }}
           path: media-control/src/main/resources/nucleus/native/linux-*/
