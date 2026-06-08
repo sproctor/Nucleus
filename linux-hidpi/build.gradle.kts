@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(project(":core-runtime"))
@@ -59,7 +64,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.linux-hidpi", publishVersion)
+    coordinates(publishGroup, "nucleus.linux-hidpi", publishVersion)
 
     pom {
         name.set("Nucleus Linux HiDPI")

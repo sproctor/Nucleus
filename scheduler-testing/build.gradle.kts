@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":scheduler"))
     testImplementation(project(":core-runtime"))
@@ -32,7 +37,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.scheduler-testing", publishVersion)
+    coordinates(publishGroup, "nucleus.scheduler-testing", publishVersion)
 
     pom {
         name.set("Nucleus Scheduler Testing")

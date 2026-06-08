@@ -14,6 +14,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     // Compile against decorated-window-jbr API but let the consumer choose the runtime
     // implementation: either :decorated-window-jbr (JBR) or :decorated-window-jni.
@@ -35,7 +40,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-material3", publishVersion)
+    coordinates(publishGroup, "nucleus.decorated-window-material3", publishVersion)
 
     pom {
         name.set("Nucleus Material Decorated Window")

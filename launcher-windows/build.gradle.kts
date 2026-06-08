@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(project(":core-runtime"))
 }
@@ -54,7 +59,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.launcher-windows", publishVersion)
+    coordinates(publishGroup, "nucleus.launcher-windows", publishVersion)
 
     pom {
         name.set("Nucleus Launcher Windows")

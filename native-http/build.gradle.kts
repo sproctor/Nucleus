@@ -12,6 +12,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":native-ssl"))
     testImplementation(libs.junit)
@@ -29,7 +34,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.native-http", publishVersion)
+    coordinates(publishGroup, "nucleus.native-http", publishVersion)
 
     pom {
         name.set("Nucleus Native HTTP")

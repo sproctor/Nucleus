@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(project(":core-runtime"))
     api(project(":launcher-linux"))
@@ -79,7 +84,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.taskbar-progress", publishVersion)
+    coordinates(publishGroup, "nucleus.taskbar-progress", publishVersion)
 
     pom {
         name.set("Nucleus Taskbar Progress")

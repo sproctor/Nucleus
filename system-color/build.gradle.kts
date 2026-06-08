@@ -15,6 +15,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":core-runtime"))
     api(libs.compose.desktop.common)
@@ -98,7 +103,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.system-color", publishVersion)
+    coordinates(publishGroup, "nucleus.system-color", publishVersion)
 
     pom {
         name.set("Nucleus System Color")
