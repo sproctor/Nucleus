@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":core-runtime"))
     implementation(kotlin("stdlib"))
@@ -33,7 +38,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.updater-runtime", publishVersion)
+    coordinates(publishGroup, "nucleus.updater-runtime", publishVersion)
 
     pom {
         name.set("Nucleus Updater Runtime")

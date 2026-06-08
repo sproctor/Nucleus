@@ -288,6 +288,10 @@ jobs:
         if: success()
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
         env:
+          # Maven group to publish under. Defaults to the canonical namespace; set the
+          # repository variable PUBLISH_GROUP (Settings > Secrets and variables > Actions >
+          # Variables) to publish a parallel release under your own verified namespace.
+          ORG_GRADLE_PROJECT_GROUP: ${{ vars.PUBLISH_GROUP || 'io.github.kdroidfilter' }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVENCENTRALUSERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVENCENTRALPASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNINGINMEMORYKEY }}

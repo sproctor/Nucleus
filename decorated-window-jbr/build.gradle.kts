@@ -15,6 +15,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":decorated-window-core"))
     implementation(project(":core-runtime"))
@@ -57,7 +62,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-jbr", publishVersion)
+    coordinates(publishGroup, "nucleus.decorated-window-jbr", publishVersion)
 
     pom {
         name.set("Nucleus Decorated Window JBR")

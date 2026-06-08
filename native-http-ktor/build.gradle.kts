@@ -12,6 +12,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":native-ssl"))
     api(libs.ktor.client.core)
@@ -38,7 +43,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.native-http-ktor", publishVersion)
+    coordinates(publishGroup, "nucleus.native-http-ktor", publishVersion)
 
     pom {
         name.set("Nucleus Native HTTP Ktor")

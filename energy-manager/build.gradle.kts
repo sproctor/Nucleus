@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(project(":core-runtime"))
     implementation(libs.coroutines.core)
@@ -97,7 +102,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.energy-manager", publishVersion)
+    coordinates(publishGroup, "nucleus.energy-manager", publishVersion)
 
     pom {
         name.set("Nucleus Energy Manager")

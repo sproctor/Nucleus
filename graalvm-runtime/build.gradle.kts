@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     compileOnly("org.graalvm.nativeimage:svm:25.0.0")
     implementation(project(":linux-hidpi"))
@@ -34,7 +39,7 @@ tasks.named<Javadoc>("javadoc") {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.graalvm-runtime", publishVersion)
+    coordinates(publishGroup, "nucleus.graalvm-runtime", publishVersion)
 
     pom {
         name.set("Nucleus GraalVM Runtime")

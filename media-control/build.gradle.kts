@@ -14,6 +14,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":core-runtime"))
     implementation(libs.kotlinx.serialization.json)
@@ -102,7 +107,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.media-control", publishVersion)
+    coordinates(publishGroup, "nucleus.media-control", publishVersion)
 
     pom {
         name.set("Nucleus Media Control")

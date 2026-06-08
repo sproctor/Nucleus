@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":freedesktop-icons"))
     implementation(project(":core-runtime"))
@@ -60,7 +65,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.notification-linux", publishVersion)
+    coordinates(publishGroup, "nucleus.notification-linux", publishVersion)
 
     pom {
         name.set("Nucleus Notification Linux")

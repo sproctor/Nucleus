@@ -13,6 +13,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(project(":core-runtime"))
     api(project(":service-management-macos"))
@@ -75,7 +80,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.autolaunch", publishVersion)
+    coordinates(publishGroup, "nucleus.autolaunch", publishVersion)
 
     pom {
         name.set("Nucleus Autolaunch")

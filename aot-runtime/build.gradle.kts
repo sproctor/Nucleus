@@ -12,6 +12,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     api(project(":core-runtime"))
     implementation(kotlin("stdlib"))
@@ -30,7 +35,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.aot-runtime", publishVersion)
+    coordinates(publishGroup, "nucleus.aot-runtime", publishVersion)
 
     pom {
         name.set("Nucleus AOT Runtime")

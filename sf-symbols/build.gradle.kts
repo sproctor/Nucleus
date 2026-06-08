@@ -12,6 +12,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
@@ -24,7 +29,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.sf-symbols", publishVersion)
+    coordinates(publishGroup, "nucleus.sf-symbols", publishVersion)
 
     pom {
         name.set("Nucleus SF Symbols")

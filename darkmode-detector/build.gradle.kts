@@ -15,6 +15,11 @@ val publishVersion =
         ?.removePrefix("refs/tags/v")
         ?: "1.0.0"
 
+val publishGroup =
+    providers
+        .gradleProperty("GROUP")
+        .getOrElse("io.github.kdroidfilter")
+
 dependencies {
     implementation(project(":core-runtime"))
     api(libs.compose.desktop.common)
@@ -103,7 +108,7 @@ tasks.configureEach {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.darkmode-detector", publishVersion)
+    coordinates(publishGroup, "nucleus.darkmode-detector", publishVersion)
 
     pom {
         name.set("Nucleus Dark Mode Detector")
