@@ -19,8 +19,10 @@ jobs:
       # Maven group of the plugin artifact; PUBLISH_PLUGIN_ID sets the (globally unique)
       # Gradle Plugin Portal id. Both default to the canonical values, so upstream is
       # unaffected. Set them as repository variables to enable a parallel publication.
+      # NOTE: ORG_GRADLE_PROJECT_ID is intentionally scoped to the publish step only.
+      # The bundled sample apps apply the plugin by its canonical id, so overriding the
+      # id during the preMerge build would break their plugin resolution.
       ORG_GRADLE_PROJECT_GROUP: ${{ vars.PUBLISH_GROUP || 'io.github.kdroidfilter' }}
-      ORG_GRADLE_PROJECT_ID: ${{ vars.PUBLISH_PLUGIN_ID || 'io.github.kdroidfilter.nucleus' }}
     if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
     steps:
       - name: Checkout Repo
@@ -41,3 +43,5 @@ jobs:
       - name: Publish on Plugin Portal
         run: ./gradlew --project-dir plugin-build setupPluginUploadFromEnvironment publishPlugins
         if: success()
+        env:
+          ORG_GRADLE_PROJECT_ID: ${{ vars.PUBLISH_PLUGIN_ID || 'io.github.kdroidfilter.nucleus' }}
