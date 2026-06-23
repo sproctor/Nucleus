@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     kotlin("jvm")
     `java-gradle-plugin`
-    alias(libs.plugins.pluginPublish)
+    alias(libs.plugins.vanniktechMavenPublish)
 }
 
 dependencies {
@@ -249,22 +249,58 @@ sourceSets.main.configure {
     java.srcDir(buildConfig.flatMap { it.generatedOutputDir })
 }
 
+// The java-gradle-plugin declaration drives the generated plugin descriptor and the
+// Maven "plugin marker" artifact (groupId == plugin id). com.vanniktech.maven.publish
+// detects this as a GradlePlugin project and publishes both the main artifact and the
+// marker to Maven Central, so consumers can apply it via the `plugins {}` block as long
+// as they add mavenCentral() to pluginManagement.repositories.
 gradlePlugin {
     plugins {
         create(property("ID").toString()) {
             id = property("ID").toString()
             implementationClass = property("IMPLEMENTATION_CLASS").toString()
-            version = project.version.toString()
-            description = property("DESCRIPTION").toString()
             displayName = property("DISPLAY_NAME").toString()
+            description = property("DESCRIPTION").toString()
             tags.set(listOf("nucleus", "desktop", "jvm", "packaging"))
         }
     }
 }
 
-gradlePlugin {
-    website.set(property("WEBSITE").toString())
-    vcsUrl.set(property("VCS_URL").toString())
+mavenPublishing {
+    coordinates(property("GROUP").toString(), "nucleus-gradle-plugin", project.version.toString())
+
+    pom {
+        name.set(property("DISPLAY_NAME").toString())
+        description.set(property("DESCRIPTION").toString())
+        url.set(property("WEBSITE").toString())
+
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("kdroidfilter")
+                name.set("kdroidFilter")
+                url.set("https://github.com/kdroidFilter")
+            }
+        }
+
+        scm {
+            val vcsUrl = property("VCS_URL").toString()
+            url.set(vcsUrl)
+            connection.set("scm:git:$vcsUrl")
+            developerConnection.set("scm:git:$vcsUrl")
+        }
+    }
+
+    publishToMavenCentral()
+    if (project.hasProperty("signingInMemoryKey")) {
+        signAllPublications()
+    }
 }
 
 // Use Detekt with type resolution for check
@@ -274,18 +310,4 @@ tasks.named("check").configure {
             it is TaskProvider<*> && it.name == "detekt"
         } + tasks.named("detektMain"),
     )
-}
-
-tasks.register("setupPluginUploadFromEnvironment") {
-    doLast {
-        val key = System.getenv("GRADLE_PUBLISH_KEY")
-        val secret = System.getenv("GRADLE_PUBLISH_SECRET")
-
-        if (key == null || secret == null) {
-            throw GradleException("gradlePublishKey and/or gradlePublishSecret are not defined environment variables")
-        }
-
-        System.setProperty("gradle.publish.key", key)
-        System.setProperty("gradle.publish.secret", secret)
-    }
 }
