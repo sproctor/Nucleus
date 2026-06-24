@@ -73,6 +73,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: graalvm-jewel-${{ runner.os }}-${{ matrix.arch }}
+          retention-days: 1
           path: |
             jewel-sample/build/compose/binaries/**/graalvm-*/**
           if-no-files-found: error

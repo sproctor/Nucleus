@@ -100,6 +100,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: release-assets-${{ runner.os }}-${{ matrix.arch }}
+          retention-days: 1
           path: |
             example/build/compose/binaries/**/*.deb
             example/build/compose/binaries/**/*.rpm
@@ -250,6 +251,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: release-assets-macOS-universal
+          retention-days: 1
           path: artifacts/release-assets-macOS-universal
           if-no-files-found: error
 
@@ -293,6 +295,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: release-assets-Windows-bundle
+          retention-days: 1
           path: artifacts/release-assets-Windows-bundle
           if-no-files-found: error
 

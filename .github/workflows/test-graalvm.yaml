@@ -52,6 +52,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: graalvm-${{ runner.os }}
+          retention-days: 1
           path: |
             example/build/compose/tmp/**/graalvm/output/**
           if-no-files-found: warn
