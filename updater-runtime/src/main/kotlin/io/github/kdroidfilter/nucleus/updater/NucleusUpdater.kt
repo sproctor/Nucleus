@@ -9,6 +9,7 @@ import io.github.kdroidfilter.nucleus.updater.exception.NoMatchingFileException
 import io.github.kdroidfilter.nucleus.updater.exception.UpdateException
 import io.github.kdroidfilter.nucleus.updater.internal.ChecksumVerifier
 import io.github.kdroidfilter.nucleus.updater.internal.FileSelector
+import io.github.kdroidfilter.nucleus.updater.internal.InstallTypeDetector
 import io.github.kdroidfilter.nucleus.updater.internal.PlatformInfo
 import io.github.kdroidfilter.nucleus.updater.internal.PlatformInstaller
 import io.github.kdroidfilter.nucleus.updater.internal.UpdateMarker
@@ -38,6 +39,8 @@ class NucleusUpdater(
                 .newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build()
+
+    private val installTypeDetector = InstallTypeDetector()
 
     fun isUpdateSupported(): Boolean {
         val type = resolveExecutableType()
@@ -209,15 +212,11 @@ class NucleusUpdater(
             return UpdateResult.NotAvailable
         }
 
-        // On macOS, ignore the build-time system property so auto-detection
-        // can prefer ZIP (silent install). Users can still force DMG via config.executableType.
-        val format =
-            config.executableType
-                ?: if (platform == Platform.MacOS) {
-                    null
-                } else {
-                    System.getProperty("nucleus.executable.type")
-                }
+        // Detect the install format at runtime (APPIMAGE/SNAP/FLATPAK env, electron-builder's
+        // resources/package-type), falling back to the legacy baked marker. macOS resolves to
+        // null so selection prefers the ZIP (silent install). Users can force a format via
+        // config.executableType.
+        val format = config.executableType ?: installTypeDetector.detectFormatId()
 
         val selectedFile =
             FileSelector.select(
@@ -265,7 +264,7 @@ class NucleusUpdater(
     private fun resolveExecutableType(): ExecutableType {
         val explicit = config.executableType
         if (explicit != null) return ExecutableRuntime.parseType(explicit)
-        return ExecutableRuntime.type()
+        return installTypeDetector.detect()
     }
 
     private fun applyAuthHeaders(builder: HttpRequest.Builder) {
