@@ -28,19 +28,20 @@ set "JNI_INCLUDE_WIN32=%JAVA_HOME%\include\win32"
 
 REM Locate vcvarsall.bat
 set "VCVARSALL="
-for %%v in (2022 2019 2017) do (
-    for %%e in (Enterprise Professional Community BuildTools) do (
-        if exist "C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" (
-            set "VCVARSALL=C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
-            goto :found_vc
-        )
-        if exist "C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" (
-            set "VCVARSALL=C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
-            goto :found_vc
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" (
+    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -property installationPath`) do (
+        if exist "%%i\VC\Auxiliary\Build\vcvarsall.bat" set "VCVARSALL=%%i\VC\Auxiliary\Build\vcvarsall.bat"
+    )
+)
+if "%VCVARSALL%"=="" (
+    for %%v in (2022 2019 2017) do (
+        for %%e in (Enterprise Professional Community BuildTools) do (
+            if exist "C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" set "VCVARSALL=C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
+            if exist "C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" set "VCVARSALL=C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
         )
     )
 )
-:found_vc
 if "%VCVARSALL%"=="" (
     echo ERROR: Could not locate vcvarsall.bat. Install Visual Studio Build Tools. >&2
     exit /b 1
