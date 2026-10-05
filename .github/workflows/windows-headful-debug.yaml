@@ -9,7 +9,49 @@ on:
       - debug/windows-headful
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
 jobs:
+  # Does the watcher itself work on Windows? A fake stalled command and a fake
+  # stalled JVM, 30 s stall limit: both steps must fail quickly with HANG output.
+  watcher-selftest-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Stalled shell command
+        id: stalled_shell
+        continue-on-error: true
+        shell: bash
+        env:
+          HANG_WATCH_STALL_SECONDS: '30'
+          HANG_WATCH_PROGRESS: 'watcher selftest (shell)'
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .github/scripts/run-with-hang-watch.sh 5 build/headful-logs/selftest-shell.log bash -c 'echo "[tao-headful] START fake stalled case"; sleep 600'
+      - name: Stalled JVM
+        id: stalled_jvm
+        continue-on-error: true
+        shell: bash
+        env:
+          HANG_WATCH_STALL_SECONDS: '30'
+        run: |
+          mkdir -p build/selftest
+          printf '%s\n' 'public class TaoHeadfulTestSuiteMain { public static void main(String[] a) throws Exception { System.out.println("[tao-headful] START fake stalled JVM case"); System.out.flush(); Thread.sleep(600000); } }' > build/selftest/TaoHeadfulTestSuiteMain.java
+          .github/scripts/run-with-hang-watch.sh 5 build/headful-logs/selftest-jvm.log java build/selftest/TaoHeadfulTestSuiteMain.java
+      - name: Both must have failed (hang detected), not passed
+        shell: bash
+        run: |
+          echo "shell: ${{ steps.stalled_shell.outcome }}  jvm: ${{ steps.stalled_jvm.outcome }}"
+          test "${{ steps.stalled_shell.outcome }}" = failure
+          test "${{ steps.stalled_jvm.outcome }}" = failure
+
   build-natives:
     uses: ./.github/workflows/build-natives.yaml
 
@@ -39,6 +81,9 @@ jobs:
 
       - name: Run headful suite
         shell: bash
+        env:
+          HANG_WATCH_PROGRESS: 'headful progress (JVM, Windows)'
+          GITHUB_TOKEN: ${{ github.token }}
         run: .github/scripts/run-with-hang-watch.sh 48 build/headful-logs/tao-headful.log ./gradlew :decorated-window-tao:taoHeadfulTest
 
       - name: Upload headful log
@@ -76,6 +121,8 @@ jobs:
         shell: bash
         env:
           NUCLEUS_TAO_INPUT_INJECTION: '1'
+          HANG_WATCH_PROGRESS: 'headful progress (GraalVM, Windows)'
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           BIN=$(find examples/tao-native-test/build/compose/binaries -type f \( -name 'tao-native-test' -o -name 'tao-native-test.exe' \) | head -1)
           echo "binary: $BIN"
