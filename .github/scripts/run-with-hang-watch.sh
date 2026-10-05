@@ -20,6 +20,11 @@
 # the test JVM's threads (jcmd, each bounded: attaching to a process wedged
 # under the Windows loader lock blocks), tries to kill the command, and fails
 # the step. Keep <limit-minutes> well under the job's timeout-minutes.
+#
+# With HANG_WATCH_PROGRESS=<name> and GITHUB_TOKEN (checks: write), progress is
+# also sent off the runner every 30 s, as a check run <name> on the commit: the
+# elapsed time, the last case and the log's tail. GitHub keeps each update as
+# it lands, so it survives a runner that wedges or dies.
 set -uo pipefail
 
 limit_min="$1"
@@ -70,6 +75,33 @@ bounded() {
     i=$((i + 1))
   done
   cat "$out"
+}
+
+progress_id=""
+progress_start() {
+  [ -n "${HANG_WATCH_PROGRESS:-}" ] && [ -n "${GITHUB_TOKEN:-}" ] || return 0
+  progress_id="$(bounded 20 env GH_TOKEN="$GITHUB_TOKEN" gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+    -f name="$HANG_WATCH_PROGRESS" -f head_sha="$GITHUB_SHA" -f status=in_progress --jq .id)"
+  case "$progress_id" in *[!0-9]* | '') echo "[hang-watch] no progress check run: $progress_id"; progress_id="" ;; esac
+}
+
+# Fire and forget: detached, no output, so it can neither block nor hold the step.
+progress_update() {
+  [ -n "$progress_id" ] || return 0
+  local title="$1" tail
+  tail="$(tail -60 "$log")"
+  (GH_TOKEN="$GITHUB_TOKEN" gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$progress_id" \
+    -f "output[title]=$title" -f "output[summary]=$title" -f "output[text]=$tail" \
+    > /dev/null 2>&1 < /dev/null &)
+}
+
+# Closes the check run with a conclusion; bounded rather than detached, so the
+# last word lands before the step ends.
+progress_finish() {
+  [ -n "$progress_id" ] || return 0
+  bounded 20 env GH_TOKEN="$GITHUB_TOKEN" gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$progress_id" \
+    -f status=completed -f conclusion="$1" -f "output[title]=$2" -f "output[summary]=$2" \
+    -f "output[text]=$(tail -60 "$log")" > /dev/null
 }
 
 is_windows() {
@@ -137,6 +169,7 @@ kill_command() {
 report_hang() {
   local why="$1"
   flush_log
+  progress_update "HANG: $why; last case: $(last_case)"
   echo "::warning title=Headful run wedged::$why; last case: $(last_case)"
   echo "HANG: $why"
   echo "HANG: last case: $(last_case)"
@@ -148,13 +181,16 @@ report_hang() {
   kill_command
   flush_log
   echo "::error::$why; last case: $(last_case)"
+  progress_finish failure "HANG: $why; last case: $(last_case)"
   # Not waiting for the command: a process that cannot be killed would keep
   # this step, and with it the job, from ever finishing.
   exit 1
 }
 
+progress_start
 start=$SECONDS
 last_growth=$SECONDS
+next_progress=0
 last_size=0
 next_beat=$heartbeat_s
 while kill -0 "$pid" 2>/dev/null; do
@@ -171,6 +207,10 @@ while kill -0 "$pid" 2>/dev/null; do
   if [ $((now - start)) -ge "$limit_s" ]; then
     report_hang "no result after $(((now - start) / 60)) min"
   fi
+  if [ $((now - start)) -ge "$next_progress" ]; then
+    progress_update "$(((now - start) / 60)) min — $(last_case)"
+    next_progress=$((next_progress + 30))
+  fi
   if [ $((now - start)) -ge "$next_beat" ]; then
     echo "[hang-watch] $(((now - start) / 60)) min — $(bounded 20 free_memory) — $(last_case)"
     next_beat=$((next_beat + heartbeat_s))
@@ -180,4 +220,6 @@ done
 wait "$pid"
 status=$?
 flush_log
+if [ "$status" -eq 0 ]; then conclusion=success; else conclusion=failure; fi
+progress_finish "$conclusion" "finished with exit status $status after $(((SECONDS - start) / 60)) min"
 exit "$status"
