@@ -95,8 +95,19 @@ jobs:
           BIN=$(find examples/tao-native-test/build/compose/binaries -type f \( -name 'tao-native-test' -o -name 'tao-native-test.exe' \) | head -1)
           echo "binary: $BIN"
           test -n "$BIN"
-          "$BIN" battery
-          "$BIN" headful
+          # Bounded well below the job's timeout-minutes, so a wedged run fails
+          # this step with its log (the last case started) instead of running
+          # until the job is killed or the runner is lost — both keep no log.
+          .github/scripts/run-with-hang-watch.sh 45 build/headful-logs/graalvm-native-test.log \
+            bash -c '"$0" battery && "$0" headful' "$BIN"
+
+      - name: Upload native test log
+        if: always() && runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: graalvm-native-test-log-${{ runner.os }}
+          path: build/headful-logs/
+          if-no-files-found: ignore
 
       # ── Stage 2: package nucleus-demo (only if e2e passed) ──────────────
       - name: Build GraalVM native image (nucleus-demo)

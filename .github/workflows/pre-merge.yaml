@@ -298,7 +298,20 @@ jobs:
 
       - name: Run headful suite
         if: runner.os != 'Linux'
-        run: ./gradlew :decorated-window-tao:taoHeadfulTest
+        shell: bash
+        # Bounded below the job's timeout-minutes: a job killed at its limit
+        # keeps no log at all, which is all the Windows suite ever left behind.
+        # The watcher fails the step instead, after printing the last case
+        # started and the test JVM's threads.
+        run: .github/scripts/run-with-hang-watch.sh 48 build/headful-logs/tao-headful.log ./gradlew :decorated-window-tao:taoHeadfulTest
+
+      - name: Upload headful log
+        if: always() && runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: headful-log-${{ runner.os }}
+          path: build/headful-logs/
+          if-no-files-found: ignore
 
       - name: Smoke standalone NSPanel chain (macOS)
         if: runner.os == 'macOS'
