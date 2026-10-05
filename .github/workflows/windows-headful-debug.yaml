@@ -1,0 +1,92 @@
+# TEMPORARY — debug branch only, never merged. Runs just the two Windows
+# headful jobs (JVM suite, GraalVM native test pyramid) with the same steps as
+# pre-merge.yaml / test-graalvm.yaml, to catch where they hang.
+name: Windows headful debug (temporary)
+
+on:
+  push:
+    branches:
+      - debug/windows-headful
+  workflow_dispatch:
+
+jobs:
+  build-natives:
+    uses: ./.github/workflows/build-natives.yaml
+
+  tao-headful-windows:
+    needs: [build-natives]
+    timeout-minutes: 60
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'natives-*'
+          merge-multiple: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Install Mesa software OpenGL (Windows)
+        uses: f3d-app/install-mesa-windows-action@v1
+        with:
+          path: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\*\x64\bin
+
+      - name: Run headful suite
+        shell: bash
+        run: .github/scripts/run-with-hang-watch.sh 48 build/headful-logs/tao-headful.log ./gradlew :decorated-window-tao:taoHeadfulTest
+
+      - name: Upload headful log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: headful-log-Windows
+          path: build/headful-logs/
+          if-no-files-found: ignore
+
+  graalvm-windows:
+    needs: [build-natives]
+    timeout-minutes: 90
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'natives-*'
+          merge-multiple: true
+
+      - name: Setup Nucleus (GraalVM)
+        uses: ./.github/actions/setup-nucleus
+        with:
+          graalvm: 'true'
+          setup-gradle: 'true'
+
+      - name: Build native test runner
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./gradlew :examples:tao-native-test:packageGraalvmNative -PnativeMarch=compatibility --no-daemon --stacktrace
+
+      - name: Run native test pyramid
+        shell: bash
+        env:
+          NUCLEUS_TAO_INPUT_INJECTION: '1'
+        run: |
+          BIN=$(find examples/tao-native-test/build/compose/binaries -type f \( -name 'tao-native-test' -o -name 'tao-native-test.exe' \) | head -1)
+          echo "binary: $BIN"
+          test -n "$BIN"
+          .github/scripts/run-with-hang-watch.sh 45 build/headful-logs/graalvm-native-test.log \
+            bash -c '"$0" battery && "$0" headful' "$BIN"
+
+      - name: Upload native test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graalvm-native-test-log-Windows
+          path: build/headful-logs/
+          if-no-files-found: ignore
