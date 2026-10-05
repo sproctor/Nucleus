@@ -57,6 +57,8 @@ jobs:
 
   tao-headful-windows:
     needs: [build-natives]
+    # Only the Windows natives are needed: run even when another platform's build fails or is never picked up.
+    if: always()
     timeout-minutes: 60
     runs-on: windows-latest
     steps:
@@ -96,6 +98,8 @@ jobs:
 
   graalvm-windows:
     needs: [build-natives]
+    # Only the Windows natives are needed: run even when another platform's build fails or is never picked up.
+    if: always()
     timeout-minutes: 90
     runs-on: windows-latest
     steps:
