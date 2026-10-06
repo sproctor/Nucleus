@@ -1,0 +1,64 @@
+# TEMPORARY — debug branch only, never merged. Based on PR #765 (fix/mac-headful),
+# so the right-click and border-drag fixes are in.
+#
+# Runs only the last quarter of the Windows headful suite — shard 3 of 4, the one
+# that froze the runner before those fixes — split again into four contiguous
+# sub-shards on separate runners (-Dnucleus.tao.headful.shard=3/4,i/4). Each runs
+# under run-with-hang-watch.sh with its own log artifact and the in-JVM resource
+# heartbeat, so a sub-shard that still misbehaves names a range of ~24 cases.
+name: Windows headful shards (temporary)
+
+on:
+  push:
+    branches:
+      - debug/windows-headful-shards
+  workflow_dispatch:
+
+jobs:
+  build-natives:
+    uses: ./.github/workflows/build-natives.yaml
+
+  tao-headful-shard:
+    needs: [build-natives]
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        sub: [0, 1, 2, 3]
+    runs-on: windows-latest
+    name: tao-headful shard 3/4 › ${{ matrix.sub }}/4
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: 'natives-*'
+          merge-multiple: true
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Mesa software OpenGL (Windows)
+        uses: f3d-app/install-mesa-windows-action@v3
+        with:
+          path: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\*\x64\bin
+
+      - name: Run headful sub-shard
+        shell: bash
+        run: >-
+          .github/scripts/run-with-hang-watch.sh 30 build/headful-logs/tao-headful-shard-3-${{ matrix.sub }}.log
+          ./gradlew :decorated-window-tao:taoHeadfulTest --console=plain
+          -Dnucleus.tao.headful.shard=3/4,${{ matrix.sub }}/4
+          -Dnucleus.tao.headful.heartbeatMillis=30000
+
+      - name: Upload headful log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: headful-log-shard-3-${{ matrix.sub }}
+          path: build/headful-logs/
+          if-no-files-found: ignore

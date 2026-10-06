@@ -231,6 +231,12 @@ val taoHeadfulTest =
         System.getProperty("nucleus.tao.headful.filter")?.let {
             systemProperty("nucleus.tao.headful.filter", it)
         }
+        // DEBUG (debug/windows-headful-shards): case sharding and the resource heartbeat.
+        for (debugProperty in listOf("shard", "heartbeatMillis")) {
+            System.getProperty("nucleus.tao.headful.$debugProperty")?.let {
+                systemProperty("nucleus.tao.headful.$debugProperty", it)
+            }
+        }
         // Opts into the tear-off flash film (TearOffFlashHeadfulCases).
         System.getProperty("nucleus.tao.headful.tearOffFlash")?.let {
             systemProperty("nucleus.tao.headful.tearOffFlash", it)

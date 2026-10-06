@@ -54,6 +54,8 @@ public object TaoHeadfulTestSuiteMain {
             ?.filter { it.isNotEmpty() }
             .orEmpty()
 
+    @Volatile private var currentCase: String = "-"
+
     private val allCases: List<TaoWindowTestCase> =
         listOf(
             TaoWindowTestCase("window maps, paints and reports a real size") {
@@ -430,10 +432,37 @@ public object TaoHeadfulTestSuiteMain {
             NativeViewMonkeyHeadfulCases.all() +
             TextureViewMonkeyHeadfulCases.all()
 
-    private val cases: List<TaoWindowTestCase> =
+    private val filteredCases: List<TaoWindowTestCase> =
         allCases.filter { case ->
             nameFilters.isEmpty() || nameFilters.any { case.name.contains(it, ignoreCase = true) }
         }
+
+    // DEBUG: `-Dnucleus.tao.headful.shard=i/n[,j/m…]` (0-based) keeps the i-th of
+    // n contiguous blocks of the filtered cases, in suite order, then the j-th of
+    // m blocks of *that*, and so on — `3/4,0/4` is the first quarter of the last
+    // quarter, and `3/4,0/4` … `3/4,3/4` together are exactly `3/4`. Contiguous,
+    // not every n-th case, so the cross-case interactions of a full run are kept.
+    private val shardSteps: List<Pair<Int, Int>> =
+        System
+            .getProperty("nucleus.tao.headful.shard")
+            ?.split(',')
+            ?.mapNotNull { step ->
+                step
+                    .split('/')
+                    .mapNotNull { it.trim().toIntOrNull() }
+                    .takeIf { it.size == 2 && it[1] > 0 && it[0] in 0 until it[1] }
+                    ?.let { it[0] to it[1] }
+            }.orEmpty()
+
+    private val shardRange: IntRange =
+        // Balanced: block i is [n*i/count, n*(i+1)/count), never empty while there
+        // are at least as many cases as blocks.
+        shardSteps.fold(filteredCases.indices) { range, (index, count) ->
+            val n = range.count()
+            (range.first + n * index / count) until (range.first + n * (index + 1) / count)
+        }
+
+    private val cases: List<TaoWindowTestCase> = filteredCases.slice(shardRange)
 
     @JvmStatic
     @Suppress("LongMethod") // one flat harness: case hosting, then the driver
@@ -444,6 +473,15 @@ public object TaoHeadfulTestSuiteMain {
             System.err.println("no headful case matches filter '$nameFilter'")
             exitProcess(BAD_FILTER_EXIT_CODE)
         }
+        if (shardSteps.isNotEmpty()) {
+            System.err.println(
+                "[tao-headful] shard ${shardSteps.joinToString(",") { "${it.first}/${it.second}" }}: " +
+                    "cases ${shardRange.first + 1}..${shardRange.last + 1} of ${filteredCases.size} " +
+                    "(first: ${cases.first().name}, last: ${cases.last().name})",
+            )
+        }
+        // DEBUG: prints process and system resources every N ms (see HeadfulHeartbeat).
+        HeadfulHeartbeat.startIfRequested { currentCase }
 
         // The Tao loop owns the launcher thread forever; a hung case must not
         // hang CI — same watchdog pattern as TaoRuntimeResizableSmokeTest.
@@ -461,6 +499,7 @@ public object TaoHeadfulTestSuiteMain {
                 for (frame in frames) System.err.println("\tat $frame")
             }
             System.err.flush()
+            terminateWithoutDetachOnWindows()
             Runtime.getRuntime().halt(WATCHDOG_EXIT_CODE)
         }
 
@@ -508,6 +547,7 @@ public object TaoHeadfulTestSuiteMain {
                     advance(TaoWindowTestResult(running.name, failure = null, skippedReason = skip, durationMillis = 0))
                     return@LaunchedEffect
                 }
+                currentCase = running.name
                 System.err.println("[tao-headful] START ${running.name}")
                 val start = System.currentTimeMillis()
                 val failure =
